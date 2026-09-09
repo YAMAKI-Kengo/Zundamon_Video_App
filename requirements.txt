@@ -1,0 +1,26 @@
+# --- UI ---
+streamlit>=1.38.0
+
+# --- 画像合成（福笑い方式の立ち絵合成） ---
+Pillow>=10.4.0
+
+# --- 動画生成 ---
+# moviepy 2.x系を対象にコードを書いているため、1.x系が入らないよう明示的にレンジ指定している。
+# 2.1.2未満には、透過画像(ImageClip)を重ねたCompositeVideoClip同士をconcatenate_videoclips()で
+# 連結すると合成がおかしくなる既知の不具合（CompositeVideoClipの透過合成処理の不具合）があり、
+# 本アプリのテロップ（シーンごとに立ち絵動画+テロップ画像をCompositeVideoClipで合成 →
+# それを複数シーン分concatenate_videoclipsで連結する構成）はまさにこのパターンに該当するため、
+# 2.1.2以上を必須にしている。
+moviepy>=2.1.2,<3.0
+imageio-ffmpeg>=0.5.1      # moviepyが内部で使うffmpegバイナリを自動取得する（別途ffmpegのインストール不要）
+
+# --- 音声合成（VOICEVOX ENGINE への HTTP リクエスト用） ---
+requests>=2.32.3
+
+# --- リップシンク解析（音声波形の音量解析。wavの読み込みは標準ライブラリのwaveモジュールを使用） ---
+numpy>=1.26.4
+
+# --- ライセンスキー認証（有料配布時。src/utils/license_check.py） ---
+# 実行ファイル化して販売しない場合（自分だけで使う/無料配布する場合）は不要だが、
+# license_check.pyがimportされるため常にインストールしておく必要がある。
+cryptography>=42.0

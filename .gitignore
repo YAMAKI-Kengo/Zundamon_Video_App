@@ -1,0 +1,23 @@
+.venv/
+__pycache__/
+*.pyc
+output/*.mp4
+tmp/audio/*
+!tmp/audio/.gitkeep
+assets/backgrounds/uploaded_*
+assets/content_media/uploaded_*
+.streamlit/
+
+# --- 実行ファイル化(PyInstaller)のビルド成果物 ---
+build/
+dist/
+*.spec
+
+# --- ライセンスキーの鍵ペア（絶対にコミット・配布しないこと。SELLING_GUIDE.md参照） ---
+tools/private_key.pem
+tools/public_key.pem
+*.pem
+
+# --- 一括発行したライセンスキーのリスト（絶対にコミット・配布しないこと） ---
+tools/license_keys.csv
+tools/*license_keys*.csv

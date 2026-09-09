@@ -1,0 +1,38 @@
+{
+  "zundamon": {
+    "display_name": "ずんだもん",
+    "aliases": ["ずんだ"],
+    "accent_color": "#5FAE3E",
+    "default_expression": "normal",
+    "telop": {
+      "color": "#4CAF3D",
+      "stroke_color": "#FFFFFF"
+    },
+    "expressions": {
+      "normal": "普通",
+      "happy": "喜び",
+      "sad": "悲しみ",
+      "angry": "怒り",
+      "surprised": "驚き",
+      "troubled": "困り"
+    }
+  },
+  "shikoku_metan": {
+    "display_name": "四国めたん",
+    "aliases": ["めたん"],
+    "accent_color": "#E39AB8",
+    "default_expression": "normal",
+    "telop": {
+      "color": "#F06CA8",
+      "stroke_color": "#000000"
+    },
+    "expressions": {
+      "normal": "普通",
+      "happy": "喜び",
+      "sad": "悲しみ",
+      "angry": "怒り",
+      "surprised": "驚き",
+      "troubled": "困り"
+    }
+  }
+}
