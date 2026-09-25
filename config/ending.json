@@ -1,0 +1,11 @@
+{
+  "_comment": "エンディングの設定。headline=画面上部に表示する文字（\\nで改行）、expression=2人の表情、se=最初に鳴らす効果音の名前（空なら鳴らさない）。lines の各セリフは字幕なしで読み上げ、duration=そのセリフの表示秒数（省略したセリフは、全体の duration から指定済みの秒数を引いた残りを等分）。",
+  "duration": 12.0,
+  "headline": "ご視聴ありがとうございました！\nチャンネル登録＆高評価よろしくお願いします！",
+  "expression": "happy",
+  "se": "",
+  "lines": [
+    {"speaker": "zundamon", "text": "ご視聴ありがとうございましたなのだ！", "duration": 2.5},
+    {"speaker": "shikoku_metan", "text": "チャンネル登録と高評価、よろしくお願いします！", "duration": 9.5}
+  ]
+}

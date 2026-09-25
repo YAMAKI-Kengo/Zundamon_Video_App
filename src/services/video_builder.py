@@ -19,9 +19,11 @@ MoviePyを用いた最終的な動画書き出し処理。
      重ねる（src.services.telop）。文字色・縁取り色は話者ごとに config/characters.json の
      "telop" 設定を反映する。改行はユーザーが読み上げテキスト内に入力した改行を尊重しつつ、
      画面幅に収まらない行はPillowでのフォント幅実測に基づき自動で折り返す。
-全シーンを結合したうえで、プロジェクトにBGM(project.bgm_path)が設定されていれば、
-動画全体の長さに合わせてループ/トリミングし、指定音量(project.bgm_volume)・
-フェードイン/アウト付きでナレーション音声にミックスしてから1本のMP4として書き出す。
+全シーンを結合したうえで、BGMをナレーション音声にミックスしてから1本のMP4として書き出す。
+BGMはシーンごとに「シーン個別 → 場面（導入/解説/まとめ）ごと → プロジェクト全体」の優先順で決まり
+（Project.resolve_bgm_path）、同じBGMが続くシーンを1区間にまとめて、区間ごとにループ/トリミング・
+指定音量(project.bgm_volume)を適用する。曲が切り替わる境界はクロスフェード、動画の頭・お尻と
+BGMなしの区間との境界はフェードイン/アウトにする（plan_bgm_segments / _build_bgm_clips）。
 書き出し時のエンコード速度（x264のpreset）は speed_preset 引数で選べる（ENCODE_PRESETS参照。
 既定は"balanced"＝veryfast）。あわせてffmpegのマルチスレッドエンコードも有効にしている。
 
@@ -34,7 +36,7 @@ from __future__ import annotations
 import os
 import shutil
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -44,8 +46,6 @@ from moviepy import (
     AudioClip,
     AudioFileClip,
     CompositeAudioClip,
-    CompositeVideoClip,
-    ImageClip,
     ImageSequenceClip,
     VideoClip,
     afx,
@@ -54,13 +54,26 @@ from moviepy import (
 )
 
 from src.models import Project, Scene
-from src.services import background_video, lipsync, telop, voicevox_client
+from src.services import (
+    background_video,
+    book_script,
+    lipsync,
+    motion,
+    pause_cue,
+    slide_renderer,
+    telop,
+    video_metadata,
+    voicevox_client,
+)
 from src.services.compositor import (
     BACKGROUND_FALLBACK_COLOR,
+    blur_background,
     compose_dual_character_overlay,
     compose_dual_scene_frame,
     cover_resize,
+    apply_mood,
     load_background_image,
+    render_transition_card,
     load_before_after_images,
     load_content_media_image,
     paste_before_after,
@@ -101,6 +114,13 @@ class BuildResult:
     warnings: list[str] = field(default_factory=list)
 
 
+CARD_FADE_SECONDS = 0.3  # 場面転換テロップの前後で、黒から/黒へフェードする長さ
+
+
+class _SkipSynthesis(Exception):
+    """VOICEVOXでの合成をしないシーン（録音済みの音声を使う・リピート練習の無音）。"""
+
+
 def _noop(_message: str) -> None:
     pass
 
@@ -139,31 +159,41 @@ def _fit_audio_to_duration(audio_clip: Optional[AudioClip], target_duration: flo
     return audio_clip
 
 
-def _build_telop_clip(
-    text: str,
+def _build_fixed_overlay(
+    scene: Scene,
     resolution: tuple[int, int],
-    duration: float,
     font_path: Optional[str],
-    color: str = "white",
-    stroke_color: str = "black",
-):
-    """読み上げテキストを、半透明の背景ボックス付きのテロップとして表示するクリップを作成する。
-
-    color/stroke_color は話者ごとに変える（zundamon=緑地に白フチ、shikoku_metan=ピンク地に黒フチ、
-    が既定。config/characters.json の "telop" で変更可能）。
-
-    折り返しは src.services.telop で自前実装したものを使う（Pillowでフォント幅を実測して
-    折り返すため、日本語のようにスペースを含まない文章でも画面幅に収まる／ユーザーが
-    読み上げテキスト内で入力した改行（Enter）もそのまま尊重される）。
-    """
-    telop_image = telop.render_telop_image(
-        text,
-        resolution,
-        font_path,
-        color=color,
-        stroke_color=stroke_color,
-    )
-    return ImageClip(np.array(telop_image), transparent=True).with_duration(duration)
+    pr_label_overlay: Optional[Image.Image],
+    warnings: list[str],
+    label: str,
+    progress: ProgressCallback,
+) -> Optional[Image.Image]:
+    """PR表記・画面上部の見出し文字・字幕（テロップ）を、1枚の透過画像にまとめる（無ければ None）。"""
+    layers: list[Image.Image] = []
+    if pr_label_overlay is not None:
+        layers.append(pr_label_overlay)
+    # リピート・回答の間の見出しは、カウントダウンに合わせて出し入れするので、ここでは焼き込まない（pause_cue）
+    if scene.headline and scene.headline.strip() and not scene.pause_style:
+        layers.append(telop.render_headline_image(scene.headline, resolution, font_path))
+    # 字幕（読み上げテキストをそのまま表示。文字色は話者ごとに変える。字幕なしのシーンは出さない）
+    if scene.show_telop and scene.text and scene.text.strip():
+        progress(f"{label}: テロップを合成中…")
+        try:
+            telop_style = get_telop_style(scene.speaker)
+            layers.append(telop.render_telop_image(
+                scene.text, resolution, font_path,
+                color=telop_style["color"], stroke_color=telop_style["stroke_color"],
+                bg_color=telop_style["box_color"], border_color=telop_style["border_color"] or None,
+                sub_text=scene.translation, word_wrap=scene.lang == "en",
+            ))
+        except Exception as e:  # noqa: BLE001
+            warnings.append(f"{label}: テロップの描画に失敗したため、テロップなしで書き出しました（{e}）")
+    if not layers:
+        return None
+    combined = Image.new("RGBA", resolution, (0, 0, 0, 0))
+    for layer in layers:
+        combined = Image.alpha_composite(combined, layer.convert("RGBA"))
+    return combined
 
 
 def _resolve_dynamic_background(
@@ -173,6 +203,8 @@ def _resolve_dynamic_background(
     warnings: list[str],
     label: str,
     extra_clips: list,
+    background_blur: float = 0.0,
+    mood: str = "",
 ):
     """背景（画像 or 動画）を、フレームごと合成用に解決する。
 
@@ -192,7 +224,7 @@ def _resolve_dynamic_background(
         except Exception as e:  # noqa: BLE001 - 背景動画の破損・非対応コーデック等、様々な失敗要因を丁寧な警告に変換する
             warnings.append(f"{label}: 背景動画の読み込みに失敗したため、単色の背景で書き出しました（{e}）")
             return None, Image.new("RGBA", resolution, BACKGROUND_FALLBACK_COLOR)
-    return None, load_background_image(path, resolution)
+    return None, load_background_image(path, resolution, background_blur, mood)
 
 
 def _resolve_dynamic_content_media(
@@ -234,6 +266,7 @@ def _build_dynamic_scene_clip(
     label: str,
     extra_clips: list,
     pr_label_overlay: Optional[Image.Image] = None,
+    background_blur: float = 0.0,
 ):
     """背景・資料メディアの少なくとも一方が動画ファイルの場合の映像クリップを構築する。
 
@@ -248,7 +281,8 @@ def _build_dynamic_scene_clip(
     背景・資料メディアが動画のこのパスでも扱いは変わらない（毎フレーム同じ画像を貼るだけ）。
     """
     bg_clip, bg_static = _resolve_dynamic_background(
-        effective_background_path, actual_duration, resolution, warnings, label, extra_clips
+        effective_background_path, actual_duration, resolution, warnings, label, extra_clips, background_blur,
+        scene.mood,
     )
     before_after = load_before_after_images(scene.before_image_path, scene.after_image_path)
     if before_after is not None:
@@ -259,8 +293,12 @@ def _build_dynamic_scene_clip(
         )
 
     try:
-        overlay_closed = np.array(compose_dual_character_overlay(scene.speaker, scene.expression, False, resolution))
-        overlay_open = np.array(compose_dual_character_overlay(scene.speaker, scene.expression, True, resolution))
+        overlay_closed = np.array(compose_dual_character_overlay(
+            scene.speaker, scene.expression, False, resolution, scene.hidden_characters, scene.partner_expression
+        ))
+        overlay_open = np.array(compose_dual_character_overlay(
+            scene.speaker, scene.expression, True, resolution, scene.hidden_characters, scene.partner_expression
+        ))
     except Exception as e:  # noqa: BLE001 - 立ち絵合成の失敗要因は多岐にわたるため広く捕捉して警告に変換する
         raise VideoBuildError(f"{label}: 立ち絵の合成に失敗しました（{e}）") from e
 
@@ -277,7 +315,9 @@ def _build_dynamic_scene_clip(
         if bg_clip is not None:
             try:
                 bg_frame = bg_clip.get_frame(t)
-                canvas = cover_resize(Image.fromarray(bg_frame).convert("RGBA"), resolution)
+                canvas = apply_mood(blur_background(
+                    cover_resize(Image.fromarray(bg_frame).convert("RGBA"), resolution), background_blur
+                ), scene.mood)
             except Exception:  # noqa: BLE001 - 背景動画の一部フレーム取得に失敗しても動画全体の書き出しは継続する
                 canvas = fallback_bg_rgba.copy()
         else:
@@ -316,28 +356,76 @@ def _build_scene_clip(
     common_background_path: Optional[str] = None,
     pr_label_overlay: Optional[Image.Image] = None,
     reading_dict: Optional[list[dict]] = None,
+    background_override: Optional[str] = None,
+    project: Optional[Project] = None,
+    motion_context: Optional[motion.SceneContext] = None,
 ):
     """1シーン分の(音声付き)動画クリップを構築する。
+
+    project と motion_context を渡すと、カメラワーク・キャラクターの動き・黒板の切り替えなどの
+    動き（src.services.motion）が必要なシーンは、1フレームずつ合成する動き付きの映像にする。
 
     common_background_path はプロジェクト全体の共通背景。シーン自身に背景が
     設定されていればそちらを優先し、未設定の場合のみ共通背景を使う。
     """
+    speech_speed = project.speech_speed if project is not None else voicevox_client.DEFAULT_SPEECH_SPEED
     label = f"シーン{scene_index + 1}"
-    effective_background_path = scene.background_path or common_background_path
+    effective_background_path = background_override or scene.background_path or common_background_path
+
+    # 場面転換テロップ（「3日後…」など）: 全画面の文字だけのシーン。前後は黒から/黒へ少しフェードする
+    if scene.card_text.strip():
+        progress(f"{label}: 場面転換テロップを作成中…")
+        card = np.array(render_transition_card(effective_background_path, resolution, scene.card_text).convert("RGB"))
+        duration = max(1.0 / fps, round(scene.duration * fps) / fps)
+        fade = min(CARD_FADE_SECONDS, duration / 3)
+
+        def card_frame(t: float, _card=card, _duration=duration, _fade=fade):
+            level = min(1.0, t / _fade if _fade else 1.0, (_duration - t) / _fade if _fade else 1.0)
+            return _card if level >= 1.0 else (_card * max(0.0, level)).astype(np.uint8)
+
+        return VideoClip(frame_function=card_frame, duration=duration).with_fps(fps).with_audio(
+            _silent_audio_clip(duration)
+        )
+
+    # 黒板スライドの内容が入力されていれば、スライド画像を生成して資料メディアとして扱う
+    # （以降の合成処理は通常の資料メディアと同じ経路を通る）
+    if scene.has_slide or scene.illustration_path:
+        progress(f"{label}: 黒板スライド・イラストを生成中…")
+        try:
+            scene = replace(scene, content_media_path=slide_renderer.resolve_scene_content_media(scene, resolution))
+        except Exception as e:  # noqa: BLE001 - スライド描画に失敗しても動画全体の書き出しは継続する
+            warnings.append(f"{label}: 黒板スライドの生成に失敗したため、スライドなしで書き出しました（{e}）")
 
     # 1. 音声合成（指定秒数に収まるよう、必要なら話速を自動調整する）
-    progress(f"{label}: VOICEVOXで音声合成中…")
+    #    ネイティブ音声などの録音済みの音声があればそれを使い、リピート練習の間（silent）は音声なしにする
     audio_path = None
+    if scene.silent:
+        voice_text = ""
+    elif scene.voice_path and Path(scene.voice_path).exists():
+        voice_text = ""
+        audio_path = Path(scene.voice_path)
+    else:
+        voice_text = scene.reading.strip() or scene.text
+        if scene.lang == "en" and not scene.reading.strip() and scene.text.strip():
+            warnings.append(
+                f"{label}: 英語のセリフにネイティブ音声（{scene.audio_id or 'ID未設定'}）も読み（カタカナ）も無いため、"
+                "VOICEVOXでそのまま読ませました（英語は正しく読めません）。"
+            )
+    if voice_text:
+        progress(f"{label}: VOICEVOXで音声合成中…")
     try:
+        if not voice_text:
+            raise _SkipSynthesis
         result = voicevox_client.synthesize_voice(
-            scene.text,
+            voice_text,
             scene.speaker,
             output_path=TMP_AUDIO_DIR / f"scene{scene_index}_{uuid.uuid4().hex[:8]}.wav",
             target_duration=scene.duration,
             reading_dict=reading_dict,
+            speech_speed=speech_speed,
         )
         audio_path = result.audio_path
-        if abs(result.speed_scale - 1.0) > 0.01:
+        if result.speed_scale - speech_speed > 0.01:
             if result.speed_capped:
                 warnings.append(
                     f"{label}: 表示秒数({scene.duration:.1f}秒)に収めるには話速の上限"
@@ -356,12 +444,26 @@ def _build_scene_clip(
     except VoicevoxSynthesisError as e:
         warnings.append(f"{label}: 音声合成に失敗したため、このシーンは無音で書き出しました（{e}）")
         audio_path = None
+    except _SkipSynthesis:
+        pass  # 録音済みの音声を使う / 音声なしのシーン
 
     # 2. リップシンク解析（表示秒数を基準にフレーム数を確定させる）
     progress(f"{label}: リップシンクを解析中…")
-    mouth_flags = lipsync.analyze_mouth_frames(audio_path, scene.duration, fps=fps)
+    # カウントダウンのあとに声を出すシーン（シャドーイング）は、その間は口を閉じたままにする
+    lead_frames = round(scene.lead_in * fps) if scene.lead_in and audio_path else 0
+    mouth_flags = [False] * lead_frames + lipsync.analyze_mouth_frames(
+        audio_path, max(1.0 / fps, scene.duration - lead_frames / fps), fps=fps
+    )
     total_frames = len(mouth_flags)
     actual_duration = total_frames / fps  # フレーム数から逆算した確定尺（音声/字幕もこれに合わせる）
+
+    # 画面に固定で重ねるもの（PR表記・画面上部の見出し・字幕）は、ここで1枚の透過画像にまとめておき、
+    # 各合成処理の最後に直接焼き込む（MoviePyのCompositeVideoClipで重ねると、1フレームごとの
+    # 合成処理が非常に重く、動きのあるシーンの書き出しが何倍も遅くなるため）。
+    # カメラワークでズーム・揺れをしても、これらは拡大されず定位置に表示される。
+    pr_label_overlay = _build_fixed_overlay(scene, resolution, font_path, pr_label_overlay, warnings, label, progress)
+
+    background_blur = project.background_blur if project is not None else 0.0
 
     # 3. 立ち絵+背景+資料メディアの合成（2人常時表示）
     progress(f"{label}: 立ち絵を合成中…")
@@ -371,9 +473,24 @@ def _build_scene_clip(
         # 変わるため「口:開」「口:閉」を使い回す最適化はできず、1フレームずつ合成する
         video_clip = _build_dynamic_scene_clip(
             scene, effective_background_path, resolution, fps, actual_duration, mouth_flags, warnings, label,
-            extra_clips, pr_label_overlay=pr_label_overlay,
+            extra_clips, pr_label_overlay=pr_label_overlay, background_blur=background_blur,
         )
+    elif project is not None and motion_context is not None and motion.needs_motion(project, scene, motion_context):
+        # カメラワーク・キャラクターの動き・黒板の切り替え/書き足しがあるシーンは1フレームずつ合成する
+        # （背景・資料が動画のシーンは上の分岐で処理され、動きは付かない）
+        progress(f"{label}: 動き（カメラ・キャラクター・黒板）を合成中…")
+        try:
+            video_clip = motion.build_motion_clip(
+                project, scene, motion_context, resolution, fps, actual_duration, mouth_flags,
+                load_background_image(effective_background_path, resolution, background_blur, scene.mood),
+                pr_label_overlay,
+            )
+        except Exception as e:  # noqa: BLE001 - 動きの合成に失敗しても、動き無しで書き出しを続ける
+            warnings.append(f"{label}: 動きの合成に失敗したため、動き無しで書き出しました（{e}）")
+            video_clip = None
     else:
+        video_clip = None
+    if video_clip is None and not needs_dynamic:
         # 背景・資料メディアがどちらも画像（または未指定）の場合、話者だけ「口:開」「口:閉」の
         # 2パターンを作り、使い回す（1フレームずつ再合成しない軽量化）
         try:
@@ -384,6 +501,10 @@ def _build_scene_clip(
                     before_image_path=scene.before_image_path,
                     after_image_path=scene.after_image_path,
                     pr_label_overlay=pr_label_overlay,
+                    hidden_characters=scene.hidden_characters,
+                    partner_expression=scene.partner_expression,
+                    background_blur=background_blur,
+                    mood=scene.mood,
                 ).convert("RGB")
             )
             frame_open = np.array(
@@ -393,6 +514,10 @@ def _build_scene_clip(
                     before_image_path=scene.before_image_path,
                     after_image_path=scene.after_image_path,
                     pr_label_overlay=pr_label_overlay,
+                    hidden_characters=scene.hidden_characters,
+                    partner_expression=scene.partner_expression,
+                    background_blur=background_blur,
+                    mood=scene.mood,
                 ).convert("RGB")
             )
         except Exception as e:  # noqa: BLE001 - 画像合成の失敗要因は多岐にわたるため広く捕捉して警告に変換する
@@ -403,71 +528,177 @@ def _build_scene_clip(
 
     # 4. 音声をシーンの確定尺に合わせる（長ければトリミング、短ければ無音で延長）
     audio_clip = AudioFileClip(str(audio_path)) if audio_path else None
-    fitted_audio = _fit_audio_to_duration(audio_clip, actual_duration)
+    if lead_frames:
+        # カウントダウン（合図の音）→ 声
+        lead_seconds = lead_frames / fps
+        fitted_audio = concatenate_audioclips([
+            AudioClip(pause_cue.beep_frame_function(scene, lead_seconds), duration=lead_seconds, fps=AUDIO_SAMPLE_RATE),
+            _fit_audio_to_duration(audio_clip, actual_duration - lead_seconds),
+        ])
+    elif scene.pause_style and audio_clip is None:
+        # リピート・回答の間（音声なし）: 合図の音だけ
+        fitted_audio = AudioClip(
+            pause_cue.beep_frame_function(scene, actual_duration), duration=actual_duration, fps=AUDIO_SAMPLE_RATE
+        )
+    else:
+        fitted_audio = _fit_audio_to_duration(audio_clip, actual_duration)
+    if scene.pause_style:
+        video_clip = pause_cue.with_pause_cue(video_clip.with_duration(actual_duration), scene, resolution, font_path)
     video_clip = video_clip.with_audio(fitted_audio)
-
-    # 5. テロップ（読み上げテキストをそのまま表示。文字色は話者ごとに変える）
-    if scene.text and scene.text.strip():
-        progress(f"{label}: テロップを合成中…")
-        try:
-            telop_style = get_telop_style(scene.speaker)
-            telop_clip = _build_telop_clip(
-                scene.text,
-                resolution,
-                actual_duration,
-                font_path,
-                color=telop_style["color"],
-                stroke_color=telop_style["stroke_color"],
-            )
-            video_clip = CompositeVideoClip([video_clip, telop_clip], size=resolution).with_duration(actual_duration)
-        except Exception as e:  # noqa: BLE001
-            warnings.append(f"{label}: テロップの描画に失敗したため、テロップなしで書き出しました（{e}）")
 
     return video_clip.with_duration(actual_duration)
 
 
-def _load_bgm_clip(project: Project, total_duration: float, warnings: list[str]) -> Optional[AudioClip]:
-    """プロジェクトに設定されたBGMを、動画全体の長さ(total_duration)に合わせて読み込む。
+BGM_EDGE_FADE_SECONDS = 1.5   # 動画の頭・お尻のフェードイン/アウトの長さ（上限）
+BGM_CROSSFADE_SECONDS = 1.2   # BGMが切り替わる箇所のクロスフェードの長さ（上限）
 
-    - BGMが動画より短い場合はループさせて長さを合わせる。
-    - BGMが動画より長い場合は先頭からtotal_durationぶんだけ使う。
-    - 音量はproject.bgm_volumeで一律にスケールし、頭とお尻に短いフェードを入れる
-      （急に鳴り始める/切れる違和感を減らすため）。
-    - BGMファイルが未設定・見つからない・壊れている等の場合は、アプリを落とさず
-      「BGMなしで書き出した」という警告を追加して処理を継続する。
+
+@dataclass
+class BgmSegment:
+    """同じBGMが連続して流れる区間（動画全体の時間軸上の秒数）。"""
+    path: str
+    start: float
+    end: float
+
+
+def plan_bgm_segments(project: Project, scene_durations: list[float]) -> list[BgmSegment]:
+    """各シーンのBGM（Project.resolve_bgm_path）を求め、同じBGMが続くシーンを1区間にまとめる。
+
+    BGMなしのシーンは区間に含めない（＝無音）。別の区間で同じ曲が再び使われた場合は、
+    その区間の頭から曲をかけ直す。
     """
-    if not project.bgm_path:
-        return None
-    if total_duration <= 0:
+    segments: list[BgmSegment] = []
+    t = 0.0
+    for scene, duration in zip(project.scenes, scene_durations):
+        path = project.resolve_bgm_path(scene)
+        if path:
+            if segments and segments[-1].path == path and abs(segments[-1].end - t) < 1e-6:
+                segments[-1].end = t + duration
+            else:
+                segments.append(BgmSegment(path=path, start=t, end=t + duration))
+        t += duration
+    return segments
+
+
+def _build_bgm_segment_clip(
+    segment: BgmSegment,
+    total_duration: float,
+    volume: float,
+    prev_adjacent: bool,
+    next_adjacent: bool,
+    warnings: list[str],
+    extra_clips: list,
+    warned_paths: set[str],
+) -> Optional[AudioClip]:
+    """1区間分のBGMクリップを作る（ループ/トリミング・音量・フェード・開始位置の設定）。
+
+    - 曲が区間より短ければループし、長ければ区間の長さで切る。
+    - 前後に別のBGMが隣接している境界では、区間を BGM_CROSSFADE_SECONDS の半分ずつ
+      前後に延ばしたうえでフェードを掛け、前の曲と重ねてクロスフェードさせる。
+    - 動画の頭・お尻、および無音（BGMなし）の区間との境界では通常のフェードイン/アウトにする。
+    - ファイルが見つからない/壊れている場合は、アプリを落とさず警告を追加して None を返す
+      （同じファイルの警告は1回だけ）。
+    """
+    seg_duration = segment.end - segment.start
+    crossfade = min(BGM_CROSSFADE_SECONDS, seg_duration / 3)
+    start = max(0.0, segment.start - crossfade / 2) if prev_adjacent else segment.start
+    end = min(total_duration, segment.end + crossfade / 2) if next_adjacent else segment.end
+    clip_duration = end - start
+    if clip_duration <= 0:
         return None
 
-    bgm_path = Path(project.bgm_path)
+    bgm_path = Path(segment.path)
+    name = bgm_path.name
     if not bgm_path.exists():
-        warnings.append(f"BGMファイルが見つからなかったため、BGMなしで書き出しました（{bgm_path.name}）。")
+        if segment.path not in warned_paths:
+            warnings.append(f"BGMファイルが見つからなかったため、その区間はBGMなしで書き出しました（{name}）。")
+            warned_paths.add(segment.path)
         return None
 
     try:
-        bgm_clip = AudioFileClip(str(bgm_path))
-        if not bgm_clip.duration:
-            warnings.append("BGMファイルの長さを取得できなかったため、BGMなしで書き出しました。")
-            return None
+        source = AudioFileClip(str(bgm_path))
+        extra_clips.append(source)
+        if not source.duration:
+            raise ValueError("長さを取得できませんでした")
 
-        if bgm_clip.duration < total_duration:
-            bgm_clip = bgm_clip.with_effects([afx.AudioLoop(duration=total_duration)])
+        if source.duration < clip_duration:
+            clip = source.with_effects([afx.AudioLoop(duration=clip_duration)])
         else:
-            bgm_clip = bgm_clip.subclipped(0, total_duration)
+            clip = source.subclipped(0, clip_duration)
 
-        volume = max(0.0, min(1.0, project.bgm_volume))
-        effects = [afx.MultiplyVolume(volume)]
-        fade_duration = min(1.5, total_duration / 4)
-        if fade_duration > 0:
-            effects.append(afx.AudioFadeIn(fade_duration))
-            effects.append(afx.AudioFadeOut(fade_duration))
-
-        return bgm_clip.with_effects(effects)
+        edge_fade = min(BGM_EDGE_FADE_SECONDS, clip_duration / 4)
+        fade_in = crossfade if prev_adjacent else edge_fade
+        fade_out = crossfade if next_adjacent else edge_fade
+        effects = [afx.MultiplyVolume(max(0.0, min(1.0, volume)))]
+        if fade_in > 0:
+            effects.append(afx.AudioFadeIn(fade_in))
+        if fade_out > 0:
+            effects.append(afx.AudioFadeOut(fade_out))
+        return clip.with_effects(effects).with_start(start)
     except Exception as e:  # noqa: BLE001 - BGMファイルの形式不正など様々な失敗要因を丁寧な警告に変換する
-        warnings.append(f"BGMの読み込みに失敗したため、BGMなしで書き出しました（{e}）。")
+        if segment.path not in warned_paths:
+            warnings.append(f"BGMの読み込みに失敗したため、その区間はBGMなしで書き出しました（{name}: {e}）。")
+            warned_paths.add(segment.path)
         return None
+
+
+def _build_bgm_clips(
+    project: Project, scene_durations: list[float], warnings: list[str], extra_clips: list
+) -> list[AudioClip]:
+    """場面・シーンごとの設定に従って、動画全体のBGMクリップ（区間ごと）を作る。"""
+    total_duration = sum(scene_durations)
+    segments = plan_bgm_segments(project, scene_durations)
+    warned_paths: set[str] = set()
+    clips = []
+    for i, segment in enumerate(segments):
+        prev_adjacent = i > 0 and abs(segments[i - 1].end - segment.start) < 1e-6
+        next_adjacent = i + 1 < len(segments) and abs(segments[i + 1].start - segment.end) < 1e-6
+        clip = _build_bgm_segment_clip(
+            segment, total_duration, project.bgm_volume, prev_adjacent, next_adjacent,
+            warnings, extra_clips, warned_paths,
+        )
+        if clip is not None:
+            clips.append(clip)
+    return clips
+
+
+SE_FADE_OUT_SECONDS = 0.3  # シーンより長い効果音を、シーンの終わりで切るときのフェードアウトの長さ
+
+
+def _build_se_clips(
+    project: Project, scene_durations: list[float], warnings: list[str], extra_clips: list
+) -> list[AudioClip]:
+    """各シーンに設定された効果音を、そのシーンの開始位置に配置したクリップのリストを作る。
+
+    効果音がシーンより長い場合（学校のチャイムなど）は、そのシーンの終わりで切る（次のシーンまで鳴り続けて
+    会話にかぶらないように）。切る直前は SE_FADE_OUT_SECONDS かけて音を小さくし、ブツッと切れないようにする。
+    ファイルが見つからない/壊れている場合は、そのシーンだけ効果音なしにして警告する（同じファイルは1回だけ）。
+    """
+    volume = max(0.0, min(1.0, project.se_volume))
+    warned: set[str] = set()
+    clips: list[AudioClip] = []
+    start = 0.0
+    for scene, duration in zip(project.scenes, scene_durations):
+        path = scene.se_path
+        if path:
+            name = Path(path).name
+            try:
+                if not Path(path).exists():
+                    raise FileNotFoundError("ファイルが見つかりません")
+                source = AudioFileClip(str(path))
+                extra_clips.append(source)
+                effects = [afx.MultiplyVolume(volume)]
+                clip = source
+                if source.duration and source.duration > duration:
+                    clip = source.subclipped(0, max(0.01, duration))
+                    effects.append(afx.AudioFadeOut(min(SE_FADE_OUT_SECONDS, duration / 2)))
+                clips.append(clip.with_effects(effects).with_start(start))
+            except Exception as e:  # noqa: BLE001 - 効果音の失敗で動画全体の書き出しは止めない
+                if path not in warned:
+                    warnings.append(f"効果音「{name}」を読み込めなかったため、鳴らさずに書き出しました（{e}）。")
+                    warned.add(path)
+        start += duration
+    return clips
 
 
 def _build_scene_cut_ffmpeg_params(scene_clips: list) -> list[str]:
@@ -518,7 +749,11 @@ def build_video(
         raise VideoBuildError("シーンが1つもありません。シーンを追加してから生成してください。")
 
     # シーンにテキストが1つでもあればVOICEVOXが必要 → 事前に起動確認して早期に失敗させる
-    needs_voicevox = any(scene.text and scene.text.strip() for scene in project.scenes)
+    needs_voicevox = any(
+        scene.text and scene.text.strip() and not scene.silent
+        and not (scene.voice_path and Path(scene.voice_path).exists())
+        for scene in project.scenes
+    )
     if needs_voicevox:
         progress("VOICEVOXへの接続を確認中…")
         voicevox_client.ensure_engine_running()
@@ -541,36 +776,57 @@ def build_video(
         else None
     )
 
+    # 画面左上の目次ラベル（説明文の目次と同じ見出し）。PR表記（右上）と同じ固定の重ね画像にまとめ、見出しごとに1回だけ描画する
+    chapter_labels = video_metadata.scene_chapter_labels(project)
+    fixed_overlays: dict[str, Optional[Image.Image]] = {}
+
+    def fixed_overlay_for(chapter: str) -> Optional[Image.Image]:
+        if not chapter:
+            return pr_label_overlay
+        if chapter not in fixed_overlays:
+            label_img = telop.render_chapter_label(chapter, project.resolution, font_path)
+            fixed_overlays[chapter] = (
+                Image.alpha_composite(pr_label_overlay, label_img) if pr_label_overlay is not None else label_img
+            )
+        return fixed_overlays[chapter]
+
     scene_clips = []
     extra_clips: list = []  # 背景動画クリップなど、scene_clips自身の.close()では閉じられない付随リソース
     try:
+        motion_contexts = motion.build_contexts(project.scenes)
         for i, scene in enumerate(project.scenes):
             clip = _build_scene_clip(
                 scene, i, project.resolution, fps, font_path, warnings, progress, extra_clips,
                 common_background_path=project.common_background_path,
-                pr_label_overlay=pr_label_overlay,
+                pr_label_overlay=fixed_overlay_for(chapter_labels[i]),
                 reading_dict=project.reading_dict,
+                background_override=book_script.effective_background_path(project, scene),
+                project=project,
+                motion_context=motion_contexts[i],
             )
             scene_clips.append(clip)
 
         progress("シーンを結合しています…")
-        # method="chain"（既定）ではなく明示的に"compose"を指定している。各シーンのクリップは
-        # 「立ち絵+背景の動画」に「テロップ(透過PNGのImageClip)」をCompositeVideoClipで重ねた
-        # ネスト構造になっているが、透過画像を重ねたCompositeVideoClip同士を"chain"方式で連結すると、
-        # moviepy側の合成処理の不具合（2.1.2で修正されたもの含む）により、テロップが正しく
-        # 切り替わらず前のシーンの字幕が居座って見えることがある。"compose"方式は全シーンが
-        # 同じ解像度であれば見た目は"chain"と変わらず、この問題を避けられる。
-        final_video = concatenate_videoclips(scene_clips, method="compose")
+        # 字幕・見出し・PR表記は各シーンのフレームに直接焼き込んでいて、透過画像を重ねた
+        # CompositeVideoClip は使っていない（全シーン同じ解像度・マスク無し）ため、高速な"chain"方式で連結する。
+        # 以前は字幕をCompositeVideoClipで重ねており、"chain"だと前のシーンの字幕が居座る不具合を避けるため
+        # 重い"compose"方式を使っていたが、動きのあるシーンで1フレームの合成が数倍遅くなるためやめた。
+        final_video = concatenate_videoclips(scene_clips, method="chain")
 
-        if project.bgm_path:
+        scene_durations = [clip.duration or 0.0 for clip in scene_clips]
+        extra_audio: list[AudioClip] = []
+        if plan_bgm_segments(project, scene_durations):
             progress("BGMを合成中…")
-            bgm_clip = _load_bgm_clip(project, final_video.duration, warnings)
-            if bgm_clip is not None:
-                voice_audio = final_video.audio
-                mixed_audio = (
-                    CompositeAudioClip([voice_audio, bgm_clip]) if voice_audio is not None else bgm_clip
-                )
-                final_video = final_video.with_audio(mixed_audio)
+            extra_audio += _build_bgm_clips(project, scene_durations, warnings, extra_clips)
+        if any(scene.se_path for scene in project.scenes):
+            progress("効果音を合成中…")
+            extra_audio += _build_se_clips(project, scene_durations, warnings, extra_clips)
+        if extra_audio:
+            voice_audio = final_video.audio
+            layers = ([voice_audio] if voice_audio is not None else []) + extra_audio
+            final_video = final_video.with_audio(
+                CompositeAudioClip(layers).with_duration(final_video.duration)
+            )
 
         output_path = OUTPUT_DIR / output_filename
         preset = ENCODE_PRESETS.get(speed_preset, ENCODE_PRESETS[DEFAULT_SPEED_PRESET])

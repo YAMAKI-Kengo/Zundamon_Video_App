@@ -1,0 +1,132 @@
+{
+  "theme": "初対面のあいさつと自己紹介",
+  "theme_en": "Meeting New People",
+  "goal": "初対面の人に名乗り、あいさつし、出身・仕事・趣味を話して、気持ちよく会話を終えられる",
+  "days": [
+    {
+      "day": 1,
+      "title": "名乗る Hi, I'm 〜.",
+      "situation": "留学生の交流会で、初めて会った人に名乗る",
+      "zunda_trouble": "「マイ・ネーム・イズ・ずんだもん」と教科書を読むように固く名乗り、相手に笑われる",
+      "phrases": [
+        {
+          "en": "Hi, I'm Zunda.",
+          "ja": "こんにちは、ずんだです。",
+          "point": "My name is 〜. は少し固いので、会話では I'm 〜. が普通。"
+        },
+        {
+          "en": "Nice to meet you.",
+          "ja": "はじめまして。",
+          "point": "言われたら Nice to meet you, too. か、短く You too! と返す。"
+        }
+      ],
+      "grammar": "meet you は t と y がつながって「ミーチュー」と読む"
+    },
+    {
+      "day": 2,
+      "title": "調子をたずねる How's it going?",
+      "situation": "交流会で知り合った人と、翌日キャンパスですれ違う",
+      "zunda_trouble": "How's it going? と聞かれて、毎回 I'm fine, thank you. And you? と棒読みし、ロボットみたいと言われる",
+      "phrases": [
+        {
+          "en": "How's it going?",
+          "ja": "調子どう？",
+          "point": "How are you? よりくだけた、友だち同士の定番のあいさつ。"
+        },
+        {
+          "en": "Not bad. How about you?",
+          "ja": "まあまあだよ。そっちは？",
+          "point": "Pretty good. / Good! でもよく、最後に How about you? と聞き返すのがマナー。"
+        }
+      ],
+      "grammar": "How's it going? はつながって「ハウズィッゴーイン」、最後の g はほとんど読まない"
+    },
+    {
+      "day": 3,
+      "title": "出身をたずねる Where are you from?",
+      "situation": "カフェで相席になった旅行者と話す",
+      "zunda_trouble": "「ジャパン」の「ジャ」を強く言ったら通じず、何度も聞き返される",
+      "phrases": [
+        {
+          "en": "Where are you from?",
+          "ja": "どこの出身？",
+          "point": "今住んでいる場所は Where do you live? と聞くので区別する。"
+        },
+        {
+          "en": "What part of Japan?",
+          "ja": "日本のどのあたり？",
+          "point": "国名を聞いたあとに、もう少し詳しく聞きたいときに使う。国名は入れ替えられる。"
+        }
+      ],
+      "grammar": "Japan は後ろの「パン」を強く読む（ジャ「パァン」）"
+    },
+    {
+      "day": 4,
+      "title": "仕事・学校をたずねる What do you do?",
+      "situation": "交流会で、相手の仕事や学校の話をする",
+      "zunda_trouble": "What do you do? を「今何してるの？」と思い込み、I'm talking with you! と答えてしまう",
+      "phrases": [
+        {
+          "en": "What do you do?",
+          "ja": "お仕事は何をしているの？",
+          "point": "仕事や学校をたずねる決まり文句。What's your job? より自然でやわらかい。"
+        },
+        {
+          "en": "That sounds fun!",
+          "ja": "楽しそうだね！",
+          "point": "fun を interesting や hard に変えると、いろいろな話へのリアクションに使える。"
+        }
+      ],
+      "grammar": "What do you do? の最初の do は弱く読み、「ワダユドゥー」と聞こえる"
+    },
+    {
+      "day": 5,
+      "title": "趣味を話す I'm into 〜.",
+      "situation": "仲良くなった人と、休みの日の過ごし方を話す",
+      "zunda_trouble": "My hobby is eating zunda mochi. と大げさに言って、少し不自然だと笑われる",
+      "phrases": [
+        {
+          "en": "What do you do for fun?",
+          "ja": "休みの日は何してるの？",
+          "point": "4日目の What do you do? に for fun を足すだけで、趣味の質問になる。"
+        },
+        {
+          "en": "I'm really into anime.",
+          "ja": "アニメにハマってるんだ。",
+          "point": "My hobby is 〜. より自然。I like 〜. よりも熱中している感じが出る。"
+        }
+      ],
+      "grammar": "be into のあとは名詞か -ing 形（I'm into cooking.）を置く"
+    },
+    {
+      "day": 6,
+      "title": "別れ際のあいさつ It was nice meeting you.",
+      "situation": "交流会の終わりに、話した人にあいさつして連絡先を交換する",
+      "zunda_trouble": "別れ際にも Nice to meet you! と言い、「今から会うの？」とツッコまれる",
+      "phrases": [
+        {
+          "en": "It was nice meeting you.",
+          "ja": "お会いできてよかったです。",
+          "point": "会ったときは Nice to meet you.、別れるときはこちらを使う。"
+        },
+        {
+          "en": "Let's keep in touch.",
+          "ja": "また連絡しようね。",
+          "point": "連絡先を交換するときの一言。Can I get your Instagram? のように続けると自然。"
+        }
+      ],
+      "grammar": "meeting の -ing は「その場の出来事をふり返る」感じ。出会いの to meet と区別する"
+    },
+    {
+      "day": 7,
+      "title": "1週間のまとめ",
+      "situation": "交流会のはじまりから別れまでを、1〜6日目のフレーズでつないでおさらいする",
+      "zunda_trouble": "",
+      "phrases": [],
+      "grammar": ""
+    }
+  ],
+  "next_theme_idea": "カフェで注文する英語",
+  "week": 1,
+  "level": "a2"
+}

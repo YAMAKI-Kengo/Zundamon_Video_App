@@ -18,6 +18,7 @@ from __future__ import annotations
 import uuid
 import wave
 from dataclasses import dataclass
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -114,6 +115,131 @@ def apply_reading_dict(text: str, reading_dict: Optional[list[dict]]) -> str:
     return text
 
 
+DEFAULT_SPEECH_SPEED = 1.2   # 話す速さの既定値（VOICEVOXの等速1.0だと解説動画としてはテンポが遅いため）
+PHONEME_EDGE_SECONDS = 0.05  # セリフの前後の無音（VOICEVOXの既定は0.1秒ずつ）
+PAUSE_LENGTH_SCALE = 0.8     # 文中の「、」「。」の間の長さ（VOICEVOXの既定は1.0）
+
+_BRACKETS = str.maketrans("", "", "『』「」【】〈〉《》")  # 読み上げでは括弧を外す（「『書名』は」の前後に不自然な間が入るため）
+_RANGE_PATTERN = re.compile(r"(\d)\s*[〜～~]\s*(\d)")
+_SEVEN_PATTERN = re.compile(r"(?<![\d.])7(?=(時間|人|時|分|日間|週間|か月|ヶ月|年|歳|回|個|冊|点|割|倍|才))")
+
+
+def normalize_for_speech(text: str) -> str:
+    """VOICEVOXが読み間違える表記を、読み上げ用にだけ直す（字幕の表示には影響しない）。
+
+    実際にVOICEVOXで読ませて確認した誤読への対処:
+      - 数字の範囲「1〜2時間」→ 「〜」が「、」と読まれる → 「1から2時間」
+      - 単独の「7」+単位（7時間・7人など）→「しち」と読まれる → 「なな」
+    """
+    text = text.translate(_BRACKETS)
+    text = _RANGE_PATTERN.sub(r"\1から\2", text)
+    return _SEVEN_PATTERN.sub("なな", text)
+
+
+def to_katakana(text: str) -> str:
+    return "".join(chr(ord(c) + 0x60) if "ぁ" <= c <= "ゖ" else c for c in text)
+
+
+def _is_katakana_reading(text: str) -> bool:
+    return bool(text) and all("ァ" <= c <= "ヴ" or c in "ーヵヶ" for c in text)
+
+
+def _zenkaku(text: str) -> str:
+    """VOICEVOXのユーザー辞書は表記を全角で保存するため、半角英数字・記号を全角にそろえる。"""
+    return "".join(
+        "\u3000" if c == " " else chr(ord(c) + 0xFEE0) if "!" <= c <= "~" else c for c in text
+    )
+
+
+_user_dict_cache: dict[tuple, frozenset] = {}
+
+
+def _accent_type(pronunciation: str, base_url: str) -> int:
+    """読み（カタカナ）を VOICEVOX に読ませたときのアクセント位置を、辞書登録用のアクセント型にする。"""
+    try:
+        query = requests.post(
+            f"{base_url}/audio_query", params={"speaker": 1, "text": pronunciation},
+            timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT),
+        ).json()
+        phrases = query.get("accent_phrases") or []
+        return int(phrases[0]["accent"]) if len(phrases) == 1 else 0
+    except (requests.exceptions.RequestException, ValueError, KeyError, IndexError):
+        return 0
+
+
+def sync_user_dict(reading_dict: Optional[list[dict]], base_url: str = VOICEVOX_BASE_URL) -> frozenset:
+    """読み方辞書の単語を、VOICEVOX本体のユーザー辞書に登録する（登録できた単語の集合を返す）。
+
+    文字列の置き換えだと「ぐっすりねむるためのかがくは」のように平仮名が続いて単語の区切りが崩れ、
+    直後の助詞「は」を「ハ」と読むなどの誤読が起きる。ユーザー辞書に登録すれば、表記は漢字のまま
+    VOICEVOXが単語として正しく区切って読むため、前後の助詞やアクセントも自然になる。
+    読みがカタカナ/ひらがなでない語や、ユーザー辞書が使えない古いVOICEVOXでは登録せず、
+    speech_text() で従来どおり文字列の置き換えをする。同じ辞書の内容では1回だけ同期する。
+    """
+    entries = tuple(sorted(
+        (str(item.get("word", "")).strip(), to_katakana(str(item.get("reading", "")).strip().replace(" ", "")))
+        for item in (reading_dict or []) if isinstance(item, dict)
+    ))
+    entries = tuple((w, r) for w, r in entries if w and r and _is_katakana_reading(r))
+    if not entries:
+        return frozenset()
+    if entries in _user_dict_cache:
+        return _user_dict_cache[entries]
+    registered = set()
+    try:
+        existing = requests.get(f"{base_url}/user_dict", timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT)).json()
+        by_surface = {v.get("surface"): (uuid, v.get("pronunciation"), v.get("priority")) for uuid, v in existing.items()}
+        for word, pronunciation in entries:
+            surface = _zenkaku(word)
+            found = by_surface.get(surface)
+            if found and found[1] == pronunciation and found[2] == 10:
+                registered.add(word)
+                continue
+            params = {
+                "surface": word, "pronunciation": pronunciation,
+                "accent_type": _accent_type(pronunciation, base_url),
+                "word_type": "PROPER_NOUN", "priority": 10,  # 最優先（VOICEVOX標準の辞書の読みより優先させる）
+            }
+            if found:
+                resp = requests.put(f"{base_url}/user_dict_word/{found[0]}", params=params,
+                                    timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT))
+            else:
+                resp = requests.post(f"{base_url}/user_dict_word", params=params,
+                                     timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT))
+            if resp.status_code in (200, 204):
+                registered.add(word)
+    except (requests.exceptions.RequestException, ValueError, AttributeError):
+        pass  # ユーザー辞書が使えない場合は、文字列の置き換えで対応する
+    result = frozenset(registered)
+    _user_dict_cache[entries] = result
+    return result
+
+
+def speech_text(text: str, reading_dict: Optional[list[dict]] = None) -> str:
+    """VOICEVOXに渡す読み上げ用のテキスト（読み方辞書 → 表記の正規化）。
+
+    読み方辞書の単語は、まずVOICEVOXのユーザー辞書への登録を試み（sync_user_dict）、登録できなかった
+    単語だけ文字列を置き換える。置き換える読みはカタカナにする（平仮名だと前後と続いて単語の区切りが崩れやすい）。
+    """
+    registered = sync_user_dict(reading_dict)
+    fallback = [
+        {"word": item.get("word", ""), "reading": to_katakana(str(item.get("reading", "")))}
+        for item in (reading_dict or [])
+        if isinstance(item, dict) and str(item.get("word", "")).strip() not in registered
+    ]
+    return normalize_for_speech(apply_reading_dict(text, fallback))
+
+
+def _apply_tempo(query_json: dict, speech_speed: float) -> dict:
+    """話す速さと、セリフ前後・文中の間の長さを調整する（テンポを速めにする）。"""
+    query_json["speedScale"] = max(MIN_SPEED_SCALE, min(MAX_SPEED_SCALE, speech_speed))
+    query_json["prePhonemeLength"] = min(query_json.get("prePhonemeLength") or 0.1, PHONEME_EDGE_SECONDS)
+    query_json["postPhonemeLength"] = min(query_json.get("postPhonemeLength") or 0.1, PHONEME_EDGE_SECONDS)
+    if "pauseLengthScale" in query_json:
+        query_json["pauseLengthScale"] = PAUSE_LENGTH_SCALE
+    return query_json
+
+
 def get_speaker_id(character_key: str) -> int:
     """キャラクターキーからVOICEVOXの話者IDを取得する。未定義の場合は例外を送出する。"""
     speaker_id = VOICEVOX_SPEAKER_IDS.get(character_key)
@@ -194,6 +320,58 @@ def _apply_auto_speed(
     return query_json, applied_speed, speed_capped
 
 
+def measure_natural_duration(
+    text: str,
+    character_key: str,
+    base_url: str = VOICEVOX_BASE_URL,
+    reading_dict: Optional[list[dict]] = None,
+    speech_speed: float = DEFAULT_SPEECH_SPEED,
+) -> float:
+    """話す速さ speech_speed で読み上げたときの秒数を、音声を合成せずに求める。
+
+    /audio_query だけを呼び、その長さ情報から計算する（_estimate_base_duration）。
+    台本からシーンを一括生成するときに、表示秒数を実際の読み上げ時間に合わせるために使う
+    （文字数からの概算 estimate_duration() だと短すぎて、話速が不自然に上がることがあるため）。
+
+    Raises:
+        VoicevoxConnectionError / VoicevoxSynthesisError: synthesize_voice() と同じ。
+    """
+    if not text or not text.strip():
+        return 0.0
+    try:
+        resp = requests.post(
+            f"{base_url}/audio_query",
+            params={"speaker": get_speaker_id(character_key), "text": speech_text(text, reading_dict)},
+            timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT),
+        )
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        raise VoicevoxConnectionError(
+            "VOICEVOXが起動していません。VOICEVOXを起動してから再度実行してください。"
+        ) from e
+    if resp.status_code != 200:
+        raise VoicevoxSynthesisError(f"VOICEVOXの音声クエリ生成に失敗しました（ステータスコード: {resp.status_code}）。")
+    query_json = _apply_tempo(resp.json(), speech_speed)
+    return _estimate_base_duration(query_json) / query_json["speedScale"]
+
+
+def get_kana(text: str, character_key: str, reading_dict: Optional[list[dict]] = None,
+             base_url: str = VOICEVOX_BASE_URL) -> str:
+    """VOICEVOXが実際に読む予定の読み（AquesTalk風のカタカナ表記）を返す（読み間違いのチェック用）。"""
+    try:
+        resp = requests.post(
+            f"{base_url}/audio_query",
+            params={"speaker": get_speaker_id(character_key), "text": speech_text(text, reading_dict)},
+            timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT),
+        )
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        raise VoicevoxConnectionError(
+            "VOICEVOXが起動していません。VOICEVOXを起動してから再度実行してください。"
+        ) from e
+    if resp.status_code != 200:
+        raise VoicevoxSynthesisError(f"VOICEVOXの音声クエリ生成に失敗しました（ステータスコード: {resp.status_code}）。")
+    return resp.json().get("kana", "")
+
+
 def synthesize_voice(
     text: str,
     character_key: str,
@@ -202,6 +380,7 @@ def synthesize_voice(
     max_speed_scale: float = MAX_SPEED_SCALE,
     base_url: str = VOICEVOX_BASE_URL,
     reading_dict: Optional[list[dict]] = None,
+    speech_speed: float = DEFAULT_SPEECH_SPEED,
 ) -> SynthesisResult:
     """指定テキストをVOICEVOXで音声合成し、wavファイルとして保存する。
 
@@ -217,6 +396,7 @@ def synthesize_voice(
         base_url: VOICEVOX ENGINEのURL。
         reading_dict: 読み方辞書（Project.reading_dict）。指定した場合、audio_queryに渡す直前の
             テキストにだけ word→reading の置換を適用する（テロップ表示には影響しない）。
+        speech_speed: 話す速さ（1.0=VOICEVOXの等速）。表示秒数に収まらない場合は、ここから自動で引き上げる。
 
     Returns:
         SynthesisResult
@@ -230,7 +410,7 @@ def synthesize_voice(
         return SynthesisResult(audio_path=None, duration_sec=1.0, is_silent=True)
 
     speaker_id = get_speaker_id(character_key)
-    query_text = apply_reading_dict(text, reading_dict)
+    query_text = speech_text(text, reading_dict)
 
     # 1. /audio_query
     try:
@@ -253,7 +433,7 @@ def synthesize_voice(
             f"VOICEVOXの音声クエリ生成に失敗しました（ステータスコード: {query_resp.status_code}）。"
             f"テキストの内容や話者IDを確認してください。"
         )
-    query_json = query_resp.json()
+    query_json = _apply_tempo(query_resp.json(), speech_speed)
 
     # 話速の自動調整（指定秒数が渡されている場合のみ）
     speed_scale = query_json.get("speedScale") or 1.0

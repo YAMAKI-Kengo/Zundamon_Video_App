@@ -16,8 +16,10 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from functools import lru_cache
 from pathlib import Path
+from typing import Optional
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ASSETS_DIR = PROJECT_ROOT / "assets"
@@ -30,6 +32,30 @@ BACKGROUND_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 BACKGROUND_VIDEO_EXTS = {".mp4", ".mov", ".webm", ".m4v", ".avi", ".mkv"}
 # 後方互換のため、旧名でも画像拡張子集合を参照できるようにしておく
 BACKGROUND_EXTS = BACKGROUND_IMAGE_EXTS
+
+
+def _short_cache(seconds: float = 2.0):
+    """フォルダの中身の一覧を、短い時間だけ覚えておく（画面の1回の描画で何百回も同じフォルダを読まないように）。
+
+    新しく置いたファイルも、数秒以内の次の描画では一覧に出る。
+    """
+    def decorator(func):
+        memo: dict = {}
+
+        def wrapper(*args):
+            now = time.monotonic()
+            hit = memo.get(args)
+            if hit is not None and now - hit[0] < seconds:
+                return list(hit[1])
+            result = func(*args)
+            memo[args] = (now, result)
+            return list(result)
+
+        wrapper.__wrapped__ = func
+        wrapper.__doc__ = func.__doc__
+        wrapper.__name__ = func.__name__
+        return wrapper
+    return decorator
 
 
 def is_video_path(path) -> bool:
@@ -67,6 +93,7 @@ def _scan_expression_pairs(character_key: str) -> set[str]:
     return found
 
 
+@_short_cache()
 def list_characters() -> list[str]:
     """assets/ 配下に、口の開閉ペアが少なくとも1組そろっているキャラクターのキー一覧を返す。"""
     if not ASSETS_DIR.exists():
@@ -118,20 +145,72 @@ def get_default_expression(character_key: str) -> str:
     return default if default in available else available[0]
 
 
-DEFAULT_TELOP_STYLE = {"color": "white", "stroke_color": "black"}
+DEFAULT_TELOP_STYLE = {"color": "#222222", "stroke_color": "#FFFFFF", "box_color": "#FFFFFFEB"}
 
 
 def get_telop_style(character_key: str) -> dict[str, str]:
-    """話者に応じたテロップの文字色・縁取り色を返す。
+    """話者に応じたテロップの文字色・縁取り色・字幕の背景（箱）の色・枠線の色を返す。
 
-    config/characters.json の "telop" (color / stroke_color) を参照し、
-    未定義の場合は白地に黒縁のフォールバックにする。
+    config/characters.json の "telop"（color / stroke_color / box_color / border_color）を参照する。
+    字幕の背景は白（box_color）で、枠線（border_color）を話者のイメージカラーにして誰のセリフか分かるようにする。
     """
-    cfg = load_character_config().get(character_key, {}).get("telop", {})
+    char_cfg = load_character_config().get(character_key, {})
+    cfg = char_cfg.get("telop", {})
     return {
         "color": cfg.get("color", DEFAULT_TELOP_STYLE["color"]),
         "stroke_color": cfg.get("stroke_color", DEFAULT_TELOP_STYLE["stroke_color"]),
+        "box_color": cfg.get("box_color", DEFAULT_TELOP_STYLE["box_color"]),
+        "border_color": cfg.get("border_color", char_cfg.get("accent_color", "")),
     }
+
+
+ILLUSTRATION_DIR = ASSETS_DIR / "illustrations"
+ILLUSTRATION_GUIDE_PATH = CONFIG_PATH.parent / "illustrations.json"
+_ILLUSTRATION_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
+
+
+@_short_cache()
+def list_illustrations() -> list[Path]:
+    """assets/illustrations/ 配下（サブフォルダも含む）のイラスト画像の一覧。台本でシーンごとに表示する素材。"""
+    if not ILLUSTRATION_DIR.exists():
+        return []
+    return sorted(p for p in ILLUSTRATION_DIR.rglob("*") if p.is_file() and p.suffix.lower() in _ILLUSTRATION_EXTS)
+
+
+def load_illustration_guide() -> dict[str, str]:
+    """config/illustrations.json の {イラスト名: 何の絵か} （任意。ファイル名だけで伝わらない絵の説明用）。"""
+    try:
+        data = json.loads(ILLUSTRATION_GUIDE_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    items = data.get("illustrations", {}) if isinstance(data, dict) else {}
+    return {str(k): str(v) for k, v in items.items() if v}
+
+
+def find_illustration(name: str) -> Optional[Path]:
+    """イラストを名前（ファイル名から拡張子を除いた部分）で探す。完全一致 → 大文字小文字を無視した一致の順。"""
+    key = (name or "").strip()
+    if not key:
+        return None
+    candidates = list_illustrations()
+    for match in (lambda p: p.stem == key, lambda p: p.stem.lower() == key.lower(), lambda p: p.name == key):
+        for p in candidates:
+            if match(p):
+                return p
+    return None
+
+
+SE_GUIDE_PATH = CONFIG_PATH.parent / "se_guide.json"
+
+
+def load_se_guide() -> dict[str, dict]:
+    """config/se_guide.json の効果音ごとの設定（{名前: {"use": 用途, "shake": 画面を揺らすか}}）。"""
+    try:
+        data = json.loads(SE_GUIDE_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    sounds = data.get("sounds", {}) if isinstance(data, dict) else {}
+    return {str(k): v for k, v in sounds.items() if isinstance(v, dict)}
 
 
 def has_expression_assets(character_key: str, expression: str) -> bool:
@@ -152,6 +231,7 @@ def get_character_asset_path(character_key: str, filename: str) -> Path:
     return ASSETS_DIR / character_key / filename
 
 
+@_short_cache()
 def list_backgrounds() -> list[Path]:
     """assets/backgrounds/ 配下の画像・動画ファイル一覧を返す。
 
@@ -168,6 +248,53 @@ def list_backgrounds() -> list[Path]:
     )
 
 
+BGM_EXTS = {".mp3", ".wav", ".m4a", ".ogg"}
+
+
+@_short_cache()
+def list_bgm() -> list[Path]:
+    """assets/bgm/ 配下の音楽ファイル一覧を返す（場面ごと・シーンごとのBGM選択肢）。"""
+    bgm_dir = ASSETS_DIR / "bgm"
+    if not bgm_dir.exists():
+        return []
+    return sorted(p for p in bgm_dir.iterdir() if p.is_file() and p.suffix.lower() in BGM_EXTS)
+
+
+@_short_cache()
+def list_se() -> list[Path]:
+    """assets/se/ 配下の効果音ファイル一覧を返す（scripts/generate_sound_effects.py で基本セットを作成できる）。"""
+    se_dir = ASSETS_DIR / "se"
+    if not se_dir.exists():
+        return []
+    return sorted(p for p in se_dir.iterdir() if p.is_file() and p.suffix.lower() in BGM_EXTS)
+
+
+def find_se(name: str) -> Optional[Path]:
+    """効果音を名前（ファイル名の拡張子を除いた部分。例: "キラーン"）で探す。見つからなければ None。
+
+    完全一致を優先し、無ければ大文字小文字を無視した一致 → 部分一致の順に探す（台本JSONの表記ゆれ対策）。
+    """
+    key = (name or "").strip()
+    if not key:
+        return None
+    candidates = list_se()
+
+    def norm(text: str) -> str:
+        # ひらがな→カタカナ・小文字化して比べる（「きらーん」でも「キラーン」が見つかるように）
+        return "".join(chr(ord(c) + 0x60) if "ぁ" <= c <= "ゖ" else c for c in text).lower()
+
+    for match in (
+        lambda p: p.stem == key,
+        lambda p: norm(p.stem) == norm(key),
+        lambda p: norm(key) in norm(p.stem) or norm(p.stem) in norm(key),
+    ):
+        for p in candidates:
+            if match(p):
+                return p
+    return None
+
+
+@_short_cache()
 def list_content_media() -> list[Path]:
     """assets/content_media/ 配下の画像・動画ファイル一覧を返す。
 
@@ -186,6 +313,7 @@ def list_content_media() -> list[Path]:
     )
 
 
+@_short_cache()
 def list_content_images() -> list[Path]:
     """assets/content_media/ 配下の「画像ファイルのみ」の一覧を返す（動画を除く）。
 

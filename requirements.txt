@@ -20,7 +20,7 @@ requests>=2.32.3
 # --- リップシンク解析（音声波形の音量解析。wavの読み込みは標準ライブラリのwaveモジュールを使用） ---
 numpy>=1.26.4
 
-# --- ライセンスキー認証（有料配布時。src/utils/license_check.py） ---
-# 実行ファイル化して販売しない場合（自分だけで使う/無料配布する場合）は不要だが、
-# license_check.pyがimportされるため常にインストールしておく必要がある。
-cryptography>=42.0
+# --- 書籍解説モード: 本から台本を自動生成（Claude API。src/services/book_ai.py） ---
+anthropic>=1.3.0
+# --- 書籍解説モード: PDFの本からテキストを取り出す（src/services/book_loader.py） ---
+pypdf>=5.0

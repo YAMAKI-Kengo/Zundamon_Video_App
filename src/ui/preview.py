@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from src.services import video_metadata
 from src.services.video_builder import DEFAULT_SPEED_PRESET, VideoBuildError, build_video
 from src.services.voicevox_client import VoicevoxConnectionError, VoicevoxSynthesisError
 from src.state import get_project
@@ -96,6 +97,14 @@ def _run_generation(project, speed_preset: str = DEFAULT_SPEED_PRESET) -> None:
                 st.warning(w)
 
     st.success(f"動画を生成しました: {result.output_path.name}")
+    if project.video_title or project.video_description:
+        # 投稿用のタイトル・説明文も動画と同じ場所にテキストで保存しておく
+        info_path = result.output_path.with_name(result.output_path.stem + "_投稿用.txt")
+        try:
+            info_path.write_text(video_metadata.export_text(project), encoding="utf-8")
+            st.caption(f"📝 タイトル・説明文を {info_path.name} に保存しました（書籍解説モードで編集できます）。")
+        except OSError:
+            pass
     st.video(str(result.output_path))
     with open(result.output_path, "rb") as f:
         st.download_button(

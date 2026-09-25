@@ -5,8 +5,10 @@
     "accent_color": "#5FAE3E",
     "default_expression": "normal",
     "telop": {
-      "color": "#4CAF3D",
-      "stroke_color": "#FFFFFF"
+      "color": "#2B7A1C",
+      "stroke_color": "#FFFFFF",
+      "box_color": "#FFFFFFEB",
+      "border_color": "#5FAE3E"
     },
     "expressions": {
       "normal": "普通",
@@ -14,7 +16,19 @@
       "sad": "悲しみ",
       "angry": "怒り",
       "surprised": "驚き",
-      "troubled": "困り"
+      "troubled": "困り",
+      "shock": "ガーン",
+      "sleepy": "眠い",
+      "excited": "大興奮",
+      "think": "考え中",
+      "idea": "ひらめき",
+      "cry": "大泣き",
+      "smug": "ドヤ顔",
+      "panic": "あせり",
+      "wave": "手を振る",
+      "explain": "説明",
+      "whisper": "ひそひそ",
+      "gloomy": "どんより"
     }
   },
   "shikoku_metan": {
@@ -23,8 +37,10 @@
     "accent_color": "#E39AB8",
     "default_expression": "normal",
     "telop": {
-      "color": "#F06CA8",
-      "stroke_color": "#000000"
+      "color": "#C8306E",
+      "stroke_color": "#FFFFFF",
+      "box_color": "#FFFFFFEB",
+      "border_color": "#E39AB8"
     },
     "expressions": {
       "normal": "普通",
@@ -32,7 +48,17 @@
       "sad": "悲しみ",
       "angry": "怒り",
       "surprised": "驚き",
-      "troubled": "困り"
+      "troubled": "困り",
+      "point": "指さし",
+      "explain": "説明",
+      "book": "本を見せる",
+      "confident": "自信満々",
+      "idea": "ポイント",
+      "think": "考え中",
+      "worried": "心配",
+      "laugh": "笑い",
+      "blush": "照れ",
+      "whisper": "ひそひそ"
     }
   }
 }

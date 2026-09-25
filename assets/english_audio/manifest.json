@@ -1,0 +1,62 @@
+{
+  "w01d1_01": {
+    "text": "Hi, I'm Metan.",
+    "voice": "A"
+  },
+  "w01d1_02": {
+    "text": "Hi, I'm Alex. Nice to meet you.",
+    "voice": "B"
+  },
+  "w01d1_03": {
+    "text": "Nice to meet you, too.",
+    "voice": "A"
+  },
+  "w01d1_04": {
+    "text": "Is this your first time here?",
+    "voice": "B"
+  },
+  "w01d1_05": {
+    "text": "Yeah, it is. I'm a little nervous.",
+    "voice": "A"
+  },
+  "w01d1_06": {
+    "text": "Me too! Let's go get a drink.",
+    "voice": "B"
+  },
+  "w01d1_07": {
+    "text": "Hi, I'm Zunda.",
+    "voice": "A"
+  },
+  "w01d1_08": {
+    "text": "Hi, I'm Metan. I'm a student.",
+    "voice": "A"
+  },
+  "w01d1_09": {
+    "text": "Nice to meet you.",
+    "voice": "A"
+  },
+  "w01d1_10": {
+    "text": "Hi, I'm Zunda. Nice to meet you.",
+    "voice": "A"
+  },
+  "w01d1_11": {
+    "text": "Hi, I'm Ken.",
+    "voice": "A"
+  },
+  "w01d1_12": {
+    "text": "Nice to meet you, Sarah.",
+    "voice": "A"
+  },
+  "w01d1_13": {
+    "text": "You too!",
+    "voice": "A"
+  },
+  "w01d1_14": {
+    "text": "Hi, I'm Zunda. I'm a student.",
+    "voice": "A"
+  },
+  "w01d1_15": {
+    "text": "Nice to meet you, Alex.",
+    "voice": "A"
+  }
+}

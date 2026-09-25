@@ -19,15 +19,27 @@ from pathlib import Path
 
 import streamlit as st
 
-from src.models import FORMAT_RESOLUTIONS, Project, VideoFormat, Scene
-from src.services import script_import, telop, voicevox_client
-from src.services.compositor import compose_dual_scene_frame, render_pr_label_overlay
+from src.models import (
+    CAMERA_LABELS,
+    CHAR_MOTION_LABELS,
+    FORMAT_RESOLUTIONS,
+    MOOD_LABELS,
+    PHASE_LABELS,
+    SECTION_LABELS,
+    SHAKE_LABELS,
+    Project,
+    Scene,
+    VideoFormat,
+)
+from src.services import book_script, motion, script_import, slide_renderer, telop, voicevox_client
+from src.ui.preview_cache import scene_preview
 from src.services.voicevox_client import (
     VoicevoxConnectionError,
     VoicevoxSynthesisError,
     estimate_duration,
 )
 from src.state import get_project
+from src.ui.sidebar import bgm_selectbox, se_selectbox
 from src.utils.asset_loader import (
     ASSETS_DIR,
     get_available_expressions,
@@ -38,6 +50,7 @@ from src.utils.asset_loader import (
     list_characters,
     list_content_images,
     list_content_media,
+    list_illustrations,
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -111,6 +124,7 @@ def _render_voice_preview(scene: Scene, project: Project) -> None:
                 output_path=PREVIEW_AUDIO_DIR / f"preview_{scene.id}.wav",
                 target_duration=scene.duration,
                 reading_dict=project.reading_dict,
+                speech_speed=project.speech_speed,
             )
         except VoicevoxConnectionError:
             st.error(
@@ -132,7 +146,7 @@ def _render_voice_preview(scene: Scene, project: Project) -> None:
         return
 
     st.audio(str(result.audio_path))
-    if abs(result.speed_scale - 1.0) > 0.01:
+    if result.speed_scale - project.speech_speed > 0.01:
         st.caption(
             f"※ 表示秒数({scene.duration:.1f}秒)に収めるため、話速をx{result.speed_scale:.2f}に"
             "調整した場合の音声です（実際の動画生成時と同じ調整です）。"
@@ -140,7 +154,6 @@ def _render_voice_preview(scene: Scene, project: Project) -> None:
 
 
 _BULK_IMPORT_FLASH_KEY = "_bulk_import_flash"
-
 
 def _render_bulk_script_import(project: Project, characters: list[str]) -> None:
     """台本（複数行のテキスト）から、まとめて複数シーンを生成する。"""
@@ -221,6 +234,40 @@ def _render_bulk_script_import(project: Project, characters: list[str]) -> None:
                     st.rerun()
 
 
+SCENES_PER_PAGE = 10  # シーン編集で一度に表示するシーンの数
+_PAGE_KEY = "scene_editor_page"
+
+
+def _jump_to_scene() -> None:
+    number = st.session_state.get("scene_editor_jump")
+    if number:
+        st.session_state[_PAGE_KEY] = (int(number) - 1) // SCENES_PER_PAGE + 1
+
+
+def _render_page_selector(project: Project) -> tuple[int, int]:
+    """シーン編集のページ切り替え。表示するシーンの範囲 [開始, 終了) を返す。"""
+    total = len(project.scenes)
+    pages = max(1, -(-total // SCENES_PER_PAGE))
+    if st.session_state.get(_PAGE_KEY, 1) > pages:
+        st.session_state[_PAGE_KEY] = pages
+    if pages > 1:
+        col_page, col_jump, col_info = st.columns([3, 1, 2])
+        col_page.select_slider(
+            "表示するページ", options=list(range(1, pages + 1)), key=_PAGE_KEY,
+            format_func=lambda n: f"{(n - 1) * SCENES_PER_PAGE + 1}〜{min(n * SCENES_PER_PAGE, total)}",
+        )
+        col_jump.number_input(
+            "シーン番号へ移動", min_value=1, max_value=total, value=None, step=1,
+            key="scene_editor_jump", on_change=_jump_to_scene, placeholder="番号",
+        )
+        col_info.caption(
+            f"全{total}シーン。動作を軽くするため、{SCENES_PER_PAGE}シーンずつ表示しています"
+            "（「📚 書籍解説モード」の構成一覧で全体を確認できます）。"
+        )
+    page = int(st.session_state.get(_PAGE_KEY, 1))
+    return (page - 1) * SCENES_PER_PAGE, min(page * SCENES_PER_PAGE, total)
+
+
 def render_scene_editor() -> None:
     project = get_project()
     st.subheader("シーン編集")
@@ -240,8 +287,13 @@ def render_scene_editor() -> None:
     _render_bulk_script_import(project, characters)
     st.divider()
 
+    motion_contexts = motion.build_contexts(project.scenes)
+    page_start, page_end = _render_page_selector(project)
     for i, scene in enumerate(project.scenes):
-        header = f"シーン {i + 1}: {scene.text[:24] or '(未入力)'}"
+        if not page_start <= i < page_end:
+            continue  # 表示中のページ以外のシーンは描かない（シーンが多いと、操作のたびの描き直しが非常に重くなるため）
+        header = f"シーン {i + 1}: " + (f"🎬 場面転換「{scene.card_text}」" if scene.card_text
+                                          else scene.text[:24] or "(未入力)")
         with st.expander(header, expanded=True):
             col_form, col_preview = st.columns([2, 1])
 
@@ -337,6 +389,155 @@ def render_scene_editor() -> None:
                             saved_after_path = _save_uploaded_before_after_image(uploaded_after, scene.id, "after")
                             scene.after_image_path = str(saved_after_path)
 
+                col_mood, col_card = st.columns(2)
+                scene.mood = col_mood.selectbox(
+                    "背景の雰囲気", options=list(MOOD_LABELS), format_func=MOOD_LABELS.get,
+                    index=list(MOOD_LABELS).index(scene.mood) if scene.mood in MOOD_LABELS else 0,
+                    key=f"mood_{scene.id}",
+                    help="背景だけの色味を変えて、落ち込み・ショック・回想などの雰囲気を出します（キャラクターと黒板はそのまま）。",
+                )
+                scene.card_text = col_card.text_input(
+                    "場面転換テロップ（入れると全画面の文字だけのシーンになります）", value=scene.card_text,
+                    key=f"card_{scene.id}", placeholder="例: 3日後…",
+                    help="「3日後…」「その夜」など、時間や場面が変わることを伝える画面です（セリフ・キャラクターは出ません）。",
+                )
+
+                col_section, col_bgm, col_se = st.columns(3)
+                with col_section:
+                    section_keys = list(SECTION_LABELS)
+                    scene.section = st.selectbox(
+                        "場面",
+                        options=section_keys,
+                        index=section_keys.index(scene.section) if scene.section in section_keys else 0,
+                        format_func=lambda k: SECTION_LABELS[k],
+                        key=f"section_{scene.id}",
+                        help="サイドバーの「場面ごとのBGM」で、場面ごとに流す曲を切り替えられます。",
+                    )
+                    phases = PHASE_LABELS.get(scene.section, {})
+                    if phases:
+                        phase_keys = [""] + list(phases)
+                        scene.phase = st.selectbox(
+                            "段階",
+                            options=phase_keys,
+                            index=phase_keys.index(scene.phase) if scene.phase in phase_keys else 0,
+                            format_func=lambda k: phases.get(k, "(指定なし)"),
+                            key=f"phase_{scene.id}",
+                            help="導入の段階ごとのBGM（サイドバー）を切り替えるのに使います。",
+                        )
+                    else:
+                        scene.phase = ""
+                with col_bgm:
+                    scene.bgm_path = bgm_selectbox(
+                        "このシーンのBGM", scene.bgm_path, key=f"scene_bgm_{scene.id}",
+                        inherit_label="(場面・全体の設定に従う)",
+                    )
+                    resolved_bgm = project.resolve_bgm_path(scene)
+                    st.caption(f"→ 流れる曲: {Path(resolved_bgm).stem if resolved_bgm else 'なし'}")
+                with col_se:
+                    scene.se_path = se_selectbox("効果音（セリフの頭で鳴る）", scene.se_path, key=f"se_{scene.id}")
+                    if scene.se_path and Path(scene.se_path).exists():
+                        st.audio(scene.se_path)
+
+                with st.expander("🖼 イラスト（黒板より優先して画面中央に表示・任意）", expanded=bool(scene.illustration_path)):
+                    illust_options = [None] + [str(p) for p in list_illustrations()]
+                    if scene.illustration_path not in illust_options:
+                        illust_options.append(scene.illustration_path)
+                    col_pick, col_thumb = st.columns([3, 1])
+                    scene.illustration_path = col_pick.selectbox(
+                        "イラスト", options=illust_options, index=illust_options.index(scene.illustration_path),
+                        format_func=lambda v: "（なし）" if v is None else Path(v).stem, key=f"illust_{scene.id}",
+                        help="assets/illustrations/ の画像から選びます（サイドバーの「🖼 イラスト素材」で追加できます）。",
+                    )
+                    scene.illustration_caption = col_pick.text_input(
+                        "イラストの下に添える説明（12字程度）", value=scene.illustration_caption,
+                        key=f"illust_caption_{scene.id}", placeholder="例: 寝る90分前にお風呂",
+                    )
+                    if scene.illustration_path and Path(scene.illustration_path).exists():
+                        col_thumb.image(scene.illustration_path, use_container_width=True)
+                    elif scene.illustration_request or scene.illustration_name:
+                        st.caption(
+                            f"💡 欲しいイラスト: {scene.illustration_request or '（説明なし）'}"
+                            f"　→ 「{scene.illustration_name}.png」の名前で assets/illustrations/ に置くと自動で表示されます。"
+                        )
+
+                with st.expander("🧑‍🏫 スライド（横画面=黒板 / 縦画面=ホワイトボード・任意）", expanded=scene.has_slide):
+                    st.caption(
+                        "見出し・箇条書きを入力すると、黒板（縦画面ではホワイトボード）風のスライド画像を自動生成して画面中央に表示します"
+                        "（上の「資料メディア」より優先されます）。箇条書き中の **言葉** は色を変えて強調されます。"
+                    )
+                    scene.slide_title = st.text_input(
+                        "見出し", value=scene.slide_title, key=f"slide_title_{scene.id}",
+                        placeholder="例: 第1章 睡眠の質は「最初の90分」で決まる",
+                    )
+                    bullets_text = st.text_area(
+                        "箇条書き（1行 = 1項目）",
+                        value="\n".join(scene.slide_bullets),
+                        key=f"slide_bullets_{scene.id}",
+                        height=110,
+                        placeholder="眠り始めの90分が**最も深い睡眠**になる\n就寝90分前に入浴する",
+                    )
+                    scene.slide_bullets = [line for line in bullets_text.split("\n") if line.strip()]
+                    col_show, col_num = st.columns(2)
+                    scene.show_board = col_show.checkbox(
+                        "このシーンで黒板を画面に出す", value=scene.show_board, key=f"show_board_{scene.id}",
+                        help="オフにすると2人の会話だけの画面になります（見出しは左上の目次ラベルに使われます）。",
+                    )
+                    scene.slide_numbered = col_num.checkbox(
+                        "箇条書きを 1. 2. 3. の番号付きにする", value=scene.slide_numbered,
+                        key=f"slide_numbered_{scene.id}",
+                        help="手順・順番・ランキングなどは、番号付きの方が見やすくなります。",
+                    )
+                    bullet_total = len(slide_renderer.normalize_bullets(scene.slide_bullets))
+                    if bullet_total > 1:
+                        reveal_options = [None] + list(range(1, bullet_total))
+                        if scene.slide_reveal not in reveal_options:
+                            scene.slide_reveal = None
+                        scene.slide_reveal = st.selectbox(
+                            "このシーンで見せる箇条書き", options=reveal_options,
+                            index=reveal_options.index(scene.slide_reveal),
+                            format_func=lambda n: "すべて" if n is None else f"{n}行目まで",
+                            key=f"slide_reveal_{scene.id}",
+                            help="前のシーンより行が増えると、増えた行が左から書かれていくように表示されます。",
+                        )
+
+                if project.source_kind == "english" or scene.lang == "en" or scene.reading or scene.audio_id:
+                    with st.expander("🗣 英会話用（英語のセリフ・読み・ネイティブ音声）",
+                                     expanded=scene.lang == "en" or bool(scene.reading)):
+                        col_lang, col_silent = st.columns(2)
+                        scene.lang = col_lang.selectbox(
+                            "セリフの言語", ["ja", "en"], index=1 if scene.lang == "en" else 0,
+                            format_func={"ja": "日本語", "en": "英語"}.get, key=f"lang_{scene.id}",
+                        )
+                        scene.silent = col_silent.checkbox(
+                            "音声なし（リピート・回答の間）", value=scene.silent, key=f"silent_{scene.id}",
+                        )
+                        scene.translation = st.text_input(
+                            "字幕の下に出す訳", value=scene.translation, key=f"translation_{scene.id}",
+                        )
+                        scene.reading = st.text_input(
+                            "VOICEVOXに読ませる文（カタカナ英語など。空ならセリフのまま）", value=scene.reading,
+                            key=f"reading_{scene.id}",
+                        )
+                        if scene.audio_id:
+                            st.caption(
+                                f"ネイティブ音声: `{scene.audio_id}` → "
+                                + (f"✅ {Path(scene.voice_path).name}" if scene.voice_path else
+                                   "⬜ まだありません（英会話モードの「③ ネイティブ音声」を参照）")
+                            )
+                show_cols = st.columns(len(characters))
+                hidden = []
+                for col, char_key in zip(show_cols, characters):
+                    shown = col.checkbox(
+                        f"{get_character_display_name(char_key)}を表示",
+                        value=char_key not in scene.hidden_characters,
+                        key=f"show_{char_key}_{scene.id}",
+                    )
+                    if not shown:
+                        hidden.append(char_key)
+                scene.hidden_characters = hidden
+                if scene.speaker in hidden:
+                    st.caption("💡 話者を非表示にしているため、このシーンは声だけ（ナレーション）になります。")
+
                 speaker_index = characters.index(scene.speaker) if scene.speaker in characters else 0
                 scene.speaker = st.selectbox(
                     "話者",
@@ -355,6 +556,22 @@ def render_scene_editor() -> None:
                     format_func=lambda e, spk=scene.speaker: get_expression_label(spk, e),
                     index=expressions.index(scene.expression),
                     key=f"expr_{scene.id}",
+                )
+
+                partner_options = [None] + [
+                    e for e in dict.fromkeys(
+                        e for c in characters if c != scene.speaker for e in get_available_expressions(c)
+                    )
+                ]
+                if scene.partner_expression not in partner_options:
+                    partner_options.append(scene.partner_expression)
+                partner = next((c for c in characters if c != scene.speaker), scene.speaker)
+                scene.partner_expression = st.selectbox(
+                    "聞き役（話していない方）の表情",
+                    options=partner_options,
+                    index=partner_options.index(scene.partner_expression),
+                    format_func=lambda e, c=partner: "（待機表情）" if e is None else get_expression_label(c, e),
+                    key=f"partner_expr_{scene.id}",
                 )
 
                 scene.text = st.text_area(
@@ -385,6 +602,35 @@ def render_scene_editor() -> None:
                         "自動で折り返されますが、狙った位置で改行したい場合はここでEnterを押してください。"
                     )
 
+                scene.show_telop = st.checkbox(
+                    "字幕（テロップ）を表示する", value=scene.show_telop, key=f"show_telop_{scene.id}",
+                    help="オフにすると、読み上げはしますが画面下の字幕は出しません。",
+                )
+                scene.headline = st.text_area(
+                    "画面上部に大きく表示する文字（任意・改行で複数行）", value=scene.headline,
+                    key=f"headline_{scene.id}", height=68,
+                    placeholder="例: ご視聴ありがとうございました！",
+                )
+
+                with st.expander("🎥 動き（カメラ・揺れ・キャラクター）"):
+                    col_cam, col_shake, col_motion = st.columns(3)
+                    scene.camera = col_cam.selectbox(
+                        "カメラ", options=list(CAMERA_LABELS), index=list(CAMERA_LABELS).index(scene.camera)
+                        if scene.camera in CAMERA_LABELS else 0, format_func=CAMERA_LABELS.get, key=f"camera_{scene.id}",
+                    )
+                    scene.shake = col_shake.selectbox(
+                        "画面の揺れ", options=list(SHAKE_LABELS), index=list(SHAKE_LABELS).index(scene.shake)
+                        if scene.shake in SHAKE_LABELS else 0, format_func=SHAKE_LABELS.get, key=f"shake_{scene.id}",
+                    )
+                    scene.char_motion = col_motion.selectbox(
+                        "話者の動き", options=list(CHAR_MOTION_LABELS),
+                        index=list(CHAR_MOTION_LABELS).index(scene.char_motion)
+                        if scene.char_motion in CHAR_MOTION_LABELS else 0,
+                        format_func=CHAR_MOTION_LABELS.get, key=f"char_motion_{scene.id}",
+                    )
+                    effects = motion.describe_motion(project, scene, motion_contexts[i])
+                    st.caption("このシーンの動き: " + ("　".join(effects) if effects else "なし（静止）"))
+
                 suggested = estimate_duration(scene.text)
                 scene.duration = st.number_input(
                     "表示秒数（この秒数で強制カットされます）",
@@ -399,35 +645,32 @@ def render_scene_editor() -> None:
             with col_preview:
                 st.caption("プレビュー（2人常時表示レイアウト・話者のみ口パク）")
                 preview_res = _preview_resolution(project.resolution)
-                effective_background_path = scene.background_path or project.common_background_path
-                preview_pr_overlay = (
-                    render_pr_label_overlay(preview_res, project.pr_label_text)
-                    if project.pr_label_enabled
-                    else None
-                )
+                effective_background_path = book_script.effective_background_path(project, scene)
+                preview_pr_text = project.pr_label_text if project.pr_label_enabled else None
+                try:
+                    # スライドは本番と同じ解像度で生成（キャッシュを共有）し、プレビュー側で縮小表示する
+                    preview_media_path = slide_renderer.resolve_scene_content_media(scene, project.resolution)
+                except Exception as e:  # noqa: BLE001 - プレビューの失敗で編集画面全体を落とさない
+                    st.warning(f"スライドの生成に失敗しました（{e}）")
+                    preview_media_path = scene.content_media_path
                 p1, p2 = st.columns(2)
-                p1.image(
-                    compose_dual_scene_frame(
-                        scene.speaker, scene.expression, False, effective_background_path, preview_res,
-                        content_media_path=scene.content_media_path,
-                        before_image_path=scene.before_image_path,
-                        after_image_path=scene.after_image_path,
-                        pr_label_overlay=preview_pr_overlay,
-                    ),
-                    caption="話者の口:閉",
-                    use_container_width=True,
-                )
-                p2.image(
-                    compose_dual_scene_frame(
-                        scene.speaker, scene.expression, True, effective_background_path, preview_res,
-                        content_media_path=scene.content_media_path,
-                        before_image_path=scene.before_image_path,
-                        after_image_path=scene.after_image_path,
-                        pr_label_overlay=preview_pr_overlay,
-                    ),
-                    caption="話者の口:開",
-                    use_container_width=True,
-                )
+                for col, mouth_open, caption in ((p1, False, "話者の口:閉"), (p2, True, "話者の口:開")):
+                    col.image(
+                        scene_preview(
+                            scene.speaker, scene.expression, mouth_open, effective_background_path, preview_res,
+                            content_media_path=preview_media_path,
+                            before_image_path=scene.before_image_path,
+                            after_image_path=scene.after_image_path,
+                            pr_label_text=preview_pr_text,
+                            hidden_characters=scene.hidden_characters,
+                            partner_expression=scene.partner_expression,
+                            background_blur=project.background_blur,
+                            mood=scene.mood,
+                            card_text=scene.card_text,
+                        ),
+                        caption=caption,
+                        use_container_width=True,
+                    )
 
             btn_cols = st.columns(5)
             preview_voice_clicked = btn_cols[0].button(
