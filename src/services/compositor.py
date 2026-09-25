@@ -268,7 +268,10 @@ def _content_media_cached(path: str, mtime: float) -> Image.Image:
     """資料メディア（黒板・イラストのカード・写真など）の読み込み結果を覚えておく（ファイルが更新されたら読み直す）。"""
     if is_video_path(path):
         return Image.fromarray(background_video.extract_preview_frame(path)).convert("RGBA")
-    return Image.open(path).convert("RGBA")
+    img = Image.open(path).convert("RGBA")
+    if Path(path).name.startswith(ILLUSTRATION_FILE_PREFIX):
+        img.info["layout"] = "illustration"  # place_content_media() で大きく置く目印（copy・resize でも引き継がれる）
+    return img
 
 
 def content_media_max_size(resolution: tuple[int, int]) -> tuple[int, int]:
@@ -289,9 +292,30 @@ def content_media_max_size(resolution: tuple[int, int]) -> tuple[int, int]:
     )
 
 
+# イメージイラスト（カードや説明を付けず、画像だけを大きく出す）の枠。黒板より大きく、立ち絵に少し重なってよい
+ILLUSTRATION_MAX_WIDTH_RATIO = 0.74
+ILLUSTRATION_MAX_HEIGHT_RATIO = 0.78
+ILLUSTRATION_PORTRAIT_MAX_WIDTH_RATIO = 0.96
+ILLUSTRATION_PORTRAIT_MAX_HEIGHT_RATIO = 0.64
+ILLUSTRATION_FILE_PREFIX = "illust_"   # この名前で始まる画像（slide_renderer が作る）をイラストとして大きく置く
+
+
+def illustration_max_size(resolution: tuple[int, int]) -> tuple[int, int]:
+    width, height = resolution
+    if height > width:
+        return round(width * ILLUSTRATION_PORTRAIT_MAX_WIDTH_RATIO), round(height * ILLUSTRATION_PORTRAIT_MAX_HEIGHT_RATIO)
+    return round(width * ILLUSTRATION_MAX_WIDTH_RATIO), round(height * ILLUSTRATION_MAX_HEIGHT_RATIO)
+
+
 def place_content_media(media_img: Image.Image, resolution: tuple[int, int]) -> tuple[Image.Image, tuple[int, int]]:
-    """資料メディアを枠に収まるサイズに縮小し、(縮小後の画像, 貼り付け位置(左上)) を返す。"""
-    max_w, max_h = content_media_max_size(resolution)
+    """資料メディアを枠に収まるサイズに縮小し、(縮小後の画像, 貼り付け位置(左上)) を返す。
+
+    イメージイラスト（読み込み時に info["layout"] == "illustration" を付けた画像）は、黒板より大きな枠に置く。
+    """
+    if media_img.info.get("layout") == "illustration":
+        max_w, max_h = illustration_max_size(resolution)
+    else:
+        max_w, max_h = content_media_max_size(resolution)
     target_w, target_h = _fit_size(media_img.size, max_w, max_h)
     resized = media_img if (target_w, target_h) == media_img.size else media_img.resize((target_w, target_h), Image.LANCZOS)
     x = (resolution[0] - target_w) // 2

@@ -1,62 +1,731 @@
 {
   "w01d1_01": {
-    "text": "Hi, I'm Metan.",
-    "voice": "A"
+    "text": "Hey Emma, we're having a barbecue this Saturday. Do you want to come?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
   },
   "w01d1_02": {
-    "text": "Hi, I'm Alex. Nice to meet you.",
-    "voice": "B"
+    "text": "Oh, that sounds fun! I'd love to, but I have a paper due on Monday.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
   },
   "w01d1_03": {
-    "text": "Nice to meet you, too.",
-    "voice": "A"
+    "text": "Oh, that's too bad. Is it a big paper?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
   },
   "w01d1_04": {
-    "text": "Is this your first time here?",
-    "voice": "B"
+    "text": "Yeah, it's half of my grade. Can I take a rain check?",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
   },
   "w01d1_05": {
-    "text": "Yeah, it is. I'm a little nervous.",
-    "voice": "A"
+    "text": "Of course. Good luck with your paper!",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
   },
   "w01d1_06": {
-    "text": "Me too! Let's go get a drink.",
-    "voice": "B"
+    "text": "I'd love to, but I have a paper due on Monday.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
   },
   "w01d1_07": {
-    "text": "Hi, I'm Zunda.",
-    "voice": "A"
+    "text": "I wish I could, but I have to work this weekend.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
   },
   "w01d1_08": {
-    "text": "Hi, I'm Metan. I'm a student.",
-    "voice": "A"
+    "text": "Can I take a rain check?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
   },
   "w01d1_09": {
-    "text": "Nice to meet you.",
-    "voice": "A"
+    "text": "Sorry, I'm busy tonight. Can I take a rain check?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
   },
   "w01d1_10": {
-    "text": "Hi, I'm Zunda. Nice to meet you.",
-    "voice": "A"
+    "text": "We're having a barbecue this Saturday. Do you want to come?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
   },
   "w01d1_11": {
-    "text": "Hi, I'm Ken.",
-    "voice": "A"
+    "text": "I'd love to, but I have a test tomorrow.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
   },
   "w01d1_12": {
-    "text": "Nice to meet you, Sarah.",
-    "voice": "A"
+    "text": "Sorry, I can't make it tonight. Can I take a rain check?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
   },
   "w01d1_13": {
-    "text": "You too!",
-    "voice": "A"
+    "text": "I'd love to help, but I have work today.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
   },
-  "w01d1_14": {
-    "text": "Hi, I'm Zunda. I'm a student.",
-    "voice": "A"
+  "w01d2_01": {
+    "text": "Hey Emma, do you want to study together today?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
   },
-  "w01d1_15": {
-    "text": "Nice to meet you, Alex.",
-    "voice": "A"
+  "w01d2_02": {
+    "text": "Sure! I was going to study at the library, but it's closed today.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d2_03": {
+    "text": "Oh no. Where should we go instead?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d2_04": {
+    "text": "It turns out the café on campus is open until nine.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d2_05": {
+    "text": "Perfect! Do you want to get lunch there, too?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d2_06": {
+    "text": "I'd love to, but I just ate. See you there!",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d2_07": {
+    "text": "I was going to study at the library, but it's closed today.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d2_08": {
+    "text": "I was going to call you, but I forgot.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d2_09": {
+    "text": "It turns out she's from Canada.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d2_10": {
+    "text": "I'd love to, but I just ate.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d2_11": {
+    "text": "I was going to go shopping, but it's raining.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d2_12": {
+    "text": "It turns out the test is next week.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d2_13": {
+    "text": "It turns out the shop is closed on Mondays.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_01": {
+    "text": "Which apartment do you like, Room A or Room B?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_02": {
+    "text": "I like Room A. It's a bit far from campus, but it's much cheaper.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d3_03": {
+    "text": "Hmm. What matters most to me is being close to the station.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_04": {
+    "text": "Oh, it turns out Room A is near a station, too!",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d3_05": {
+    "text": "Really? Then Room A is perfect. Let's go with it!",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_06": {
+    "text": "It's a bit far from campus, but it's much cheaper.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_07": {
+    "text": "It's a little small, but it's a lot newer.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_08": {
+    "text": "What matters most to me is being close to the station.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_09": {
+    "text": "What matters most to me is the price.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_10": {
+    "text": "It turns out Room A is near a station, too!",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_11": {
+    "text": "It's a bit old, but it's much bigger.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_12": {
+    "text": "What matters most to me is the size.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_13": {
+    "text": "It's a bit far from the station, but it's much quieter.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_01": {
+    "text": "Should college students have part-time jobs? What do you think?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_02": {
+    "text": "I think so. Working teaches you a lot about money.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d4_03": {
+    "text": "That's a fair point, but students need time to study, too.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_04": {
+    "text": "Maybe. But you can study and work at the same time.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d4_05": {
+    "text": "I'm not so sure about that. It's really hard.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_06": {
+    "text": "That makes sense, but it costs a lot of money.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_07": {
+    "text": "I'm not so sure about that.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_08": {
+    "text": "Hmm, I don't know about that.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_09": {
+    "text": "Should college students have part-time jobs?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_10": {
+    "text": "Working teaches you a lot about money.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_11": {
+    "text": "That's a fair point, but students need money, too.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_12": {
+    "text": "Hmm, I'm not so sure about that.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_13": {
+    "text": "That's a fair point, but part-time jobs are fun.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_01": {
+    "text": "Today's topic is sleep and memory.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_02": {
+    "text": "Sleep plays a big role in memory. In other words, sleep helps your brain store new information.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_03": {
+    "text": "So if I sleep well, I'll remember more?",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d5_04": {
+    "text": "Exactly. Now, let's move on to the second reason.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_05": {
+    "text": "Okay. I'm taking notes.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d5_06": {
+    "text": "In other words, sleep helps your brain store new information.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_07": {
+    "text": "In other words, you need more sleep.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_08": {
+    "text": "Now, let's move on to the second reason.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_09": {
+    "text": "Okay, let's move on to the next topic.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_10": {
+    "text": "In other words, breakfast is important.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_11": {
+    "text": "Now, let's move on to the third reason.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_12": {
+    "text": "In other words, phones are bad for your sleep.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_01": {
+    "text": "We asked 100 students about their study habits.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_02": {
+    "text": "The bottom line is that most students want more study space.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_03": {
+    "text": "Interesting. But the library is already big, right?",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d7_04": {
+    "text": "That's a fair point, but it's always full at exam time.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_05": {
+    "text": "I see. What about the other students?",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d7_06": {
+    "text": "On the other hand, some students prefer studying at home.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_07": {
+    "text": "The bottom line is that sleep is important.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_08": {
+    "text": "On the other hand, it's more expensive.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_09": {
+    "text": "The bottom line is that breakfast is important.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_10": {
+    "text": "On the other hand, some students prefer studying at the library.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_11": {
+    "text": "On the other hand, the café is more expensive.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_12": {
+    "text": "Hey Emma, do you want to get lunch at the café?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_13": {
+    "text": "Me too. I was going to study at the library, but it's closed today.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_14": {
+    "text": "Great! Then let's study there together.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_15": {
+    "text": "Sure. It's a bit far, but it's much quieter than the library.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d7_16": {
+    "text": "Perfect. What matters most to me is a quiet place.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_17": {
+    "text": "Me too. See you there at three!",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
   }
 }

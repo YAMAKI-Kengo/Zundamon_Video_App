@@ -179,6 +179,8 @@ def _board_key(scene: Scene):
     """画面中央に出しているもの（黒板の内容 or 資料メディアの画像）を表すキー。何も出していなければ None。"""
     if scene.illustration_path:
         return ("media", scene.illustration_path, scene.illustration_caption)
+    if scene.note_text.strip():
+        return ("media", "note", scene.note_text, scene.note_focus, scene.note_meaning)
     key = slide_renderer.slide_key(scene)
     if key is not None:
         return key if scene.show_board else None

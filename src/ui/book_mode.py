@@ -19,10 +19,10 @@ import streamlit as st
 
 from src.models import MOOD_LABELS, Project
 
-from src.services import book_ai, book_loader, book_script, motion, slide_renderer, video_metadata
+from src.services import book_ai, book_loader, book_script, motion, slide_renderer, thumbnail, video_metadata
 from src.ui.preview_cache import scene_preview
 from src.state import forget_scene_widgets, get_project
-from src.utils.asset_loader import get_character_display_name, get_expression_label
+from src.utils.asset_loader import get_available_expressions, get_character_display_name, get_expression_label
 
 _BOOK_IMPORT_FLASH_KEY = "_book_import_flash"
 USD_TO_JPY = 150  # 費用の目安表示用のレート
@@ -55,7 +55,8 @@ def _import_script(project: Project, script_text: str, use_voicevox_timing: bool
         return False
     book_script.apply_to_project(project, result, replace=replace_existing)
     book_script.sync_background_to_format(project)
-    for key in ("meta_title", "meta_description", "meta_tags", "meta_title_candidate", "reading_dict_editor"):
+    for key in ("meta_title", "meta_description", "meta_tags", "meta_title_candidate", "reading_dict_editor",
+                "thumb_text", "thumb_sub", "thumb_zundamon", "thumb_metan", "thumb_image"):
         st.session_state.pop(key, None)
     timing = "VOICEVOXの読み上げ時間に合わせました" if result.used_voicevox_timing else "文字数からの概算です"
     st.session_state[_BOOK_IMPORT_FLASH_KEY] = {
@@ -517,6 +518,8 @@ def _render_overview(project: Project) -> None:
                         se += "　（字幕なし）"
                     if scene.has_slide and scene.show_board and not scene.illustration_path:
                         se += "　🟩黒板" + ("（番号付き）" if scene.slide_numbered else "")
+                    if scene.note_text:
+                        se += f"　📝解説「{scene.note_focus or scene.note_text}」"
                     if scene.board_hold:
                         se += f"　📖+{scene.board_hold:.1f}秒"
                     if scene.mood:
@@ -626,6 +629,10 @@ def _render_metadata(project: Project) -> None:
         ("meta_tags", ", ".join(project.video_tags)),
     ):
         st.session_state.setdefault(key, value)
+    # BGMや config/bgm_credits.json を変えたら、説明文のクレジット欄だけ最新にする（他の部分の手直しは残す）
+    fresh = video_metadata.refresh_credits(st.session_state["meta_description"], project)
+    if fresh != st.session_state["meta_description"]:
+        st.session_state["meta_description"] = fresh
 
     st.caption(
         "台本の内容（本のタイトル・悩み・ポイント・まとめ・各シーンの秒数）から自動で作っています。"
@@ -655,6 +662,58 @@ def _render_metadata(project: Project) -> None:
     )
 
 
+@st.cache_data(max_entries=60, show_spinner=False)
+def _thumbnail_png(spec_json: str, background: str, stamps: tuple) -> bytes:
+    import io
+
+    img = thumbnail.render_thumbnail(json.loads(spec_json), background or None)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def _render_thumbnail(project: Project) -> None:
+    """サムネイル（1280×720）を3つのレイアウトで作り、選んで保存する。"""
+    if not project.scenes:
+        return
+    st.subheader("🖼 サムネイル")
+    spec = thumbnail.default_spec(project)
+    st.caption(
+        "台本のAIが考えた文言（無ければタイトルから）で作っています。文字は2〜3行・1行8字くらいまでが見やすく、"
+        "**語** で囲んだ語が赤く目立ちます。下のプレビューは、スマホでの見え方に近い大きさです。"
+    )
+    col_text, col_opt = st.columns([3, 2])
+    spec["text"] = col_text.text_area("サムネイルの文字（改行で行を分ける）", value=spec.get("text", ""),
+                                      key="thumb_text", height=110)
+    spec["sub"] = col_opt.text_input("左上の帯", value=spec.get("sub", ""), key="thumb_sub")
+    z_opts, m_opts = get_available_expressions("zundamon"), get_available_expressions("shikoku_metan")
+    spec["zundamon"] = col_opt.selectbox(
+        "ずんだもんの表情", z_opts, index=z_opts.index(spec["zundamon"]) if spec.get("zundamon") in z_opts else 0,
+        format_func=lambda e: get_expression_label("zundamon", e), key="thumb_zundamon")
+    spec["metan"] = col_opt.selectbox(
+        "めたんの表情（2人のレイアウト）", m_opts, index=m_opts.index(spec["metan"]) if spec.get("metan") in m_opts else 0,
+        format_func=lambda e: get_expression_label("shikoku_metan", e), key="thumb_metan")
+    images = [None] + ([project.book_cover_path] if project.book_cover_path else []) + list(dict.fromkeys(
+        s.illustration_path for s in project.scenes if s.illustration_path))
+    current = spec.get("image") if spec.get("image") in images else (images[1] if len(images) > 1 else None)
+    spec["image"] = col_opt.selectbox("真ん中の画像（2人のレイアウト）", images, index=images.index(current),
+                                      format_func=lambda v: "（なし）" if not v else Path(v).stem, key="thumb_image")
+    project.thumbnail = {k: v for k, v in spec.items() if k != "image"} | ({"image": spec["image"]} if spec["image"] else {})
+
+    background = book_script.effective_background_path(project, project.scenes[0]) or ""
+    stamps = tuple(Path(p).stat().st_mtime if p and Path(p).exists() else 0 for p in (background, spec.get("image")))
+    cols = st.columns(len(thumbnail.LAYOUTS))
+    for col, (layout, label) in zip(cols, thumbnail.LAYOUTS.items()):
+        png = _thumbnail_png(json.dumps(spec | {"layout": layout}, ensure_ascii=False), background, stamps)
+        chosen = spec.get("layout") == layout
+        col.image(png, caption=("⭐ AIのおすすめ・" if chosen else "") + label, use_container_width=True)
+        col.download_button(
+            "⬇️ このサムネイルを保存", data=png, key=f"thumb_dl_{layout}", use_container_width=True,
+            file_name=f"{project.book_title or 'video'}_サムネイル_{layout}.png", mime="image/png",
+            type="primary" if chosen else "secondary",
+        )
+
+
 def render_book_mode() -> None:
     project = get_project()
     st.subheader("台本の準備")
@@ -675,3 +734,4 @@ def render_project_review(project: Project) -> None:
     _render_ending_button(project)
     st.divider()
     _render_metadata(project)
+    _render_thumbnail(project)

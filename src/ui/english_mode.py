@@ -10,10 +10,11 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import streamlit as st
 
-from src.services import book_ai, english_lesson
+from src.services import book_ai, english_lesson, english_tts
 from src.state import forget_scene_widgets, get_project
 from src.ui import book_mode
 
@@ -103,6 +104,8 @@ def _import_lesson(project, data: dict) -> None:
     )
     if ok:
         english_lesson.link_native_audio(project.scenes)
+        if st.session_state.get("en_auto_tts", True) and english_tts.is_available():
+            _generate_missing_audio(project)  # 足りないお手本の音声を、読み上げAIで自動で作る
         _check_readings_after_import(project)
         # 取り込み結果のメッセージは、書籍解説モードのタブではなくこのタブで表示する
         st.session_state[_EN_FLASH_KEY] = st.session_state.pop(book_mode._BOOK_IMPORT_FLASH_KEY, None)
@@ -117,6 +120,9 @@ def _render_daily_script(project, plan: dict, week: int, level: str, use_api: bo
         col_a.checkbox("エンディングを付ける", value=True, key="en_ending")
         col_b.checkbox("日本語のセリフの秒数をVOICEVOXで測る", value=True, key="en_timing",
                        help="英語のセリフの秒数は、ネイティブ音声を紐付けたときに音声の長さに合わせます。")
+        if english_tts.is_available():
+            st.checkbox("足りないお手本の英語の音声を、読み上げAIで自動で作る", value=True, key="en_auto_tts",
+                        help="台本を読み込んだあと、まだ音声が無い英文を読み上げAI（Kokoro）で作って紐付けます。")
         col_c.checkbox("日本語の読み間違いを自動チェック", value=True, key="en_reading_check",
                        help="台本を読み込んだあと、VOICEVOXが実際にどう読むかを調べ、Claudeが読み間違いを探して"
                             "読み方辞書に追加します（VOICEVOXの起動とAPIキーが必要。1回数円程度）。")
@@ -157,6 +163,83 @@ def _render_daily_script(project, plan: dict, week: int, level: str, use_api: bo
             _import_lesson(project, english_lesson.prepare_pasted_lesson(data, plan, day))
 
 
+TTS_SETTINGS_PATH = english_lesson.ROOT / "config" / "english_tts.json"
+
+
+def _tts_settings() -> dict:
+    """読み上げAIの声・速さの設定（毎日同じ声にするため、ファイルに保存しておく）。"""
+    settings = {"voice_a": english_tts.DEFAULT_VOICE_A, "voice_b": english_tts.DEFAULT_VOICE_B,
+                "speed": english_tts.DEFAULT_SPEED}
+    try:
+        settings.update(json.loads(TTS_SETTINGS_PATH.read_text(encoding="utf-8")))
+    except (OSError, json.JSONDecodeError):
+        pass
+    return settings
+
+
+def _save_tts_settings(settings: dict) -> None:
+    TTS_SETTINGS_PATH.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _generate_missing_audio(project, overwrite: bool = False) -> None:
+    """足りないネイティブ音声を読み上げAIで作り、シーンに紐付ける。"""
+    items = english_lesson.native_audio_items(project.scenes)
+    if not overwrite and all(i["ready"] for i in items):
+        return
+    settings = _tts_settings()
+    with st.status("お手本の音声を作っています…（初回は準備に1分ほどかかります）", expanded=True) as status:
+        result = english_tts.generate_native_audio(
+            items, settings["voice_a"], settings["voice_b"], settings["speed"], overwrite=overwrite,
+            progress=status.write,
+        )
+        status.update(label=f"音声を{len(result.created)}件作りました", state="error" if result.failed else "complete")
+    for message in result.failed:
+        st.error(message)
+    forget_scene_widgets(english_lesson.link_native_audio(project.scenes))
+
+
+def _render_tts_controls(project, items: list[dict]) -> None:
+    """読み上げAI（Kokoro）で音声を自動で作るための設定とボタン。"""
+    if not english_tts.is_available():
+        st.info("読み上げAI（Kokoro）が入っていないため、音声は手作業で用意してください"
+                "（コマンドで `pip install kokoro soundfile` を実行すると、ここで自動で作れるようになります）。")
+        return
+    settings = _tts_settings()
+    voice_keys = list(english_tts.VOICES)
+    col_a, col_b, col_speed = st.columns([2, 2, 1])
+    voice_a = col_a.selectbox("声A（めたん役）", voice_keys, index=voice_keys.index(settings["voice_a"])
+                              if settings["voice_a"] in voice_keys else 0, format_func=english_tts.VOICES.get,
+                              key="en_tts_voice_a")
+    voice_b = col_b.selectbox("声B（会話の相手役）", voice_keys, index=voice_keys.index(settings["voice_b"])
+                              if settings["voice_b"] in voice_keys else 0, format_func=english_tts.VOICES.get,
+                              key="en_tts_voice_b")
+    speed = col_speed.slider("話す速さ", 0.7, 1.2, float(settings["speed"]), 0.05, key="en_tts_speed",
+                             help="1.0が標準。学習用に少しゆっくりめ（0.9）が既定です。")
+    new_settings = {"voice_a": voice_a, "voice_b": voice_b, "speed": speed}
+    if new_settings != {k: settings[k] for k in new_settings}:
+        _save_tts_settings(new_settings)
+
+    missing = sum(1 for i in items if not i["ready"])
+    col_make, col_redo, col_try = st.columns([2, 2, 1])
+    if col_make.button(f"🤖 足りない音声をAIで作る（{missing}件）", type="primary", key="en_tts_make",
+                       disabled=missing == 0, use_container_width=True):
+        _generate_missing_audio(project)
+        st.rerun()
+    if col_redo.button("♻️ この動画の音声をすべて作り直す", key="en_tts_redo", use_container_width=True,
+                       help="声や速さを変えたときに使います（手作業で置いた音声も、AIの音声で置き換えます）。"):
+        _generate_missing_audio(project, overwrite=True)
+        st.rerun()
+    if col_try.button("▶ 試し聞き", key="en_tts_try", use_container_width=True):
+        with st.spinner("試し聞きの音声を作っています…"):
+            try:
+                st.audio(english_tts.sample_audio(voice_a, speed), format="audio/wav")
+                st.audio(english_tts.sample_audio(voice_b, speed, "Hi, I'm Alex. Nice to meet you, too."),
+                         format="audio/wav")
+            except english_tts.EnglishTTSError as e:
+                st.error(str(e))
+    st.caption("読み上げAI「Kokoro」（Apache 2.0ライセンス・商用利用可）で、このPCの中で音声を作ります（登録・料金なし）。")
+
+
 def _render_native_audio(project) -> None:
     """③ ネイティブ音声の一覧と紐付け。"""
     items = english_lesson.native_audio_items(project.scenes)
@@ -164,13 +247,15 @@ def _render_native_audio(project) -> None:
         return
     ready = sum(1 for i in items if i["ready"])
     with st.expander(f"③ ネイティブ音声（{ready}/{len(items)} 用意済み）", expanded=ready < len(items)):
+        _render_tts_controls(project, items)
         st.caption(
-            f"お手本の英文を音声にして、表のファイル名で `{english_lesson.AUDIO_DIR}` に保存してください"
-            "（mp3 / wav / m4a など。1文 = 1ファイル）。声A はめたん役（女性）、声B は会話の相手役です。"
+            f"手作業で用意する場合は、お手本の英文を音声にして、表のファイル名で `{english_lesson.AUDIO_DIR}` に"
+            "保存してください（mp3 / wav / m4a など。1文 = 1ファイル）。声A はめたん役（女性）、声B は会話の相手役です。"
             "同じ英文は前の日・前の週と同じファイル名になるので、作り直す必要はありません。"
         )
         st.dataframe(
-            [{"": "✅" if i["ready"] else "⬜", "ファイル名": f"{i['id']}.mp3", "声": i["voice"], "英文": i["text"]}
+            [{"": "✅" if i["ready"] else "⬜", "ファイル名": Path(i["path"]).name if i["ready"] else f"{i['id']}.mp3",
+              "声": i["voice"], "英文": i["text"]}
              for i in items],
             hide_index=True, use_container_width=True,
         )

@@ -16,6 +16,7 @@ AIで台本を作った場合は、AIが提案したタイトル案（Project.ti
 """
 from __future__ import annotations
 
+import json
 import math
 import re
 from dataclasses import dataclass, field
@@ -31,7 +32,8 @@ BASE_TAGS = ["本要約", "書評", "本紹介", "読書", "ずんだもん", "�
 SHORT_TAGS = ["Shorts", "本要約", "ずんだもん"]
 RESEARCH_TAGS = ["ずんだもん解説", "解説", "研究", "論文", "ずんだもん", "四国めたん", "VOICEVOX"]
 RESEARCH_SHORT_TAGS = ["Shorts", "ずんだもん解説", "ずんだもん"]
-ENGLISH_TAGS = ["英会話", "英語学習", "毎日英会話", "英語リスニング", "シャドーイング", "ずんだもん", "四国めたん", "VOICEVOX"]
+BGM_CREDITS_PATH = Path(__file__).resolve().parents[2] / "config" / "bgm_credits.json"
+ENGLISH_TAGS =["英会話", "英語学習", "毎日英会話", "英語リスニング", "シャドーイング", "ずんだもん", "四国めたん", "VOICEVOX"]
 
 _EMPHASIS = re.compile(r"\*\*(.+?)\*\*")
 _HASHTAG_UNSAFE = re.compile(r"[\s　・「」『』【】（）()！!？?、。,.:：/／\-－~〜#＃]")
@@ -250,15 +252,64 @@ def build_tags(project: Project) -> list[str]:
     return _dedupe(tags)
 
 
+def _load_bgm_credits() -> dict[str, str]:
+    """BGMの曲名 → 説明文に出す表記（作者名つき）。config/bgm_credits.json から読む。"""
+    try:
+        data = json.loads(BGM_CREDITS_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return {str(k): str(v) for k, v in data.items() if not str(k).startswith("_") and str(v).strip()}
+
+
+def _normalize_title(text: str) -> str:
+    return re.sub(r"\s+", " ", text.replace("_", " ")).strip().lower()
+
+
+def bgm_credit(path: str, credits: dict[str, str]) -> str:
+    """BGMファイルのクレジット表記。ファイル名は「場面_曲名」の形なので、曲名の部分で表記を探す。"""
+    stem = Path(path).stem
+    title = stem.split("_", 1)[1] if "_" in stem else stem
+    normalized = _normalize_title(title)
+    for key, credit in credits.items():
+        if _normalize_title(key) == normalized:
+            return credit
+    return f"{title.replace('_', ' ')}（作者名を config/bgm_credits.json に登録してください）"
+
+
 def _credits(project: Project) -> list[str]:
     speakers = _dedupe([s.speaker for s in project.scenes if s.text.strip()])
-    bgm_names = _dedupe([Path(p).stem for p in (project.resolve_bgm_path(s) for s in project.scenes) if p])
-    lines = ["■ クレジット"] + [f"VOICEVOX:{get_character_display_name(s)}" for s in speakers]
+    bgm_paths = _dedupe([p for p in (project.resolve_bgm_path(s) for s in project.scenes) if p])
+    lines = ["■ クレジット・使用素材"]
+    if speakers:
+        lines.append("・音声：" + "、".join(f"VOICEVOX:{get_character_display_name(s)}" for s in speakers))
     if any(s.voice_path for s in project.scenes):
-        lines.append("英語音声: （使用した音声サービス名をここに記載してください）")
-    if bgm_names:
-        lines.append("BGM: " + " / ".join(bgm_names) + "（提供元をここに記載してください）")
+        lines.append("・英語音声：（使用した音声サービス名をここに記載してください）")
+    lines += [
+        "・立ち絵：坂本アヒル 様",
+        "・効果音：効果音ラボ（https://soundeffect-lab.info/sound/anime/）",
+    ]
+    if bgm_paths:
+        credits = _load_bgm_credits()
+        lines.append("・BGM：OpenTracks（https://opentracks.com/）")
+        lines += [f"　{bgm_credit(p, credits)}" for p in bgm_paths]
     return lines
+
+
+def refresh_credits(description: str, project: Project) -> str:
+    """説明文の中のクレジット欄だけを、今のBGM・話者・config/bgm_credits.json に合わせて作り直す。
+
+    説明文は台本を読み込んだときに一度作って保存するので、あとからBGMや作者名の登録を変えても
+    古いままになってしまう。手で書き換えた他の部分はそのままにして、クレジット欄（「■ クレジット」の
+    見出しから次の空行まで）だけを差し替える。クレジット欄が無ければ何もしない。
+    """
+    lines = description.split("\n")
+    start = next((i for i, line in enumerate(lines) if line.startswith("■ クレジット")), None)
+    if start is None:
+        return description
+    end = start + 1
+    while end < len(lines) and lines[end].strip() and not lines[end].startswith("■"):
+        end += 1
+    return "\n".join(lines[:start] + _credits(project) + lines[end:])
 
 
 def _source_lines(project: Project) -> list[str]:
@@ -394,6 +445,6 @@ def export_text(project: Project) -> str:
     """投稿時にコピーしやすいよう、タイトル・説明文・タグを1つのテキストにまとめる。"""
     return "\n".join([
         "【タイトル】", project.video_title, "",
-        "【説明文】", project.video_description, "",
+        "【説明文】", refresh_credits(project.video_description, project), "",
         "【タグ】", ", ".join(project.video_tags),
     ])

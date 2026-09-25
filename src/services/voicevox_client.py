@@ -120,6 +120,8 @@ PHONEME_EDGE_SECONDS = 0.05  # セリフの前後の無音（VOICEVOXの既定�
 PAUSE_LENGTH_SCALE = 0.8     # 文中の「、」「。」の間の長さ（VOICEVOXの既定は1.0）
 
 _BRACKETS = str.maketrans("", "", "『』「」【】〈〉《》")  # 読み上げでは括弧を外す（「『書名』は」の前後に不自然な間が入るため）
+# カタカナとカタカナの間のスペース・中黒（カタカナ英語「キャン アイ ゲット」の単語の区切り）
+_KATAKANA_GAP = re.compile(r"(?<=[ァ-ヶー])[ 　・]+(?=[ァ-ヶー])")
 _RANGE_PATTERN = re.compile(r"(\d)\s*[〜～~]\s*(\d)")
 _SEVEN_PATTERN = re.compile(r"(?<![\d.])7(?=(時間|人|時|分|日間|週間|か月|ヶ月|年|歳|回|個|冊|点|割|倍|才))")
 
@@ -130,7 +132,10 @@ def normalize_for_speech(text: str) -> str:
     実際にVOICEVOXで読ませて確認した誤読への対処:
       - 数字の範囲「1〜2時間」→ 「〜」が「、」と読まれる → 「1から2時間」
       - 単独の「7」+単位（7時間・7人など）→「しち」と読まれる → 「なな」
+      - カタカナ英語の単語の間のスペース・「・」（「キャン アイ ゲット」）→ 1語ごとに「、」の間が入って
+        カタコトがとても遅くなる → 詰めて一続きに読ませる（句読点での区切りは残す）
     """
+    text = _KATAKANA_GAP.sub("", text)
     text = text.translate(_BRACKETS)
     text = _RANGE_PATTERN.sub(r"\1から\2", text)
     return _SEVEN_PATTERN.sub("なな", text)

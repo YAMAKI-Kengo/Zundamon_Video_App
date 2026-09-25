@@ -389,6 +389,21 @@ def render_scene_editor() -> None:
                             saved_after_path = _save_uploaded_before_after_image(uploaded_after, scene.id, "after")
                             scene.after_image_path = str(saved_after_path)
 
+                with st.expander("📝 重要な表現の解説カード（赤い下線と意味）", expanded=bool(scene.note_text)):
+                    scene.note_text = st.text_input(
+                        "文", value=scene.note_text, key=f"note_text_{scene.id}",
+                        placeholder="例: Can I get a coffee?",
+                        help="入力すると、黒板の代わりに解説カードが出ます（イラストがあるシーンはイラストが優先）。",
+                    )
+                    col_focus, col_meaning = st.columns([1, 2])
+                    scene.note_focus = col_focus.text_input(
+                        "赤線を引く部分", value=scene.note_focus, key=f"note_focus_{scene.id}", placeholder="例: Can I get",
+                    )
+                    scene.note_meaning = col_meaning.text_input(
+                        "意味・使い方", value=scene.note_meaning, key=f"note_meaning_{scene.id}",
+                        placeholder="例: 〜をもらえる？ お店で注文するときの定番",
+                    )
+
                 col_mood, col_card = st.columns(2)
                 scene.mood = col_mood.selectbox(
                     "背景の雰囲気", options=list(MOOD_LABELS), format_func=MOOD_LABELS.get,

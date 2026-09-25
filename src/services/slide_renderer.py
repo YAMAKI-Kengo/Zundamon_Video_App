@@ -51,7 +51,7 @@ FONTS_DIR = PROJECT_ROOT / "assets" / "fonts"
 SLIDE_CACHE_DIR = PROJECT_ROOT / "tmp" / "slides"
 
 # 見た目を変更したらこの値を上げる（古いキャッシュ画像が使われ続けないように）
-STYLE_VERSION = 11
+STYLE_VERSION = 13
 
 # --- 色 ---
 BOARD_COLOR = (36, 66, 52)
@@ -70,7 +70,7 @@ FRAME_RATIO = 0.035            # 木枠の太さ（短辺比）
 TRAY_RATIO = 0.045             # 下部のチョーク受けの高さ（短辺比）
 PADDING_X_RATIO = 0.06         # 黒板の内側の左右余白（黒板幅比）
 PADDING_Y_RATIO = 0.08         # 黒板の内側の上下余白（黒板高さ比）
-TITLE_SIZE_RATIO = 0.11        # 見出しの文字サイズ（黒板高さ比）
+TITLE_SIZE_RATIO = 0.088       # 見出しの文字サイズ（黒板高さ比）
 BODY_SIZE_RATIO = 0.07         # 箇条書きの文字サイズ（黒板高さ比。要点を文で書けるよう少し小さめ）
 # 文字の線の太さ（文字サイズに対する比率）。同梱フォントはRegularで線が細く、チョークのかすれで
 # さらに細く見えるため、縁取り(stroke)で太らせて疑似的な太字にする
@@ -656,6 +656,63 @@ def _one_line(text: str) -> list[list[Run]]:
     return [_to_runs(plain, flags)]
 
 
+WRAP_MIN_SIZE_RATIO = 0.8  # 1行に収めると通常の文字サイズのこの割合より小さくなる項目は、2行に分ける
+# 「英文 ― 日本語訳」のような対になった項目の区切り（英単語の中のハイフン check-in などでは区切らない）
+_PAIR_SEPARATOR = re.compile(r"\s+[-–—―]{1,2}\s+|\s*[―—]{1,2}\s*")
+
+
+def split_point(plain: str) -> Optional[int]:
+    """1行を2行に分けるのにいちばん自然な位置（後ろの行の先頭の文字位置）。分けられなければ None。
+
+    英語が中心の文は単語と単語の間（スペース）で、日本語の文は句読点・助詞のあとなど、字幕と同じ基準
+    （telop._break_penalty）で選ぶ。英単語の途中・「」の途中では分けない。真ん中に近い位置を優先する。
+    """
+    n = len(plain)
+    if n < 6:
+        return None
+    english = sum(ch.isascii() and ch.isalpha() for ch in plain) > n * 0.5
+    best, best_score = None, float("inf")
+    for i in range(max(1, int(n * 0.25)), min(n - 1, int(n * 0.75)) + 1):
+        before, after = plain[i - 1], plain[i]
+        if english:
+            if before != " ":
+                continue
+            score = abs(i - n / 2)
+        else:
+            if before.isascii() and after.isascii() and (before.isalnum() or before in "'-") and after.isalnum():
+                continue  # 日本語の文の中の英単語の途中
+            score = telop._break_penalty(plain, i) + abs(i - n / 2) * 0.3
+        if score < best_score:
+            best, best_score = i, score
+    return best
+
+
+def _two_rows(plain: str, flags: list[bool], i: int) -> list[tuple[str, list[bool]]]:
+    left_end, right_start = i, i
+    while left_end > 0 and plain[left_end - 1] == " ":
+        left_end -= 1
+    while right_start < len(plain) and plain[right_start] == " ":
+        right_start += 1
+    return [(plain[:left_end], flags[:left_end]), (plain[right_start:], flags[right_start:])]
+
+
+def _bullet_rows(text: str, wrap: bool = False) -> list[tuple[str, list[bool]]]:
+    """箇条書き1項目を、黒板に書く行（文字列, 強調フラグ）に分ける。
+
+    「英文 ― 日本語訳」のように対になった項目は、いつも英文と訳の2行に分ける。
+    wrap=True の項目（1行に収めると小さくなりすぎるもの）は、自然な位置で2行に分ける。
+    """
+    plain, flags = _parse_emphasis(text)
+    m = _PAIR_SEPARATOR.search(plain)
+    if m and 0 < m.start() and m.end() < len(plain):
+        return [(plain[:m.start()], flags[:m.start()]), (plain[m.end():], flags[m.end():])]
+    if wrap:
+        i = split_point(plain)
+        if i:
+            return _two_rows(plain, flags, i)
+    return [(plain, flags)]
+
+
 def _text_width_at(texts: list[str], font_path: Optional[str], size: int) -> float:
     """size の文字で書いたときの、texts のうち一番長い1行の幅（太字化の縁取りぶんも含む）。"""
     font = telop.load_font(font_path, size)
@@ -691,21 +748,31 @@ def _layout(title: str, bullets: list[str], font_path: Optional[str], board_w: i
     if title:
         title_size = _fit_one_line_size([title], font_path, title_size, lambda _s: avail_w)
     indent_ratio = NUMBER_INDENT_RATIO if numbered else 1.1  # 番号（「10.」まで）は「・」より幅を取る
+    body_width = lambda s: avail_w - round(s * indent_ratio)  # noqa: E731
+    rows = [_bullet_rows(b) for b in bullets]
     if bullets:
-        body_size = _fit_one_line_size(bullets, font_path, body_size, lambda s: avail_w - round(s * indent_ratio))
+        one_line = _fit_one_line_size([t for r in rows for t, _ in r], font_path, body_size, body_width)
+        if one_line < body_size * WRAP_MIN_SIZE_RATIO:
+            # 1行だと小さくなりすぎる項目だけ、自然な位置で2行に分ける（全部を小さくして読めなくなるのを防ぐ）
+            readable = round(body_size * WRAP_MIN_SIZE_RATIO)
+            rows = [
+                _bullet_rows(b, wrap=len(r) == 1 and _text_width_at([r[0][0]], font_path, readable) > body_width(readable))
+                for b, r in zip(bullets, rows)
+            ]
+        body_size = _fit_one_line_size([t for r in rows for t, _ in r], font_path, body_size, body_width)
     title_font = telop.load_font(font_path, title_size)
     body_font = telop.load_font(font_path, body_size)
     indent = round(body_size * indent_ratio)
 
     title_lines = _one_line(title) if title else []
-    bullet_lines = [_one_line(b) for b in bullets]
+    bullet_lines = [[_to_runs(t, f) for t, f in r] for r in rows]
 
     height = 0.0
     if title_lines:
         height += title_size * 1.3 + title_size * 0.35  # 見出し + 下線
     if title_lines and bullet_lines:
         height += body_size * 0.8
-    height += len(bullet_lines) * body_size * LINE_SPACING
+    height += sum(len(lines) for lines in bullet_lines) * body_size * LINE_SPACING
     if bullet_lines:
         height += (len(bullet_lines) - 1) * body_size * 0.25  # 項目間の余白
     return {
@@ -913,6 +980,36 @@ def render_illustration_card(image_path: str, caption: str, size: tuple[int, int
     return canvas
 
 
+ILLUSTRATION_IMAGE_VERSION = 1
+
+
+def get_illustration_image_path(image_path: str, resolution: tuple[int, int]) -> Path:
+    """イメージイラストを、周りの透明な余白を切り落として表示枠の大きさに合わせた画像にし、PNGのパスを返す。
+
+    白いカードや説明文は付けず、画像そのものを大きく出す（compositor.place_content_media() が
+    黒板より大きな枠に置く）。小さい素材も、表示枠いっぱいまで拡大しておく（毎フレームの拡大を避ける）。
+    """
+    from src.services.compositor import ILLUSTRATION_FILE_PREFIX, _fit_size, illustration_max_size
+
+    max_w, max_h = illustration_max_size(resolution)
+    try:
+        mtime = Path(image_path).stat().st_mtime
+    except OSError:
+        mtime = 0
+    key = json.dumps([ILLUSTRATION_IMAGE_VERSION, str(image_path), mtime, max_w, max_h], ensure_ascii=False)
+    digest = hashlib.sha1(key.encode("utf-8")).hexdigest()[:16]
+    path = SLIDE_CACHE_DIR / f"{ILLUSTRATION_FILE_PREFIX}{digest}.png"
+    if not path.exists():
+        SLIDE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        img = Image.open(image_path).convert("RGBA")
+        box = img.getchannel("A").point(lambda a: 255 if a > 8 else 0).getbbox()
+        if box:
+            img = img.crop(box)
+        img = img.resize(_fit_size(img.size, max_w, max_h), Image.LANCZOS)
+        img.save(path)
+    return path
+
+
 def get_illustration_card_path(image_path: str, caption: str, resolution: tuple[int, int]) -> Path:
     """イラストのカード画像を生成（またはキャッシュから取得）し、PNGのパスを返す。"""
     size = slide_size_for(resolution)
@@ -929,6 +1026,125 @@ def get_illustration_card_path(image_path: str, caption: str, resolution: tuple[
     return path
 
 
+# ---------------------------------------------------------------------------
+# 重要な表現の解説カード（文の大事な部分に赤い下線 → 矢印 → 意味・使い方）
+# ---------------------------------------------------------------------------
+
+NOTE_VERSION = 2
+CHALK_RED = (255, 112, 112)
+NOTE_LABEL = "ここに注目！"
+NOTE_SENTENCE_SIZE_RATIO = 0.15   # 文の文字サイズ（板の高さに対する比率。長い文は幅に合わせて小さくする）
+NOTE_MEANING_SIZE_RATIO = 0.62    # 意味の文字サイズ（文の文字サイズに対する比率）
+NOTE_MEANING_MIN_RATIO = 0.075    # 意味の文字サイズの下限（板の高さに対する比率。文が長くて小さくなっても読めるように）
+
+
+def _find_focus(sentence: str, focus: str) -> tuple[int, int]:
+    """文の中の、下線を引く部分の位置 [開始, 終了)。見つからなければ文全体。"""
+    focus = (focus or "").strip()
+    if focus:
+        start = sentence.find(focus)
+        if start < 0:
+            start = sentence.lower().find(focus.lower())
+        if start >= 0:
+            return start, start + len(focus)
+    return 0, len(sentence)
+
+
+def render_phrase_note(sentence: str, focus: str, meaning: str, size: tuple[int, int],
+                       style: BoardStyle = CHALKBOARD, font_path: Optional[str] = None,
+                       seed: int = 0) -> Image.Image:
+    """重要な表現の解説カード: 黒板（縦画面はホワイトボード）に文を大きく書き、大事な部分に赤い下線を引いて、
+    その下に矢印と意味・使い方を書く。"""
+    sentence = telop.strip_emoji(sentence).strip()
+    meaning = telop.strip_emoji(meaning).strip()
+    font_path = font_path if font_path is not None else style.resolve_font()
+    rng = np.random.default_rng(seed + 7)
+    py_rng = random.Random(seed + 7)
+    red = MARKER_RED if style is WHITEBOARD else CHALK_RED
+
+    canvas, (bx0, by0, bx1, by1) = style.render_board(size, seed)
+    bw, bh = bx1 - bx0, by1 - by0
+    pad_x, pad_y = round(bw * PADDING_X_RATIO), round(bh * PADDING_Y_RATIO)
+    avail_w = bw - pad_x * 2
+
+    # 見出し（左上に小さく）
+    label_size = max(MIN_FONT_PX, round(bh * 0.075))
+    label_font = telop.load_font(font_path, label_size)
+    img, base = _render_text_line([(NOTE_LABEL, False)], label_font, label_size,
+                                  (style.title_color, style.title_color), rng, -1.0, style.ink)
+    canvas.alpha_composite(img, (round(bx0 + pad_x - label_size // 2), round(by0 + pad_y + label_size * 1.05 - base)))
+
+    # 文（中央・下線を引く部分は強調色）
+    start, end = _find_focus(sentence, focus)
+    size_s = _fit_one_line_size([sentence], font_path, max(MIN_FONT_PX, round(bh * NOTE_SENTENCE_SIZE_RATIO)),
+                                lambda _s: avail_w)
+    font = telop.load_font(font_path, size_s)
+    runs = [r for r in ((sentence[:start], False), (sentence[start:end], True), (sentence[end:], False)) if r[0]]
+    text_w = font.getlength(sentence)
+    img, base = _render_text_line(runs, font, size_s, (style.body_color, red), rng, 0.0, style.ink)
+    baseline_y = by0 + bh * 0.46
+    x = bx0 + (bw - text_w) / 2 - size_s // 2
+    canvas.alpha_composite(img, (round(x), round(baseline_y - base)))
+
+    # 赤い下線（手書き風）
+    ux = x + size_s // 2 + font.getlength(sentence[:start])
+    uw = max(8, round(font.getlength(sentence[start:end])))
+    thickness = max(3, round(size_s * 0.08))
+    underline = _render_underline(uw, thickness, red, rng, py_rng, style.ink)
+    uy = baseline_y + size_s * 0.12
+    canvas.alpha_composite(underline, (round(ux), round(uy - underline.height / 2)))
+
+    if not meaning:
+        return canvas
+
+    # 矢印（下線の真ん中から下へ）
+    size_m = max(MIN_FONT_PX, round(size_s * NOTE_MEANING_SIZE_RATIO), round(bh * NOTE_MEANING_MIN_RATIO))
+    ax = ux + uw / 2
+    ay0, ay1 = uy + thickness * 2, uy + thickness * 2 + size_s * 0.75
+    mask = Image.new("L", canvas.size, 0)
+    d = ImageDraw.Draw(mask)
+    d.line([(ax, ay0), (ax, ay1)], fill=255, width=thickness)
+    head = size_s * 0.22
+    d.polygon([(ax - head, ay1 - head), (ax + head, ay1 - head), (ax, ay1 + head * 0.4)], fill=255)
+    arrow = Image.new("RGBA", canvas.size, red + (255,))
+    arrow.putalpha(style.ink(mask, rng))
+    canvas.alpha_composite(arrow)
+
+    # 意味・使い方（1〜2行。入らなければ小さくする）
+    lines = [meaning]
+    font_m = telop.load_font(font_path, size_m)
+    if font_m.getlength(meaning) > avail_w:
+        i = split_point(meaning)  # 単語の途中・（）の途中では切らず、自然な位置で2行に
+        if i:
+            lines = [meaning[:i].rstrip(), meaning[i:].lstrip()]
+    size_m = _fit_one_line_size(lines, font_path, size_m, lambda _s: avail_w)
+    font_m = telop.load_font(font_path, size_m)
+    y = ay1 + head + size_m * 1.1
+    for line in lines:
+        img, base = _render_text_line([(line, False)], font_m, size_m, (style.title_color, style.title_color),
+                                      rng, py_rng.uniform(-0.5, 0.5), style.ink)
+        lx = bx0 + (bw - font_m.getlength(line)) / 2 - size_m // 2
+        lx = min(max(lx, bx0 + pad_x - size_m // 2), bx1 - pad_x - font_m.getlength(line) - size_m // 2)
+        canvas.alpha_composite(img, (round(lx), round(y - base)))
+        y += size_m * LINE_SPACING
+    return canvas
+
+
+def get_note_path(sentence: str, focus: str, meaning: str, resolution: tuple[int, int]) -> Path:
+    """解説カードの画像を生成（またはキャッシュから取得）し、PNGのパスを返す。"""
+    size = slide_size_for(resolution)
+    style = style_for_resolution(resolution)
+    font_path = style.resolve_font()
+    key = json.dumps([NOTE_VERSION, STYLE_VERSION, style.name, sentence, focus, meaning, size, font_path],
+                     ensure_ascii=False)
+    digest = hashlib.sha1(key.encode("utf-8")).hexdigest()[:16]
+    path = SLIDE_CACHE_DIR / f"note_{digest}.png"
+    if not path.exists():
+        SLIDE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        render_phrase_note(sentence, focus, meaning, size, style, font_path, seed=int(digest[:8], 16)).save(path)
+    return path
+
+
 def resolve_scene_content_media(scene: Scene, resolution: tuple[int, int]) -> Optional[str]:
     """シーンの資料メディアとして実際に表示するパスを返す。
 
@@ -936,7 +1152,9 @@ def resolve_scene_content_media(scene: Scene, resolution: tuple[int, int]) -> Op
     無ければ従来どおり scene.content_media_path を返す。
     """
     if scene.illustration_path and Path(scene.illustration_path).exists():
-        return str(get_illustration_card_path(scene.illustration_path, scene.illustration_caption, resolution))
+        return str(get_illustration_image_path(scene.illustration_path, resolution))
+    if scene.note_text.strip():
+        return str(get_note_path(scene.note_text, scene.note_focus, scene.note_meaning, resolution))
     if scene.has_slide:
         if not scene.show_board:
             return None  # 黒板を出さないシーン（2人の会話だけ）

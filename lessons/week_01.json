@@ -1,132 +1,124 @@
 {
-  "theme": "初対面のあいさつと自己紹介",
-  "theme_en": "Meeting New People",
-  "goal": "初対面の人に名乗り、あいさつし、出身・仕事・趣味を話して、気持ちよく会話を終えられる",
+  "theme": "大学入試リスニングに出るフレーズ",
+  "theme_en": "Key Phrases for University Entrance Exam Listening",
+  "goal": "大学入試リスニングによく出る遠回しな返事・予定の変化・条件の比較・反論・講義の展開・結論の合図を聞き取り、話し手の本当の意図と要点をつかめる",
   "days": [
     {
       "day": 1,
-      "title": "名乗る Hi, I'm 〜.",
-      "situation": "留学生の交流会で、初めて会った人に名乗る",
-      "zunda_trouble": "「マイ・ネーム・イズ・ずんだもん」と教科書を読むように固く名乗り、相手に笑われる",
+      "title": "遠回しな断り I'd love to, but 〜",
+      "situation": "大学のキャンパスで、留学生の友達を週末のバーベキューに誘うが、遠回しに断られる",
+      "zunda_trouble": "\"I'd love to, but …\" の I'd love to だけ聞いて「来てくれるのだ！」と喜び、友達の分まで肉を買ってしまう",
       "phrases": [
         {
-          "en": "Hi, I'm Zunda.",
-          "ja": "こんにちは、ずんだです。",
-          "point": "My name is 〜. は少し固いので、会話では I'm 〜. が普通。"
+          "en": "I'd love to, but I have a paper due on Monday.",
+          "ja": "行きたいんだけど、月曜締め切りのレポートがあるんだ。",
+          "point": "I'd love to は前置きで、but の後が本当の答え（断り）になる入試頻出のパターン"
         },
         {
-          "en": "Nice to meet you.",
-          "ja": "はじめまして。",
-          "point": "言われたら Nice to meet you, too. か、短く You too! と返す。"
+          "en": "Can I take a rain check?",
+          "ja": "また今度にしてもいい？",
+          "point": "誘いを断るときに「次の機会に」とつなぐ決まり文句で、Maybe next time? とも言える"
         }
       ],
-      "grammar": "meet you は t と y がつながって「ミーチュー」と読む"
+      "grammar": "I'd love to の to の後ろは come が省略されている（代不定詞）。to で文が止まっても「〜したい」の意味が残る"
     },
     {
       "day": 2,
-      "title": "調子をたずねる How's it going?",
-      "situation": "交流会で知り合った人と、翌日キャンパスですれ違う",
-      "zunda_trouble": "How's it going? と聞かれて、毎回 I'm fine, thank you. And you? と棒読みし、ロボットみたいと言われる",
+      "title": "予定と違った It turns out 〜",
+      "situation": "図書館で勉強する予定だったが休館だとわかり、友達と別の場所を探す（Day1の I'd love to, but 〜 も使う）",
+      "zunda_trouble": "\"It turns out\" を「ひっくり返る」と直訳して、「図書館がひっくり返ったのだ？」と大騒ぎする",
       "phrases": [
         {
-          "en": "How's it going?",
-          "ja": "調子どう？",
-          "point": "How are you? よりくだけた、友だち同士の定番のあいさつ。"
+          "en": "I was going to study at the library, but it's closed today.",
+          "ja": "図書館で勉強するつもりだったんだけど、今日は休館なんだ。",
+          "point": "was going to 〜 は「〜するつもりだった（けどしなかった）」で、予定が変わった合図になる"
         },
         {
-          "en": "Not bad. How about you?",
-          "ja": "まあまあだよ。そっちは？",
-          "point": "Pretty good. / Good! でもよく、最後に How about you? と聞き返すのがマナー。"
+          "en": "It turns out the café on campus is open until nine.",
+          "ja": "実は、キャンパスのカフェが9時まで開いてるんだって。",
+          "point": "It turns out (that) 〜 は「調べたら〜だとわかった」で、新しくわかった事実を伝えるときに使う"
         }
       ],
-      "grammar": "How's it going? はつながって「ハウズィッゴーイン」、最後の g はほとんど読まない"
+      "grammar": "was going to は会話では \"was gonna\"（ワズガナ）と聞こえることが多く、going to を探していると聞き逃す"
     },
     {
       "day": 3,
-      "title": "出身をたずねる Where are you from?",
-      "situation": "カフェで相席になった旅行者と話す",
-      "zunda_trouble": "「ジャパン」の「ジャ」を強く言ったら通じず、何度も聞き返される",
+      "title": "条件で比べる It's 〜, but it's much 〜",
+      "situation": "新学期に住むアパートを友達と比べ、家賃・距離・広さの条件で1つに決める（Day2の It turns out 〜 も使う）",
+      "zunda_trouble": "\"It's a bit far, but …\" の far だけ聞いて候補から外し、いちばん安い部屋を自分で消してしまう",
       "phrases": [
         {
-          "en": "Where are you from?",
-          "ja": "どこの出身？",
-          "point": "今住んでいる場所は Where do you live? と聞くので区別する。"
+          "en": "It's a bit far from campus, but it's much cheaper.",
+          "ja": "キャンパスから少し遠いけど、ずっと安いよ。",
+          "point": "短所と長所を but でつなぐ形で、条件選択の問題では but の後の長所が決め手になりやすい"
         },
         {
-          "en": "What part of Japan?",
-          "ja": "日本のどのあたり？",
-          "point": "国名を聞いたあとに、もう少し詳しく聞きたいときに使う。国名は入れ替えられる。"
+          "en": "What matters most to me is being close to the station.",
+          "ja": "僕にとって一番大事なのは、駅に近いことなんだ。",
+          "point": "What matters most (to me) is 〜 で優先順位をはっきり言え、入試ではこの部分が正解の条件になる"
         }
       ],
-      "grammar": "Japan は後ろの「パン」を強く読む（ジャ「パァン」）"
+      "grammar": "比較級の強調は much / a lot を使う（much cheaper）。very cheaper とは言わない"
     },
     {
       "day": 4,
-      "title": "仕事・学校をたずねる What do you do?",
-      "situation": "交流会で、相手の仕事や学校の話をする",
-      "zunda_trouble": "What do you do? を「今何してるの？」と思い込み、I'm talking with you! と答えてしまう",
+      "title": "やわらかく反論する That's a fair point, but 〜",
+      "situation": "ゼミのディスカッションで「大学生はアルバイトをすべきか」について意見を言い合う",
+      "zunda_trouble": "反対意見を言おうとして \"No, you're wrong!\" と言い放ち、ゼミの空気を凍らせる",
       "phrases": [
         {
-          "en": "What do you do?",
-          "ja": "お仕事は何をしているの？",
-          "point": "仕事や学校をたずねる決まり文句。What's your job? より自然でやわらかい。"
+          "en": "That's a fair point, but students need time to study, too.",
+          "ja": "それはもっともだけど、学生には勉強する時間も必要だよ。",
+          "point": "相手の意見を一度認めてから反論する形で、話し手の本当の立場は but の後にある"
         },
         {
-          "en": "That sounds fun!",
-          "ja": "楽しそうだね！",
-          "point": "fun を interesting や hard に変えると、いろいろな話へのリアクションに使える。"
+          "en": "I'm not so sure about that.",
+          "ja": "それはどうかなあ。",
+          "point": "I disagree. よりやわらかい反対の表明で、リスニングでは「この人は反対派」と判断する手がかりになる"
         }
       ],
-      "grammar": "What do you do? の最初の do は弱く読み、「ワダユドゥー」と聞こえる"
+      "grammar": "fair point は t が落ちて「フェアポイン」と聞こえ、That's a は「ザッツァ」とつながる"
     },
     {
       "day": 5,
-      "title": "趣味を話す I'm into 〜.",
-      "situation": "仲良くなった人と、休みの日の過ごし方を話す",
-      "zunda_trouble": "My hobby is eating zunda mochi. と大げさに言って、少し不自然だと笑われる",
+      "title": "講義の流れをつかむ In other words, 〜",
+      "situation": "大学の授業で、教授が「睡眠と記憶」について話す短い講義を聞いてメモを取る",
+      "zunda_trouble": "\"In other words\" の前と後を別々のポイントだと思い、同じ内容を2回ノートに書いて混乱する",
       "phrases": [
         {
-          "en": "What do you do for fun?",
-          "ja": "休みの日は何してるの？",
-          "point": "4日目の What do you do? に for fun を足すだけで、趣味の質問になる。"
+          "en": "In other words, sleep helps your brain store new information.",
+          "ja": "言いかえると、睡眠は脳が新しい情報を記憶するのを助けるのです。",
+          "point": "In other words の後は直前の内容をやさしく言い直すので、難しい部分を聞き逃してもここで取り戻せる"
         },
         {
-          "en": "I'm really into anime.",
-          "ja": "アニメにハマってるんだ。",
-          "point": "My hobby is 〜. より自然。I like 〜. よりも熱中している感じが出る。"
+          "en": "Now, let's move on to the second reason.",
+          "ja": "では、2つ目の理由に移りましょう。",
+          "point": "move on to 〜 は話題が次へ進む合図で、講義問題では「理由がいくつあるか」を数える目印になる"
         }
       ],
-      "grammar": "be into のあとは名詞か -ing 形（I'm into cooking.）を置く"
+      "grammar": "In other words は「インナザワーズ」とつながり、other の前の n と o がくっついて聞こえる"
     },
     {
       "day": 6,
-      "title": "別れ際のあいさつ It was nice meeting you.",
-      "situation": "交流会の終わりに、話した人にあいさつして連絡先を交換する",
-      "zunda_trouble": "別れ際にも Nice to meet you! と言い、「今から会うの？」とツッコまれる",
+      "title": "結論を聞き取る The bottom line is 〜",
+      "situation": "グループ発表の最後に、発表者が調査結果の結論をまとめる（Day4の That's a fair point, but 〜 で質疑応答もする）",
+      "zunda_trouble": "発表の途中の具体例ばかりメモして、最後の \"The bottom line is …\" を聞き逃し、結論が書けない",
       "phrases": [
         {
-          "en": "It was nice meeting you.",
-          "ja": "お会いできてよかったです。",
-          "point": "会ったときは Nice to meet you.、別れるときはこちらを使う。"
+          "en": "The bottom line is that most students want more study space.",
+          "ja": "結論としては、ほとんどの学生がもっと勉強スペースを求めているということです。",
+          "point": "The bottom line is 〜 は「要するに・結論は」で、In conclusion より会話的で今よく使われる"
         },
         {
-          "en": "Let's keep in touch.",
-          "ja": "また連絡しようね。",
-          "point": "連絡先を交換するときの一言。Can I get your Instagram? のように続けると自然。"
+          "en": "On the other hand, some students prefer studying at home.",
+          "ja": "一方で、家で勉強するほうがいいという学生もいます。",
+          "point": "On the other hand は対立する情報の合図で、グラフ問題では少数派の意見を示すことが多い"
         }
       ],
-      "grammar": "meeting の -ing は「その場の出来事をふり返る」感じ。出会いの to meet と区別する"
-    },
-    {
-      "day": 7,
-      "title": "1週間のまとめ",
-      "situation": "交流会のはじまりから別れまでを、1〜6日目のフレーズでつないでおさらいする",
-      "zunda_trouble": "",
-      "phrases": [],
-      "grammar": ""
+      "grammar": "bottom の t はアメリカ英語で弱いラ行のような音になり、「バダム」「バラム」に近く聞こえる"
     }
   ],
-  "next_theme_idea": "カフェで注文する英語",
+  "next_theme_idea": "大学生活で使う英語（授業の質問・サークル・履修相談）",
   "week": 1,
-  "level": "a2"
+  "level": "b1"
 }

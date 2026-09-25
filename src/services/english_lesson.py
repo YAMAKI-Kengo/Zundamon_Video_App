@@ -325,6 +325,8 @@ def _lesson_schema() -> dict:
         "se": {"type": "string", "enum": [""] + [p.stem for p in list_se()]},
         "hide": {"type": "array", "items": {"type": "string", "enum": characters}},
         "board": {"type": "boolean"},
+        "bullet": {"type": "integer"},
+        "note": _obj({"text": _STR, "focus": _STR, "meaning": _STR}),
         "image": {"type": "string", "enum": [""] + [p.stem for p in list_illustrations()]},
         "caption": _STR,
         "image_request": _STR,
@@ -344,6 +346,7 @@ def _lesson_schema() -> dict:
         "tags": _STR_LIST,
         "readings": {"type": "array", "items": _obj({"word": _STR, "reading": _STR})},
         "phrases": {"type": "array", "items": _obj({"en": _STR, "ja": _STR})},
+        "thumbnail": _obj({"text": _STR, "sub": _STR, "layout": {"type": "string", "enum": ["reaction", "duo", "big_text"]}, "zundamon": {"type": "string", "enum": expressions}, "metan": {"type": "string", "enum": expressions}}),
         "blocks": {"type": "array", "items": block},
     })
 
@@ -378,7 +381,7 @@ def _lesson_structure(day: int, plan: dict, target_minutes: float) -> str:
     tomorrow = next((d for d in plan.get("days", []) if int(d.get("day") or 0) == day + 1), {})
     return f"""## 構成（{day}日目・約{target_minutes:g}分。blocks はこの順）
 1. intro（会話だけ・20〜30秒）: 「今週のテーマ『{plan.get('theme', '')}』の{day}日目」。ずんだもんが今日の場面でやらかした話（{today.get('zunda_trouble', '')}）→ めたんがツッコみ、「今日は〇〇で使える英語を教えてあげるわ」と今日のフレーズを予告する。
-2. dialog（ダイアログ）: めたんの前置き（日本語・「まずは会話を聞いてみて」）→ 場面（{today.get('situation', '')}）のネイティブ音声の会話 4〜6行（voice A/B の2役。今日のフレーズ2つを必ず使う）→ ずんだもんの「速すぎて分からないのだ…」のような一言。会話の最初のセリフに、場面のイラスト（image か image_request）を出す。
+2. dialog（ダイアログ）: めたんの前置き（日本語・「まずは会話を聞いてみて」）→ 場面（{today.get('situation', '')}）のネイティブ音声の会話 4〜6行（voice A/B の2役。今日のフレーズ2つを必ず使う）→ ずんだもんの「速すぎて分からないのだ…」のような一言。会話の最初のセリフに、場面のイラスト（image か image_request）を出し、会話の英語のセリフにはすべて同じイラストを付ける（英語の会話が続いている間はずっとイラストを出したままにする。アプリも自動で出したままにする）。
 3. phrase（今日のフレーズ1・2で2ブロック）: 各ブロックの slide は title を「今日のフレーズ1」「今日のフレーズ2」、bullets は「英語のフレーズ」「意味」「使い方のポイント」「言い換え・応用」の順に3〜4個。流れ: めたんがフレーズを英語で言う（ネイティブ音声）→ 日本語で意味と使い方を解説 → 例文をもう1つ英語で（ネイティブ音声）→ ずんだもんがカタカナ英語でまねする（reading にカタカナ）→ めたんが発音のコツ（{today.get('grammar', '')}など）をツッコミながら教える → ずんだもんがもう一度言って少し上手くなる。
 4. repeat（リピート練習・1ブロック）: めたん「音声のあとに、3・2・1の合図で言ってみて」→ 今日のフレーズ2つと会話の中の大事な文を合わせて3〜4文、ネイティブ音声の英語を1文ずつ（pause 3〜4、pause_style "repeat"、pause_text「リピート！」。アプリが音声のあとに「3・2・1 → リピート！」の合図を出す）→ めたん「次は音声に重ねて言ってみて」→ シャドーイングを1〜2文（その英文の行の pause_style を "shadow"、pause を 0、pause_text を「一緒に言ってみよう！」。アプリが「3・2・1」のあと同じ音声をもう一度流すので、視聴者は音声と一緒に言う）。
 5. quiz（瞬発トレーニング・1ブロック・3〜4問）: めたん「日本語を見て、すぐ英語で言ってみて」→ 問題ごとに、めたんが日本語の文を出題（「『〇〇』を英語で言うと？」。pause 4〜5、pause_style "think"、pause_text「英語で言ってみよう！」。残り秒数のタイマーが出る）→ めたんの英語で答え（ネイティブ音声）。今日のフレーズを少し言い換えて使う問題にする（例: 名詞を入れ替える）。ずんだもんの回答の小ネタを1回入れてよい。
@@ -409,11 +412,15 @@ def _lesson_system(plan: dict, day: int, level: str, speech_speed: float = DEFAU
 ## テンポ・画面
 - 日本語のセリフは10〜30字（字幕1行＝30字）。同じ話者が3セリフ以上続かない。ずんだもんのボケとめたんのツッコミで、1ブロックに1回は小さな笑いを入れる。
 - 画面の基本は2人の会話だけ（board は false、image は空文字）。黒板（board を true）は phrase・review・summary でフレーズを紹介するセリフから出し、そのブロックの最後まで出したままにする（アプリも自動で出したままにする）。黒板を出している間は、黒板の1行ごとに2〜3セリフかけて、意味・使い方・例文をじっくり話す。黒板の bullets は、話す順に1行ずつ書き足される。slide の numbered は、手順や順番があるときだけ true。
-- mood（背景の雰囲気）は、ずんだもんが英語で失敗して落ち込む場面だけ "gloomy"（ショックなら "shock"）、それ以外は空文字。card（場面転換テロップ。例:「その日の夜…」）は導入で時間が飛ぶときだけ、text を空文字にした独立した行で使い、それ以外は空文字。
+- mood（背景の雰囲気）は、ずんだもんが英語で失敗して落ち込みがピークになる場面だけ "gloomy"（ショックの瞬間なら "shock"）にし、その場面の2〜4セリフに続けて付ける（1セリフだけ付けない）。動画の最初のセリフには付けない。1本で1〜2場面まで。それ以外は空文字。card（場面転換テロップ。例:「その日の夜…」）は導入で時間が飛ぶときだけ、text を空文字にした独立した行で使い、それ以外は空文字。
+- note（重要な表現の解説カード）: phrase ブロックで、今日のフレーズの大事な部分（例: Can I get の部分）を解説するセリフに使う（フレーズごとに1回、1本で2〜4回）。text は英文、meaning は日本語。画面に文が大きく出て、focus の部分に赤い下線が引かれ、矢印の先に meaning が表示される。
+  text に文（25字・8語程度まで）、focus に赤線を引く部分（text の中にそのまま含まれる語句）、meaning にその部分の意味・使い方（25字以内。例:「〜をもらえる？ お店で注文するときの定番」）を書く。
+  その部分を説明する2〜3セリフに、同じ note を続けて付ける（その間は黒板の代わりに解説カードが出る）。使わない行は text・focus・meaning をすべて空文字にする。
+- bullet（黒板のどの行の話か）: 黒板の箇条書きの行を初めて話すセリフに、その行の番号（1から）を書く（その番号の行が、そのセリフで黒板に書き足される）。それ以外のセリフは 0。瞬発トレーニング・ふりかえり（quiz・review）で黒板に答えを書く場合は、答えを言う英語のセリフにその行の番号を付ける（問題を出すセリフには付けない。先に答えが見えてしまうため）。行の番号は、話す順番どおりに1, 2, 3…と増えるようにする。まとめ（summary）は全部の行を最初から出すので、すべて 0 でよい。
 - 表情（expression）は、セリフの感情に合うものを次の一覧から選ぶ:
 {book_ai._character_guide()}
 - se（効果音）は、つかみ・正解・ツッコミ・オチなど3〜8回だけ。使えるのは次の名前のみ（使わないときは空文字）: {book_ai._se_guide()}
-- hide は空の配列。イラスト（image・caption・image_request・image_name）は、dialog の最初のセリフなど場面が伝わるところだけに出し、1本で2〜4枚までにする（出すセリフは board を false）。手元にあるイラスト: {', '.join(p.stem for p in list_illustrations()) or '（なし。image_request で依頼する）'}。合うものが無ければ、image_request に欲しいイラスト（検索語付き）、image_name に保存名（日本語4〜12字）を書く。caption は12字以内。使わないときはすべて空文字。
+- hide は空の配列。イラスト（image・caption・image_request・image_name）は、dialog の最初のセリフなど場面が伝わるところだけに出し、1本で2〜4枚までにする（出すセリフは board を false）。手元にあるイラスト: {', '.join(p.stem for p in list_illustrations()) or '（なし。image_request で依頼する）'}。合うものが無ければ、image_request に欲しいイラスト（検索語付き）、image_name に保存名（日本語4〜12字）を書く。caption は空文字（説明文は画面に出ない）。使わないときはすべて空文字。
 
 ## 読み方（readings・日本語の読み方辞書）
 - 日本語のセリフ（reading に書いた文の日本語の部分も含む）で、音声合成（VOICEVOX）が読み間違えそうな日本語の言葉の読み方を、readings に {{"word": 表記, "reading": ひらがな or カタカナの読み}} で書く（0〜15個）。
@@ -427,7 +434,12 @@ def _lesson_system(plan: dict, day: int, level: str, speech_speed: float = DEFAU
 - description_lead: 説明欄の冒頭2行（改行区切り、各40字以内）。今日できるようになること。
 - hashtags: 3つ（# は付けない）。「英会話」「英語学習」と今週のテーマ。
 - tags: 8〜12個。
-- phrases: この動画で教えたフレーズ（en・ja）。"""
+- phrases: この動画で教えたフレーズ（en・ja）。
+- thumbnail（サムネイルの文言と見せ方）:
+  text は2〜3行（改行は \\n）、1行8字以内・全体で10〜18字。タイトルをそのまま縮めるのではなく、一目で「えっ？」「自分のことだ」と思う言葉（今日のフレーズ・その場面・「ネイティブはこう言う」など）にする。一番大事な1語だけを **語** で囲む（赤く目立つ）。
+  sub は左上の帯の短いラベル（6〜10字。例: 毎日英会話 Day{day}（7日目は 毎日英会話 まとめ））。
+  layout は、感情が強い内容なら "reaction"（ずんだもんのアップ）、本の表紙やイラストを見せたい内容なら "duo"（2人＋画像）、結論が強い一言なら "big_text"（大きな文字）。
+  zundamon・metan は、内容の感情が一目で伝わる表情（驚き・ショック・ドヤ顔・指さしなど）を一覧から選ぶ。"""
 
 
 def generate_lesson(plan: dict, day: int, level: str = "", speech_speed: float = DEFAULT_SPEECH_SPEED,
@@ -463,6 +475,10 @@ def finish_lesson_data(data: dict, plan: dict, day: int, level: str = "") -> dic
                 line.pop("image_name", None)
             if not line.get("pause"):
                 line.pop("pause", None)
+            if not (line.get("note") or {}).get("text"):
+                line.pop("note", None)
+            if not line.get("bullet"):
+                line.pop("bullet", None)
         if not (block.get("slide") or {}).get("title") and not (block.get("slide") or {}).get("bullets"):
             block.pop("slide", None)
     assign_audio_ids(data, week, day)
@@ -480,6 +496,8 @@ LESSON_SAMPLE = {
         {"section": "phrase", "slide": {"title": "今日のフレーズ1", "bullets": ["Can I get a coffee?", "コーヒーをもらえますか？", "Can I は「キャナイ」とつながる"]},
          "lines": [
              {"speaker": "shikoku_metan", "expression": "normal", "text": "Can I get a coffee?", "lang": "en", "ja": "コーヒーをもらえますか？", "voice": "A", "board": True},
+             {"speaker": "shikoku_metan", "expression": "explain", "text": "Can I get は「〜をもらえる？」って意味よ。", "lang": "ja", "reading": "キャナイゲットは「〜をもらえる？」って意味よ。",
+              "note": {"text": "Can I get a coffee?", "focus": "Can I get", "meaning": "〜をもらえる？（お店で注文するときの定番）"}, "board": True},
              {"speaker": "zundamon", "expression": "happy", "text": "Can I get a coffee?", "lang": "en", "reading": "キャン アイ ゲット ア コーヒー", "board": True},
              {"speaker": "shikoku_metan", "expression": "angry", "text": "Can I は、キャナイってつなげるのよ。", "lang": "ja", "reading": "キャナイは、キャナイってつなげるのよ。", "board": True},
          ]},

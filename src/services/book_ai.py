@@ -175,6 +175,8 @@ def _script_schema() -> dict:
         "hide": {"type": "array", "items": {"type": "string", "enum": characters}},
         "show_book": {"type": "boolean"},
         "board": {"type": "boolean"},
+        "bullet": {"type": "integer"},
+        "note": _obj({"text": _STR, "focus": _STR, "meaning": _STR}),
         "mood": {"type": "string", "enum": ["", "gloomy", "shock", "dark", "sepia", "bright"]},
         "card": _STR,
         "pause": {"type": "number"},
@@ -199,6 +201,7 @@ def _script_schema() -> dict:
         "hashtags": _STR_LIST,
         "tags": _STR_LIST,
         "readings": {"type": "array", "items": _obj({"word": _STR, "reading": _STR})},
+        "thumbnail": _obj({"text": _STR, "sub": _STR, "layout": {"type": "string", "enum": ["reaction", "duo", "big_text"]}, "zundamon": {"type": "string", "enum": expressions}, "metan": {"type": "string", "enum": expressions}}),
         "blocks": {"type": "array", "items": block},
     })
 
@@ -265,7 +268,7 @@ def _illustration_rules() -> str:
 {listing}
 - 話題に合うイラストが上の一覧にある場合: image にその名前を書き、image_request と image_name は空文字にする。
 - 合うイラストが一覧に無い場合: image は空文字にして、image_request に「欲しいイラスト」を具体的に書く（誰が・何を・どんな様子か＋いらすとや等で探すときの検索語。例:「湯船につかってリラックスする女性の絵（検索語: お風呂 入浴）」）。image_name には、そのイラストを保存するときのファイル名を日本語で短く書く（4〜12字。例:「お風呂でリラックス」）。同じイラストを別のシーンでも使うときは、同じ image_name にする。
-- caption には、そのイラストで伝えたい要点を12字以内で書く（例:「寝る90分前にお風呂」）。イラストを出さないセリフは空文字。
+- caption は空文字にする（イラストは画像だけを大きく表示し、説明文は出さない）。
 - 同じイラストを連続で使わない。1本の動画で使うイラストの種類（手元にあるもの＋依頼するもの）は{MAX_ILLUSTRATIONS_PER_VIDEO}種類までにする。
 - board と image の指定は、すべてのセリフに必ず書く（出さないときは false・空文字）。"""
 
@@ -304,8 +307,13 @@ def _common_rules() -> str:
 {_character_guide()}
 - se（そのセリフの頭で鳴る効果音）は、ここぞという場面（つかみ・本の紹介・新しいポイント・ボケとツッコミ・オチ）に使い、同じ効果音ばかり続けない。使えるのは次の名前のみで、用途に合うものを選ぶ（使わないときは空文字）: {_se_guide()}
 - hide は通常は空の配列（指定がある場合のみ使う）。
-- mood（背景の雰囲気。キャラクターと黒板はそのまま）: ふだんは空文字。ずんだもんが失敗して落ち込む場面は "gloomy"、ガーンとショックを受ける場面は "shock"、夜や不安な場面は "dark"、昔の話・回想は "sepia"、ひらめき・成功してうれしい場面は "bright"。雰囲気が続く間の2〜5セリフに付け、元の雰囲気に戻ったら空文字に戻す。1本で3〜6か所まで。
+- mood（背景の雰囲気。キャラクターと黒板はそのまま）: ふだんは空文字。感情がいちばん高まる場面だけに使う（落ち込みが底になる場面は "gloomy"、ガーンとショックを受ける瞬間は "shock"、夜・不安がピークの場面は "dark"、回想は "sepia"、大成功・大ひらめきの瞬間は "bright"）。
+  使うときは、その場面の2〜5セリフに続けて同じ値を付ける（1セリフだけ、1セリフおき、途中で別の雰囲気に変える、はしない。画面がチカチカする）。動画の最初のセリフには付けない。1本の動画で1〜3場面まで（アプリも、これに合わない付け方は自動で直す）。
 - card（場面転換テロップ）: 「3日後…」「その夜」「1週間後…」「一方そのころ」のように、時間や場面が飛ぶところで、全画面に短い文字（12字以内）を出す。card を使うときは、そのセリフの前に独立した行を1つ作り、その行の card に文字を書き、text は空文字・speaker は直前と同じにする（その行はセリフとしては読まれない）。時間の経過が話の面白さにつながるところ（導入の「挑戦 → 3日後… → 失敗」など）だけに使い、1本で1〜3回まで。それ以外の行は card を空文字にする。
+- note（重要な表現の解説カード）: 特に大事な言い回し・用語を解説するところで、1本の動画で2〜4回使う。画面に文が大きく出て、focus の部分に赤い下線が引かれ、矢印の先に meaning が表示される。
+  text に文（25字・8語程度まで）、focus に赤線を引く部分（text の中にそのまま含まれる語句）、meaning にその部分の意味・使い方（25字以内。例:「〜をもらえる？ お店で注文するときの定番」）を書く。
+  その部分を説明する2〜3セリフに、同じ note を続けて付ける（その間は黒板の代わりに解説カードが出る）。使わない行は text・focus・meaning をすべて空文字にする。
+- bullet（黒板のどの行の話か）: 黒板の箇条書きの行を初めて話すセリフに、その行の番号（1から）を書く（その番号の行が、そのセリフで黒板に書き足される）。それ以外のセリフは 0。行の番号は、話す順番どおりに1, 2, 3…と増えるようにする。まとめ（summary）は全部の行を最初から出すので、すべて 0 でよい。
 - pause・pause_text は、視聴者に考えさせる・答えさせる無音の間（秒数と、その間に画面上部に大きく出す短い指示）。使わない行は pause を 0、pause_text を空文字にする。
 - show_book は、めたんが本（書名）を紹介するセリフだけ true にする（そのシーンで本の表紙画像が画面に出る）。それ以外はすべて false。
 
@@ -321,7 +329,14 @@ def _common_rules() -> str:
 - 本の文章を長く引用しない（引用する場合は20字以内を1〜2回まで）。自分の言葉で言い換える。
 - 医療・お金などの話題は断定しすぎず、「〜とされているのよ」のように本の主張として紹介する。
 - 小学生にも分かる話し言葉で。専門用語には一言説明を添える。「〜である」調は使わない。
-- セリフは普通の漢字かな交じりで書く（ひらがなばかりの文は音声合成が「は」を「ハ」と読むなど誤読しやすい）。"""
+- セリフは普通の漢字かな交じりで書く（ひらがなばかりの文は音声合成が「は」を「ハ」と読むなど誤読しやすい）。
+
+## サムネイル
+- thumbnail（サムネイルの文言と見せ方）:
+  text は2〜3行（改行は \\n）、1行8字以内・全体で10〜18字。タイトルをそのまま縮めるのではなく、一目で「えっ？」「自分のことだ」と思う言葉（悩み・意外な結論・数字）にする。一番大事な1語だけを **語** で囲む（赤く目立つ）。
+  sub は左上の帯の短いラベル（6〜10字。例: 本要約、研究で解説、毎日英会話 Day3）。
+  layout は、感情が強い内容なら "reaction"（ずんだもんのアップ）、本の表紙やイラストを見せたい内容なら "duo"（2人＋画像）、結論が強い一言なら "big_text"（大きな文字）。
+  zundamon・metan は、内容の感情が一目で伝わる表情（驚き・ショック・ドヤ顔・指さしなど）を一覧から選ぶ。"""
 
 
 def _normal_system(target_minutes: float, why_points: int, speech_speed: float = DEFAULT_SPEECH_SPEED,
@@ -633,6 +648,10 @@ def generate_script(analysis: dict, style: str = "normal", target_minutes: float
             for key in ("mood", "card", "pause", "pause_text"):
                 if not line.get(key):
                     line.pop(key, None)
+            if not (line.get("note") or {}).get("text"):
+                line.pop("note", None)
+            if not line.get("bullet"):
+                line.pop("bullet", None)
         if block.get("section") == "intro" and not (block.get("slide") or {}).get("title"):
             block.pop("slide", None)  # 導入は黒板を出さない
     return result

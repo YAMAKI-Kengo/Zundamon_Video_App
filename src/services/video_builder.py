@@ -138,6 +138,37 @@ def _silent_audio_clip(duration: float) -> AudioClip:
     return AudioClip(frame_function=_frame_function, duration=duration, fps=AUDIO_SAMPLE_RATE)
 
 
+VOICE_TARGET_RMS = 0.17   # 声の大きさの目標（話している部分の平均音量。約 -15dBFS）
+VOICE_MAX_PEAK = 0.95     # 声を大きくしても、いちばん大きい音がこれを超えない（音割れ防止）
+VOICE_MAX_GAIN = 4.0      # 声を大きくする倍率の上限
+
+
+def _normalize_voice(audio_clip: AudioClip, path) -> AudioClip:
+    """セリフの声の大きさを、シーンごとに同じくらいにそろえる（VOICEVOXの声もネイティブ音声も）。
+
+    VOICEVOXの声はそのままだと小さめで、BGMに埋もれやすい。話している部分の平均音量を VOICE_TARGET_RMS に
+    合わせ、音が割れないよう VOICE_MAX_PEAK を超えない範囲で大きくする（小さくはしない）。
+    音量は音声ファイルを直接読んで測る（MoviePy の to_soundarray は、元と違うサンプリング周波数を指定すると
+    正しい値が返らないことがあるため）。
+    """
+    try:
+        import soundfile as sf
+
+        samples = np.asarray(sf.read(str(path), dtype="float32", always_2d=True)[0])
+    except Exception:  # noqa: BLE001 - soundfile で読めない形式は MoviePy で、元の周波数のまま読む
+        try:
+            samples = np.asarray(audio_clip.to_soundarray(fps=audio_clip.fps), dtype=np.float32)
+        except Exception:  # noqa: BLE001 - 解析できない音声はそのまま使う
+            return audio_clip
+    level = np.abs(samples).max(axis=1) if samples.ndim == 2 else np.abs(samples)
+    active = level[level > 0.02]
+    if active.size == 0:
+        return audio_clip
+    rms = float(np.sqrt(np.mean(active ** 2)))
+    gain = min(VOICE_TARGET_RMS / max(rms, 1e-6), VOICE_MAX_PEAK / max(float(level.max()), 1e-6), VOICE_MAX_GAIN)
+    return audio_clip.with_effects([afx.MultiplyVolume(gain)]) if gain > 1.02 else audio_clip
+
+
 def _fit_audio_to_duration(audio_clip: Optional[AudioClip], target_duration: float) -> AudioClip:
     """音声クリップをシーンの確定尺(target_duration)に合わせる。
 
@@ -527,7 +558,7 @@ def _build_scene_clip(
         video_clip = ImageSequenceClip(frame_sequence, fps=fps)
 
     # 4. 音声をシーンの確定尺に合わせる（長ければトリミング、短ければ無音で延長）
-    audio_clip = AudioFileClip(str(audio_path)) if audio_path else None
+    audio_clip = _normalize_voice(AudioFileClip(str(audio_path)), audio_path) if audio_path else None
     if lead_frames:
         # カウントダウン（合図の音）→ 声
         lead_seconds = lead_frames / fps

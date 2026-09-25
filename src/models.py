@@ -176,6 +176,11 @@ class Scene:
     mood: str = ""                    # 背景の雰囲気（MOOD_LABELS のキー。落ち込み・回想など）
     card_text: str = ""               # 場面転換テロップ（「3日後…」など）。入っていれば、このシーンは全画面の文字だけを出す
     slide_numbered: bool = False      # 黒板の箇条書きを「・」ではなく 1. 2. 3. の番号付きにする
+    # 重要な表現の解説カード（文の大事な部分に赤い下線 → 意味・使い方）。note_text があれば黒板の代わりに出す
+    note_text: str = ""               # 文（例: "Can I get a coffee?"）
+    note_focus: str = ""              # 赤い下線を引く部分（note_text の中の語句。例: "Can I get"）
+    note_meaning: str = ""            # その部分の意味・使い方（例: 「〜をもらえる？ 注文の定番」）
+    bullet_ref: int = 0               # このセリフで初めて話す黒板の行の番号（1から。台本の "bullet"。0なら指定なし）
     board_hold: float = 0.0           # 黒板に新しく書いた文字を読む時間として、セリフのあとに足している秒数（duration に含む）
 
     @property
@@ -200,7 +205,7 @@ class Project:
     format: VideoFormat = VideoFormat.LANDSCAPE
     scenes: list[Scene] = field(default_factory=list)
     bgm_path: Optional[str] = None   # 背景音楽ファイルのパス（未設定ならBGMなし）
-    bgm_volume: float = 0.25         # BGMの音量（0.0〜1.0）。ナレーションを聞き取りやすくするため控えめが既定
+    bgm_volume: float = 0.15         # BGMの音量（0.0〜1.0）。ナレーションを聞き取りやすくするため控えめが既定
     se_volume: float = 0.6           # 効果音の音量（0.0〜1.0。全シーン共通）
     common_background_path: Optional[str] = None  # 全シーン共通の背景（画像/動画）。各シーン側で未設定の場合のみ使われる
     pr_label_enabled: bool = False   # PR/広告表記のテロップを動画全体に常時表示するか
@@ -235,6 +240,7 @@ class Project:
     board_pause: float = 0.0         # 黒板に新しく文字が書かれたシーンで、セリフのあとに足す無音の間の量（0=足さない。1=文字数に応じて最大3秒）
     # 動画の題材: "book"（本の解説） / "research"（Claudeが調べた論文・記事の解説）
     source_kind: str = "book"  # "book" / "research" / "english"（英会話レッスン）
+    thumbnail: dict = field(default_factory=dict)  # サムネイルの指定 {"text", "sub", "layout", "zundamon", "metan", "image"}
     lesson: dict = field(default_factory=dict)  # 英会話モードの情報 {"week", "day", "theme", "level", "phrases": [...]}
     sources: list[dict] = field(default_factory=list)  # 調べた論文・記事の出典 [{"title","publisher","year","url","kind"}]
 
@@ -312,6 +318,7 @@ class Project:
             "source_kind": self.source_kind,
             "sources": self.sources,
             "lesson": self.lesson,
+            "thumbnail": self.thumbnail,
         }
 
     @classmethod
@@ -321,7 +328,7 @@ class Project:
             format=VideoFormat(data.get("format", VideoFormat.LANDSCAPE.value)),
             scenes=[Scene.from_dict(s) for s in data.get("scenes", [])],
             bgm_path=data.get("bgm_path"),
-            bgm_volume=data.get("bgm_volume", 0.25),
+            bgm_volume=data.get("bgm_volume", 0.15),
             se_volume=data.get("se_volume", 0.6),
             common_background_path=data.get("common_background_path"),
             pr_label_enabled=data.get("pr_label_enabled", False),
@@ -351,4 +358,5 @@ class Project:
             source_kind=data.get("source_kind", "book"),
             sources=data.get("sources", []),
             lesson=data.get("lesson", {}),
+            thumbnail=data.get("thumbnail", {}),
         )

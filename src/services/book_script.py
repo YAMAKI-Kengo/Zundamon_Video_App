@@ -148,6 +148,7 @@ class BookScriptResult:
     source_kind: str = ""  # "book" / "research"（論文・記事を調べた動画）。台本に書かれていなければ空
     sources: list[dict] = field(default_factory=list)  # 調べた論文・記事の出典
     lesson: dict = field(default_factory=dict)  # 英会話モードの情報（週・日・テーマ・フレーズ）
+    thumbnail: dict = field(default_factory=dict)  # サムネイルの指定（台本の "thumbnail"）
 
 
 def extract_json_text(text: str) -> str:
@@ -225,6 +226,25 @@ _MOOD_ALIASES = {
 
 def _parse_mood(value) -> str:
     return _MOOD_ALIASES.get(str(value or "").strip().lower(), "")
+
+
+def _parse_bullet_ref(value) -> int:
+    """"bullet": そのセリフで初めて話す黒板の行の番号（1から）。無ければ 0。"""
+    try:
+        return max(0, int(value or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _parse_note(value) -> dict:
+    """"note": {"text", "focus", "meaning"}（重要な表現の解説カード）を Scene の項目にする。"""
+    if not isinstance(value, dict) or not str(value.get("text") or "").strip():
+        return {}
+    return {
+        "note_text": str(value.get("text") or "").strip(),
+        "note_focus": str(value.get("focus") or "").strip(),
+        "note_meaning": str(value.get("meaning") or "").strip(),
+    }
 
 
 def _parse_pause_style(value, section: str) -> str:
@@ -386,6 +406,8 @@ def _board_text(scene: Scene) -> tuple[Optional[tuple], list[str]]:
         return None, []  # 場面転換テロップ・考える間（直前と同じ黒板のまま）では、読む時間を足さない
     if scene.illustration_path:
         return ("media", scene.illustration_path), [scene.illustration_caption]
+    if scene.note_text:
+        return ("note", scene.note_text, scene.note_focus), [scene.note_text, scene.note_meaning]
     if scene.has_slide and scene.show_board:
         bullets = slide_renderer_normalize(scene.slide_bullets)
         shown = bullets if scene.slide_reveal is None else bullets[:max(0, scene.slide_reveal)]
@@ -473,6 +495,62 @@ def _parse_shake(value) -> str:
     return key if key in SHAKE_LABELS else "auto"
 
 
+MOOD_SKIP_FIRST_SCENES = 1  # 動画の最初のシーンには雰囲気を付けない（冒頭から暗いと、見る前に離れられやすい）
+MOOD_MIN_RUN = 2            # 雰囲気は、この数以上のシーンに続けて付ける（1シーンだけだとチカチカする）
+MOOD_MAX_RUNS = 3           # 1本の動画で雰囲気を付ける場面の数の上限（使いすぎると効果が薄れ、目も疲れる）
+
+
+def tidy_moods(scenes: list[Scene]) -> None:
+    """背景の雰囲気（Scene.mood）を、感情のピークの場面だけに、まとまって付くように整える。
+
+    1. 動画の最初の MOOD_SKIP_FIRST_SCENES シーンからは外す
+    2. 同じ雰囲気の間に1シーンだけ雰囲気の無いシーンが挟まっていたら、つなげる（点滅しないように）
+    3. MOOD_MIN_RUN シーン未満しか続かない雰囲気は外す
+    4. 雰囲気の場面が MOOD_MAX_RUNS より多ければ、長く続く場面から残し、ほかは外す
+    場面転換テロップ（card_text）は数えない（テロップをはさんでも同じ場面として扱う）。
+    """
+    idx = [i for i, s in enumerate(scenes) if not s.card_text]
+    for i in idx[:MOOD_SKIP_FIRST_SCENES]:
+        scenes[i].mood = ""
+    for a, b, c in zip(idx, idx[1:], idx[2:]):
+        if scenes[a].mood and scenes[a].mood == scenes[c].mood and not scenes[b].mood:
+            scenes[b].mood = scenes[a].mood
+    runs: list[list[int]] = []
+    for i in idx:
+        mood = scenes[i].mood
+        if mood and runs and scenes[runs[-1][-1]].mood == mood and runs[-1][-1] == idx[idx.index(i) - 1]:
+            runs[-1].append(i)
+        elif mood:
+            runs.append([i])
+    keep = [r for r in runs if len(r) >= MOOD_MIN_RUN]
+    keep = sorted(sorted(keep, key=len, reverse=True)[:MOOD_MAX_RUNS], key=lambda r: r[0])
+    kept = {i for r in keep for i in r}
+    for r in runs:
+        for i in r:
+            if i not in kept:
+                scenes[i].mood = ""
+
+
+def keep_dialog_illustration(block_scenes: list[Scene]) -> None:
+    """英会話のダイアログ（会話を聞く場面）では、英語の会話が続いている間、場面のイラストを出したままにする。
+
+    イラストが指定された最初のシーンから、そのブロックの最後の英語のセリフまで、同じイラスト
+    （まだ用意されていない依頼中のイラストも同じ名前で）を付ける。会話の途中で絵が消えないように。
+    """
+    scenes = [s for s in block_scenes if not s.card_text]
+    start = next((i for i, s in enumerate(scenes) if s.illustration_path or s.illustration_name), None)
+    last_en = max((i for i, s in enumerate(scenes) if s.lang == "en"), default=None)
+    if start is None or last_en is None or last_en < start:
+        return
+    source = scenes[start]
+    for scene in scenes[start + 1:last_en + 1]:
+        if not (scene.illustration_path or scene.illustration_name):
+            scene.illustration_path = source.illustration_path
+            scene.illustration_name = source.illustration_name
+            scene.illustration_request = source.illustration_request
+            scene.illustration_caption = source.illustration_caption
+
+
 def keep_board_shown(block_scenes: list[Scene]) -> None:
     """黒板は、一度出したらそのブロック（1つのポイント）の最後まで出したままにする。
 
@@ -489,18 +567,98 @@ def keep_board_shown(block_scenes: list[Scene]) -> None:
             scene.show_board = True
 
 
-def assign_bullet_reveal(block_scenes: list[Scene]) -> None:
+REVEAL_ALL_SECTIONS = ("summary",)          # まとめの黒板は、最初から全部の行を一度に出す
+ANSWER_SECTIONS = ("quiz", "review")        # 答えを黒板に書く場面（答えを言うまで、その行を出さない）
+MATCH_MIN_SCORE = 0.3                       # 黒板の文とセリフが「同じ内容を話している」とみなす似ている度合い
+_MATCH_STRIP = re.compile(r"[\s\*・、。，．,.!！?？「」『』（）()〜~―—\-:：;；\"'’]+")
+
+
+def _bigrams(text: str) -> set[str]:
+    text = _MATCH_STRIP.sub("", (text or "").lower())
+    return {text[i:i + 2] for i in range(len(text) - 1)} or ({text} if text else set())
+
+
+def _similarity(bullet: str, line: str) -> float:
+    """黒板の1行の文字の並びのうち、セリフに出てくる割合（0〜1）。"""
+    a, b = _bigrams(bullet), _bigrams(line)
+    return len(a & b) / len(a) if a else 0.0
+
+
+def _match_bullets(bullets: list[str], candidates: list[tuple[int, Scene]], strict: bool = False) -> Optional[list[int]]:
+    """各行を、その内容を初めて話すセリフ（順番は前から）に対応させ、セリフの位置のリストを返す。
+
+    対応が見つからない行は、前の行の次のセリフに書き足す（後ろの行より遅くならないようにする）。
+    strict=True（答えの行）は、見つからない行が1つでもあれば None。1行も見つからなければ None。
+    """
+    found: list[Optional[int]] = []
+    start = 0
+    for bullet in bullets:
+        best, best_score = None, MATCH_MIN_SCORE
+        for k in range(start, len(candidates)):
+            score = _similarity(bullet, f"{candidates[k][1].text} {candidates[k][1].translation}")
+            if score > best_score + 0.05 or (best is None and score >= best_score):
+                best, best_score = k, score
+        if best is not None:
+            start = best + 1 if best + 1 < len(candidates) else best
+        found.append(best)
+    if all(k is None for k in found) or (strict and any(k is None for k in found)):
+        return None
+    positions: list[int] = []
+    for n, k in enumerate(found):
+        if k is None:
+            prev = positions[-1] if positions else candidates[0][0] - 1
+            nxt = next((candidates[j][0] for j in found[n + 1:] if j is not None), None)
+            pos = prev + 1
+            if nxt is not None:
+                pos = min(pos, nxt)
+            positions.append(max(pos, candidates[0][0]))
+        else:
+            positions.append(candidates[k][0])
+    return positions
+
+
+def assign_bullet_reveal(block_scenes: list[Scene], section: str = "") -> None:
     """同じ黒板を使うシーン（1ブロック）に、表示する箇条書きの数を振り分ける（1行ずつ書き足す演出）。
 
-    セリフの進み具合に比例させ、最初のセリフで1行目、最後のセリフでは必ず全行が見えるようにする。
-    例: セリフ4つ・箇条書き2行 → 1, 1, 2, 2 行 ／ セリフ2つ・箇条書き3行 → 2, 3 行
+    各行は、その内容を初めて話すセリフで書き足す（行とセリフの内容がずれないように）:
+      1. 台本のセリフに "bullet": 行番号 があれば、そのセリフでその行を書く
+      2. 無ければ、黒板の文とセリフの似ている度合いで、その行を話しているセリフを探す
+      3. それでも対応が付かなければ、黒板を出しているセリフの数に比例して振り分ける
+    まとめ（summary）は最初から全部の行を出す。瞬発トレーニング・ふりかえり（quiz / review）は答えの行なので、
+    答えを言う英語のセリフまでその行を出さない（先に答えが見えないように）。
     """
     block_scenes = [s for s in block_scenes if not s.card_text]  # 場面転換テロップは黒板を出さない
     if not block_scenes or not block_scenes[0].has_slide:
         return
-    total = len(slide_renderer_normalize(block_scenes[0].slide_bullets))
-    if total <= 1:
+    bullets = slide_renderer_normalize(block_scenes[0].slide_bullets)
+    total = len(bullets)
+    if total <= 1 or section in REVEAL_ALL_SECTIONS:
+        for scene in block_scenes:
+            scene.slide_reveal = None
         return
+
+    positions: Optional[list[int]] = None
+    explicit = {s.bullet_ref: i for i, s in reversed(list(enumerate(block_scenes))) if 1 <= s.bullet_ref <= total}
+    if len(explicit) == total:
+        positions = [explicit[k] for k in range(1, total + 1)]
+    if positions is None:
+        candidates = [(i, s) for i, s in enumerate(block_scenes) if s.text.strip() and not s.silent]
+        if section in ANSWER_SECTIONS:
+            candidates = [(i, s) for i, s in candidates if s.lang == "en"] or candidates
+        positions = _match_bullets(bullets, candidates, strict=section in ANSWER_SECTIONS)
+        if positions is not None:  # ブロックの最後のセリフまでには、必ず全部の行を出す
+            positions = [min(p, len(block_scenes) - 1) for p in positions]
+    if positions is None and section in ANSWER_SECTIONS:
+        # 答えの英語のセリフの順に1行ずつ（問題を出している間は答えを見せない）
+        answers = [i for i, s in enumerate(block_scenes) if s.lang == "en" and not s.silent]
+        if len(answers) >= total:
+            positions = answers[:total]
+    if positions is not None:
+        for i, scene in enumerate(block_scenes):
+            shown = sum(1 for p in positions if p <= i)
+            scene.slide_reveal = None if shown >= total else shown
+        return
+
     # 黒板を出すセリフだけで書き足していく（会話だけのセリフでは黒板が見えないため）。
     # 会話だけのセリフは、直前に黒板を出したセリフと同じ行数にしておく
     shown_scenes = [s for s in block_scenes if s.show_board and not s.illustration_path] or block_scenes
@@ -646,6 +804,8 @@ def build_scenes(
                     illustration_caption=str(line.get("caption") or "").strip(),
                     illustration_request=str(line.get("image_request") or "").strip(),
                     illustration_name=_clean_illustration_name(line.get("image_name")),
+                    **_parse_note(line.get("note")),
+                    bullet_ref=_parse_bullet_ref(line.get("bullet")),
                 )
             )
             # "pause": 秒数 … セリフのあとに、視聴者がリピート・回答する間（音声なし。字幕と見出しは出したまま）
@@ -673,8 +833,10 @@ def build_scenes(
                 ))
 
         keep_board_shown(scenes[block_scenes_start:])
+        if section == "dialog":
+            keep_dialog_illustration(scenes[block_scenes_start:])
         if reveal_bullets and block.get("reveal", True) is not False:
-            assign_bullet_reveal(scenes[block_scenes_start:])
+            assign_bullet_reveal(scenes[block_scenes_start:], section)
 
     if not scenes:
         raise BookScriptError("台本JSONから読み取れるセリフがありませんでした。")
@@ -694,6 +856,7 @@ def build_scenes(
         used_voicevox = _fit_durations_with_voicevox(
             scenes, merge_readings(reading_dict or [], _parse_readings(data.get("readings"))), warnings, speech_speed
         )
+    tidy_moods(scenes)
     apply_board_hold(scenes, board_pause)
     if needs_ending:
         scenes.extend(build_ending_scenes_list(warnings))
@@ -721,6 +884,7 @@ def build_scenes(
         if str(data.get("source_kind") or "").strip().lower() in ("research", "english")
         else ("book" if data.get("source_kind") else ""),
         lesson=data.get("lesson") if isinstance(data.get("lesson"), dict) else {},
+        thumbnail={k: v for k, v in data["thumbnail"].items() if v} if isinstance(data.get("thumbnail"), dict) else {},
         sources=_parse_sources(data.get("sources")),
     )
 
@@ -958,6 +1122,8 @@ def apply_to_project(project: Project, result: BookScriptResult, replace: bool =
     from src.services import video_metadata  # 循環importを避けるため関数内で読み込む
 
     project.title_candidates = list(result.title_candidates)
+    if replace or result.thumbnail:
+        project.thumbnail = dict(result.thumbnail)
     project.description_lead = result.description_lead
     project.hashtags = list(result.hashtags)
     if result.style:

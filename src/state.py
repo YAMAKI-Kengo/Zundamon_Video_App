@@ -55,7 +55,7 @@ def set_project(project: Project) -> None:
     # 残って新しいプロジェクトの値を上書きしてしまうため、ここで破棄して新しい値から描画し直させる
     for key in [
         k for k in st.session_state.keys()
-        if str(k).startswith(("bgm_section_", "meta_", "motion_")) or k in ("bgm_project_select", "background_blur", "speech_speed", "reading_dict_editor", "show_chapter_label",
+        if str(k).startswith(("bgm_section_", "meta_", "motion_", "thumb_")) or k in ("bgm_project_select", "background_blur", "speech_speed", "reading_dict_editor", "show_chapter_label",
                 "board_pause")
     ]:
         del st.session_state[key]
