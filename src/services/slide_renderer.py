@@ -20,9 +20,9 @@
 乱数のシードも内容から決めるため、同じ内容なら何度生成しても同じ絵になる
 （口:開/口:閉のフレームやプレビューと本番で黒板の見た目が変わらない）。
 
-縦画面（ショート動画）では黒板ではなく「ホワイトボードにマーカーで書いた」スタイルで描画する
-（style_for_resolution()。アルミ枠・光沢・消し残り・マーカーとイレーザーの置かれたトレイ、
-見出しは青・本文は黒・強調は赤のマーカー）。
+縦画面（ショート動画）も黒板で描画する（style_for_resolution()）。「ホワイトボードにマーカーで書いた」
+スタイル（WHITEBOARD。アルミ枠・光沢・消し残り・マーカーとイレーザーの置かれたトレイ、
+見出しは青・本文は黒・強調は赤のマーカー）も、STYLES から選べるように残してある。
 
 手書き風のフォントを使いたい場合は、assets/fonts/ に "chalk" で始まる名前のフォントファイル
 （例: chalk.ttf。Google Fonts の「Klee One」「Yomogi」等、商用利用可のOFLフォント）を置くと
@@ -51,7 +51,7 @@ FONTS_DIR = PROJECT_ROOT / "assets" / "fonts"
 SLIDE_CACHE_DIR = PROJECT_ROOT / "tmp" / "slides"
 
 # 見た目を変更したらこの値を上げる（古いキャッシュ画像が使われ続けないように）
-STYLE_VERSION = 14
+STYLE_VERSION = 15
 
 # --- 色 ---
 BOARD_COLOR = (36, 66, 52)
@@ -561,8 +561,8 @@ STYLES: dict[str, BoardStyle] = {st.name: st for st in (CHALKBOARD, WHITEBOARD)}
 
 
 def style_for_resolution(resolution: tuple[int, int]) -> BoardStyle:
-    """横画面は黒板、縦画面（ショート動画）はホワイトボード。"""
-    return WHITEBOARD if resolution[1] > resolution[0] else CHALKBOARD
+    """横画面も縦画面（ショート動画）も黒板（ホワイトボードのスタイルは STYLES に残してある）。"""
+    return CHALKBOARD
 
 
 def _render_text_line(
@@ -918,7 +918,7 @@ def get_slide_path(
 ) -> Path:
     """スライド画像を生成（またはキャッシュから取得）し、PNGのパスを返す。
 
-    板の種類は解像度から自動で決まる（横画面=黒板、縦画面=ホワイトボード）。
+    板の種類は解像度から自動で決まる（横画面・縦画面とも黒板）。
     visible_bullets は表示する箇条書きの数（None または項目数以上なら全部）。乱数のシードは表示数に
     関係なく内容から決めるため、表示数だけが違う画像同士は書いてある部分が完全に一致する。
     """
@@ -1078,7 +1078,7 @@ def _find_focus(sentence: str, focus: str) -> tuple[int, int]:
 def render_phrase_note(sentence: str, focus: str, meaning: str, size: tuple[int, int],
                        style: BoardStyle = CHALKBOARD, font_path: Optional[str] = None,
                        seed: int = 0) -> Image.Image:
-    """重要な表現の解説カード: 黒板（縦画面はホワイトボード）に文を大きく書き、大事な部分に赤い下線を引いて、
+    """重要な表現の解説カード: 黒板に文を大きく書き、大事な部分に赤い下線を引いて、
     その下に矢印と意味・使い方を書く。"""
     sentence = telop.strip_emoji(sentence).strip()
     meaning = telop.strip_emoji(meaning).strip()
@@ -1173,7 +1173,7 @@ def get_note_path(sentence: str, focus: str, meaning: str, resolution: tuple[int
 def resolve_scene_content_media(scene: Scene, resolution: tuple[int, int]) -> Optional[str]:
     """シーンの資料メディアとして実際に表示するパスを返す。
 
-    スライドの内容が入力されていればスライド画像（横画面=黒板/縦画面=ホワイトボード）を生成してそのパスを、
+    スライドの内容が入力されていればスライド画像（黒板）を生成してそのパスを、
     無ければ従来どおり scene.content_media_path を返す。
     """
     if scene.illustration_path and Path(scene.illustration_path).exists():

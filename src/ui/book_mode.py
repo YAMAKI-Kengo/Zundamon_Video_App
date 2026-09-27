@@ -486,7 +486,7 @@ def _render_overview(project: Project) -> None:
     is_landscape = project.resolution[0] >= project.resolution[1]
     c3.metric(
         "画面の向き", "横画面" if is_landscape else "縦画面",
-        help="横画面は黒板、縦画面（ショート動画）はホワイトボードのスライドになります。",
+        help="横画面も縦画面（ショート動画）も黒板のスライドになります。",
     )
     st.caption(
         "アイコンは各シーンの動き（🎥カメラ 📳揺れ 🐸ぴょん 〰ゆらゆら 🚶登場 🔀黒板切り替え ✍書き足し）です。"
@@ -720,10 +720,10 @@ def _render_x_post(project: Project) -> None:
 
 
 @st.cache_data(max_entries=60, show_spinner=False)
-def _thumbnail_png(spec_json: str, background: str, stamps: tuple) -> bytes:
+def _thumbnail_png(spec_json: str, stamps: tuple) -> bytes:
     import io
 
-    img = thumbnail.render_thumbnail(json.loads(spec_json), background or None)
+    img = thumbnail.render_thumbnail(json.loads(spec_json))
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()
@@ -807,13 +807,13 @@ def _render_thumbnail(project: Project) -> None:
                                       format_func=lambda v: "（なし）" if not v else Path(v).stem, key="thumb_image")
     project.thumbnail = {k: v for k, v in spec.items() if k != "image"} | ({"image": spec["image"]} if spec["image"] else {})
 
-    background = book_script.effective_background_path(project, project.scenes[0]) or ""
-    stamps = tuple(Path(p).stat().st_mtime if p and Path(p).exists() else 0 for p in (background, spec.get("image"), spec.get("before_image"), spec.get("after_image")))
+    stamps = tuple(Path(p).stat().st_mtime if p and Path(p).exists() else 0
+                   for p in (spec.get("image"), spec.get("before_image"), spec.get("after_image")))
     layouts = [k for k in thumbnail.LAYOUTS if k != ("before_after" if english else "scene")]
     for row in range(0, len(layouts), 2):
         cols = st.columns(2)
         for col, layout in zip(cols, layouts[row:row + 2]):
-            png = _thumbnail_png(json.dumps(spec | {"layout": layout}, ensure_ascii=False), background, stamps)
+            png = _thumbnail_png(json.dumps(spec | {"layout": layout}, ensure_ascii=False), stamps)
             chosen = spec.get("layout") == layout
             col.image(png, caption=("⭐ AIのおすすめ・" if chosen else "") + thumbnail.LAYOUTS[layout],
                       use_container_width=True)

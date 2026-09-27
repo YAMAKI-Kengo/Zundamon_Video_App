@@ -417,9 +417,9 @@ def render_scene_editor() -> None:
                             f"　→ 「{scene.illustration_name}.png」の名前で assets/illustrations/ に置くと自動で表示されます。"
                         )
 
-                with st.expander("🧑‍🏫 スライド（横画面=黒板 / 縦画面=ホワイトボード・任意）", expanded=scene.has_slide):
+                with st.expander("🧑‍🏫 スライド（黒板・任意）", expanded=scene.has_slide):
                     st.caption(
-                        "見出し・箇条書きを入力すると、黒板（縦画面ではホワイトボード）風のスライド画像を自動生成して画面中央に表示します"
+                        "見出し・箇条書きを入力すると、黒板風のスライド画像を自動生成して画面中央に表示します"
                         "（上の「資料メディア」より優先されます）。箇条書き中の **言葉** は色を変えて強調されます。"
                     )
                     scene.slide_title = st.text_input(

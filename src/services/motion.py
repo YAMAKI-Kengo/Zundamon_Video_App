@@ -60,6 +60,7 @@ ENTER_SECONDS = 0.45                             # 横から入ってくる時�
 TRANSITION_SECONDS = 0.5                         # 黒板の切り替え時間
 POP_SECONDS = 0.35                               # 画像（本の表紙など）がポンと現れる時間
 FADE_SECONDS = 0.25                              # 黒板がふわっと現れる・消えるときのフェード時間
+BACKGROUND_FADE_SECONDS = 0.6                    # 背景（場所）が変わるとき、前の背景から切り替わる時間
 WRITE_SECONDS = 0.8                              # 箇条書き1行を書き足す時間（シーンが短いときは半分まで）
 
 
@@ -289,11 +290,20 @@ def build_motion_clip(
     mouth_flags: list[bool],
     background: Image.Image,
     pr_label_overlay: Optional[Image.Image] = None,
+    background_before: Optional[Image.Image] = None,
 ) -> VideoClip:
-    """動き付きのシーン映像（字幕・見出しは含まない）を作る。background は画面サイズの静止画。"""
+    """動き付きのシーン映像（字幕・見出しは含まない）を作る。background は画面サイズの静止画。
+
+    background_before を渡すと（前のシーンと背景の場所が違うとき）、シーンの最初に前の背景から
+    ふわっと切り替える（急に場所が変わって見えないように）。
+    """
     width, height = resolution
     is_portrait = height > width
     bg = background.convert("RGB")
+    bg_before = background_before.convert("RGB") if background_before is not None else None
+    if bg_before is not None and bg_before.size != bg.size:
+        bg_before = bg_before.resize(bg.size)
+    bg_fade = min(BACKGROUND_FADE_SECONDS, duration * 0.5)
 
     # --- 黒板 ---
     board_now = _load_board(scene, resolution)
@@ -442,7 +452,10 @@ def build_motion_clip(
     def make_frame(t: float):
         frame_idx = min(int(round(t * fps)), max(total_frames - 1, 0))
         mouth_open = mouth_flags[frame_idx] if mouth_flags else False
-        canvas = bg.copy()
+        if bg_before is not None and t < bg_fade:
+            canvas = Image.blend(bg_before, bg, _ease(t / bg_fade))
+        else:
+            canvas = bg.copy()
         board_layer(canvas, t)
         for key, variants in sprites.items():
             img, (x, y) = variants[mouth_open if key == scene.speaker else False]

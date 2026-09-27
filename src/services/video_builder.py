@@ -285,6 +285,21 @@ def _resolve_dynamic_content_media(
     return None, img
 
 
+def _changed_background(project: Optional[Project], scene: Scene,
+                        motion_context: Optional["motion.SceneContext"], current: Optional[str]) -> Optional[str]:
+    """前のシーンと背景の場所（画像）が違えば、前のシーンの背景のパスを返す（ふわっと切り替えるため）。
+
+    前のシーンが場面転換テロップ（「3日後…」など全画面の文字）のときや、背景が動画のときは切り替えない。
+    """
+    prev = motion_context.prev if motion_context is not None else None
+    if project is None or prev is None or prev.card_text.strip() or scene.card_text.strip():
+        return None
+    before = book_script.effective_background_path(project, prev)
+    if not before or not current or before == current or is_video_path(before) or is_video_path(current):
+        return None
+    return before
+
+
 def _build_dynamic_scene_clip(
     scene: Scene,
     effective_background_path: Optional[str],
@@ -491,6 +506,7 @@ def _build_scene_clip(
     # 3. 立ち絵+背景+資料メディアの合成（2人常時表示）
     progress(f"{label}: 立ち絵を合成中…")
     needs_dynamic = is_video_path(effective_background_path) or is_video_path(scene.content_media_path)
+    background_before_path = _changed_background(project, scene, motion_context, effective_background_path)
     if needs_dynamic:
         # 背景・資料メディアの少なくとも一方が動画ファイルの場合、絵そのものがフレームごとに
         # 変わるため「口:開」「口:閉」を使い回す最適化はできず、1フレームずつ合成する
@@ -498,7 +514,9 @@ def _build_scene_clip(
             scene, effective_background_path, resolution, fps, actual_duration, mouth_flags, warnings, label,
             extra_clips, pr_label_overlay=pr_label_overlay, background_blur=background_blur,
         )
-    elif project is not None and motion_context is not None and motion.needs_motion(project, scene, motion_context):
+    elif project is not None and motion_context is not None and (
+        motion.needs_motion(project, scene, motion_context) or background_before_path is not None
+    ):
         # カメラワーク・キャラクターの動き・黒板の切り替え/書き足しがあるシーンは1フレームずつ合成する
         # （背景・資料が動画のシーンは上の分岐で処理され、動きは付かない）
         progress(f"{label}: 動き（カメラ・キャラクター・黒板）を合成中…")
@@ -507,6 +525,9 @@ def _build_scene_clip(
                 project, scene, motion_context, resolution, fps, actual_duration, mouth_flags,
                 load_background_image(effective_background_path, resolution, background_blur, scene.mood),
                 pr_label_overlay,
+                background_before=load_background_image(
+                    background_before_path, resolution, background_blur, motion_context.prev.mood,
+                ) if background_before_path is not None else None,
             )
         except Exception as e:  # noqa: BLE001 - 動きの合成に失敗しても、動き無しで書き出しを続ける
             warnings.append(f"{label}: 動きの合成に失敗したため、動き無しで書き出しました（{e}）")

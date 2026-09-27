@@ -23,7 +23,7 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 
 from src.models import Project
 from src.services import telop
-from src.services.compositor import compose_character_frame, cover_resize, load_background_image
+from src.services.compositor import compose_character_frame, cover_resize
 from src.utils.asset_loader import DEFAULT_ROOM_BACKGROUNDS, has_expression_assets, is_video_path
 
 THUMB_SIZE = (1280, 720)
@@ -100,11 +100,17 @@ def _paste(canvas: Image.Image, sprite: Optional[Image.Image], x: int, y: int) -
     canvas.alpha_composite(layer)
 
 
-def _background(path: Optional[str], darken_side: Optional[str] = None, darkness: float = 0.6) -> Image.Image:
-    """背景（少しぼかして色を濃くし、文字を置く側を暗くしてコントラストを付ける）。"""
-    bg = load_background_image(path, THUMB_SIZE, blur=3.0).convert("RGB")
-    bg = ImageEnhance.Color(bg).enhance(1.3)
-    bg = bg.convert("RGBA")
+BASE_TOP, BASE_BOTTOM = (70, 88, 160), (28, 30, 70)  # 下地のグラデーション（上 → 下）
+
+
+def _background(darken_side: Optional[str] = None, darkness: float = 0.6) -> Image.Image:
+    """下地（背景画像は使わず、上から下へのグラデーション。文字を置く側を暗くしてコントラストを付ける）。"""
+    w, h = THUMB_SIZE
+    column = Image.new("RGB", (1, h))
+    for y in range(h):
+        p = y / (h - 1)
+        column.putpixel((0, y), tuple(round(a + (b - a) * p) for a, b in zip(BASE_TOP, BASE_BOTTOM)))
+    bg = column.resize(THUMB_SIZE).convert("RGBA")
     if darken_side:
         w, h = THUMB_SIZE
         grad = Image.new("L", (w, 1))
@@ -361,13 +367,13 @@ def _panel_image(path: Optional[str], size: tuple[int, int]) -> Optional[Image.I
         return None
 
 
-def _render_before_after(spec: dict, lines: list[str], background_path: Optional[str]) -> Image.Image:
+def _render_before_after(spec: dict, lines: list[str]) -> Image.Image:
     """上に特大の一言、下の左に「見る前」（暗い・しょんぼり）、右に「見た後」（明るい・笑顔）。
 
     before_image / after_image（動画で使ったイラスト・背景）があれば、左右それぞれの画面に敷く。
     """
     w, h = THUMB_SIZE
-    canvas = _background(background_path)
+    canvas = _background()
     split = [(0, 0), (int(w * 0.53), 0), (int(w * 0.47), h), (0, h)]
     mask = Image.new("L", THUMB_SIZE, 0)
     ImageDraw.Draw(mask).polygon(split, fill=255)
@@ -419,10 +425,10 @@ def _render_before_after(spec: dict, lines: list[str], background_path: Optional
     return canvas
 
 
-def _render_scene(spec: dict, lines: list[str], background_path: Optional[str]) -> Image.Image:
+def _render_scene(spec: dict, lines: list[str]) -> Image.Image:
     """英会話: 上に特大の一言、左下に場面の絵と「〇〇で使える！」、右下にずんだもんと英語のフレーズ。"""
     w, h = THUMB_SIZE
-    canvas = _background(background_path)
+    canvas = _background()
     canvas.alpha_composite(_sunburst(THUMB_SIZE, (w * 0.3, h * 0.7), ((120, 210, 255), (60, 150, 240)), fade=0.95))
     z_expr = spec.get("zundamon") or "happy"
     zunda = _character("zundamon", z_expr, 440, bust=0.62)
@@ -453,7 +459,7 @@ DEFAULT_SHOUTS = {
 }
 
 
-def render_thumbnail(spec: dict, background_path: Optional[str]) -> Image.Image:
+def render_thumbnail(spec: dict) -> Image.Image:
     """spec: {"text": 2〜3行（改行区切り・**強調**可）, "sub": 左上の帯, "shout": 吹き出しのひと言,
     "layout", "zundamon", "metan", "image",
     "before" / "after" / "before_face" / "after_face"（見る前→見た後）, "scene" / "phrase"（英会話の使える場面）}"""
@@ -464,11 +470,11 @@ def render_thumbnail(spec: dict, background_path: Optional[str]) -> Image.Image:
     w, h = THUMB_SIZE
 
     if layout == "before_after":
-        canvas = _render_before_after(spec, lines, background_path)
+        canvas = _render_before_after(spec, lines)
     elif layout == "scene":
-        canvas = _render_scene(spec, lines, background_path)
+        canvas = _render_scene(spec, lines)
     elif layout == "duo":
-        canvas = _background(background_path)
+        canvas = _background()
         canvas.alpha_composite(_sunburst(THUMB_SIZE, (w * 0.5, h * 0.66), ((255, 96, 70), (255, 170, 60)), fade=0.9))
         canvas = Image.alpha_composite(canvas, Image.new("RGBA", THUMB_SIZE, (20, 10, 40, 40)))
         pic = _picture(spec.get("image"), 470, 330)
@@ -491,7 +497,7 @@ def render_thumbnail(spec: dict, background_path: Optional[str]) -> Image.Image:
             _speech_bubble(canvas, shout, (w - zunda.width - 200, head_y + 30, w - zunda.width + 40, head_y + 115),
                            (w - zunda.width + 90, head_y + 95))
     elif layout == "big_text":
-        canvas = _background(background_path)
+        canvas = _background()
         canvas = Image.alpha_composite(canvas, Image.new("RGBA", THUMB_SIZE, (10, 10, 40, 170)))
         canvas.alpha_composite(_sunburst(THUMB_SIZE, (w * 0.42, h * 0.5), ((70, 60, 150), (30, 25, 80)), fade=1.0))
         zunda = _character("zundamon", z_expr, 470, bust=0.62)
@@ -502,7 +508,7 @@ def render_thumbnail(spec: dict, background_path: Optional[str]) -> Image.Image:
         if zunda is not None:
             _speech_bubble(canvas, shout, (w - 300, 120, w - 30, 225), (w - zunda.width // 2, h - zunda.height + 60))
     else:  # reaction
-        canvas = _background(background_path, darken_side="left", darkness=0.8)
+        canvas = _background(darken_side="left", darkness=0.8)
         canvas.alpha_composite(_sunburst(THUMB_SIZE, (w * 0.78, h * 0.42), ((255, 205, 0), (255, 150, 0)), fade=0.75))
         zunda = _character("zundamon", z_expr, 840, bust=0.66)
         if zunda is not None:
