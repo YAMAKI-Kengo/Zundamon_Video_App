@@ -29,11 +29,11 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from src.models import Scene
+from src.models import GUEST_CHARACTERS, Scene
 from src.services import book_ai
 from src.services.book_ai import _STR, _STR_LIST, AIResult, ProgressCallback, _call, _obj
 from src.services.voicevox_client import DEFAULT_SPEECH_SPEED
-from src.utils.asset_loader import get_available_expressions, list_illustrations, list_se
+from src.utils.asset_loader import get_available_expressions, list_illustrations, list_place_backgrounds, list_se
 
 ROOT = Path(__file__).resolve().parents[2]
 AUDIO_DIR = ROOT / "assets" / "english_audio"       # ネイティブ音声（<ID>.mp3 など）を置くフォルダ
@@ -306,7 +306,7 @@ def previous_themes(week: int) -> list[str]:
 LESSON_SECTIONS_ENUM = ["intro", "dialog", "phrase", "repeat", "quiz", "review", "summary"]
 
 
-def _lesson_schema() -> dict:
+def _lesson_schema(with_promo: bool = True) -> dict:
     characters = book_ai._characters()
     expressions = sorted({e for c in characters for e in get_available_expressions(c)})
     line = _obj({
@@ -332,9 +332,14 @@ def _lesson_schema() -> dict:
         "image_request": _STR,
         "image_name": _STR,
     })
+    guest_keys = [c for c in characters if c in GUEST_CHARACTERS]
     block = _obj({
         "section": {"type": "string", "enum": LESSON_SECTIONS_ENUM},
         "slide": _obj({"title": _STR, "bullets": _STR_LIST, "numbered": {"type": "boolean"}}),
+        "background": {"type": "string", "enum": [""] + [p.stem for p in list_place_backgrounds()]},
+        "background_request": _STR,
+        "background_name": _STR,
+        **({"guests": {"type": "array", "items": {"type": "string", "enum": guest_keys}}} if guest_keys else {}),
         "lines": {"type": "array", "items": line},
     })
     return _obj({
@@ -346,8 +351,9 @@ def _lesson_schema() -> dict:
         "tags": _STR_LIST,
         "readings": {"type": "array", "items": _obj({"word": _STR, "reading": _STR})},
         "phrases": {"type": "array", "items": _obj({"en": _STR, "ja": _STR})},
-        "thumbnail": _obj({"text": _STR, "sub": _STR, "layout": {"type": "string", "enum": ["reaction", "duo", "big_text"]}, "zundamon": {"type": "string", "enum": expressions}, "metan": {"type": "string", "enum": expressions}}),
+        "thumbnail": _obj({"text": _STR, "sub": _STR, "shout": _STR, "layout": {"type": "string", "enum": ["before_after", "scene", "reaction", "duo", "big_text"]}, "zundamon": {"type": "string", "enum": expressions}, "metan": {"type": "string", "enum": expressions}, "before": _STR, "after": _STR, "before_face": {"type": "string", "enum": expressions}, "after_face": {"type": "string", "enum": expressions}, "scene": _STR, "phrase": _STR}),
         "blocks": {"type": "array", "items": block},
+        **({"promo_short": book_ai.promo_short_schema(block)} if with_promo else {}),
     })
 
 
@@ -362,7 +368,7 @@ def _english_line_rules(level: str) -> str:
 - 英語のセリフは lang を "en" にし、text に英文、ja に自然な日本語訳を書く（字幕は英文の下に訳が小さく出る）。日本語のセリフは lang を "ja"、ja は空文字。
 - 英語のレベル: {LEVELS.get(level, LEVELS['a2'])}。{LEVEL_RULES.get(level, LEVEL_RULES['a2'])} 今のネイティブが日常で使う、自然なアメリカ英語にする。1つのセリフに英文は1〜2文まで。
 - 字幕はセリフの text がそのまま出る。ずんだもんが英語を言うセリフ（まねする・答える・言い間違える）は、必ず lang を "en"、text を英語のつづり（例: "Can I get a coffee?"）にし、カタカナの読みは reading にだけ書く。text をカタカナで書かない。日本語のセリフに英語が混ざる場合も、text の英語の部分は英語のつづりで書く（例: text「Can I get は注文の定番なのだ！」、reading「キャナイゲットは注文の定番なのだ！」）。
-- お手本の英語（ネイティブ音声）: speaker は "shikoku_metan"、reading は空文字にする（録音したネイティブ音声を使う）。voice は、会話（dialog）の2人の役を "A"（めたんの役）と "B"（相手の役）で書き分け、それ以外は "A"。
+- お手本の英語（ネイティブ音声）: speaker は "shikoku_metan"、reading は空文字にする（録音したネイティブ音声を使う）。voice は、会話（dialog）の2人の役を "A"（めたんの役）と "B"（相手の役）で書き分け、それ以外は "A"。{" 登場人物に春日部つむぎ（kasukabe_tsumugi）がいる場合は、voice B の英語のセリフの speaker を kasukabe_tsumugi にし、dialog ブロックの guests に kasukabe_tsumugi を入れる（めたんとつむぎが英語で会話する）。" if "kasukabe_tsumugi" in book_ai._characters() else ""}
 - ずんだもんがまねする英語: speaker は "zundamon"、text は英文のまま、reading に、日本人がやりがちなカタカナ英語の読み（例: text "Can I get a coffee?" → reading "キャン アイ ゲット ア コーヒー"）を書く（音声合成は英語を読めないため、読みをカタカナにする）。ここで、めたんが発音のコツ（音のつながり・弱く読む音・アクセント）を日本語で教える流れを作る。
 - 日本語のセリフに英単語・英文を混ぜる場合（例:「Can I は、キャナイってつながるのよ」）は、reading にセリフ全体を書き、英語の部分だけを正しい発音に近いカタカナにする（例: reading「キャナイは、キャナイってつながるのよ」）。英語を混ぜない日本語のセリフは reading を空文字にする。
 - pause_style は間の見せ方: "repeat"（3・2・1 → リピート！）、"shadow"（3・2・1 → 同じネイティブ音声をもう一度流す）、"think"（残り秒数のタイマー）。間の無い行は空文字。
@@ -399,6 +405,7 @@ def _lesson_system(plan: dict, day: int, level: str, speech_speed: float = DEFAU
 
 {book_ai._CHARACTERS_TEXT}
 {_LESSON_CHARACTER_ROLES}
+{book_ai._guest_text("english")}
 
 ## 今週の計画
 - 第{plan.get('week', 1)}週のテーマ: {plan.get('theme', '')}（{plan.get('theme_en', '')}）。1週間のゴール: {plan.get('goal', '')}
@@ -417,6 +424,7 @@ def _lesson_system(plan: dict, day: int, level: str, speech_speed: float = DEFAU
   text に文（25字・8語程度まで）、focus に赤線を引く部分（text の中にそのまま含まれる語句）、meaning にその部分の意味・使い方（25字以内。例:「〜をもらえる？ お店で注文するときの定番」）を書く。
   その部分を説明する2〜3セリフに、同じ note を続けて付ける（その間は黒板の代わりに解説カードが出る）。使わない行は text・focus・meaning をすべて空文字にする。
 - bullet（黒板のどの行の話か）: 黒板の箇条書きの行を初めて話すセリフに、その行の番号（1から）を書く（その番号の行が、そのセリフで黒板に書き足される）。それ以外のセリフは 0。瞬発トレーニング・ふりかえり（quiz・review）で黒板に答えを書く場合は、答えを言う英語のセリフにその行の番号を付ける（問題を出すセリフには付けない。先に答えが見えてしまうため）。行の番号は、話す順番どおりに1, 2, 3…と増えるようにする。まとめ（summary）は全部の行を最初から出すので、すべて 0 でよい。
+{book_ai._background_rules().replace("回想・寸劇・たとえ話などで、学校・職場・お店・駅・病院など部屋以外の場所の出来事を「その場面として見せる」ブロックだけ", "導入でずんだもんが外で英語に困る場面や、dialog の会話の場所（カフェ・空港・お店など）を見せるブロックだけ")}
 - 表情（expression）は、セリフの感情に合うものを次の一覧から選ぶ:
 {book_ai._character_guide()}
 - se（効果音）は、つかみ・正解・ツッコミ・オチなど3〜8回だけ。使えるのは次の名前のみ（使わないときは空文字）: {book_ai._se_guide()}
@@ -432,14 +440,16 @@ def _lesson_system(plan: dict, day: int, level: str, speech_speed: float = DEFAU
 - title_candidates: 3つ。各32字以内。「【毎日英会話】Day{day}」を先頭に付け、今日のフレーズか場面が分かるようにする（例:「【毎日英会話】Day{day} カフェで Can I get〜? を使いこなす」）。
 - video_title: その中で一番クリックされそうな1つ。
 - description_lead: 説明欄の冒頭2行（改行区切り、各40字以内）。今日できるようになること。
-- hashtags: 3つ（# は付けない）。「英会話」「英語学習」と今週のテーマ。
+- hashtags: 4つ（# は付けない。「ずんだもん解説」はアプリが必ず先頭に付けるので書かない）。書名・人名などの固有名詞ではなく、多くの人が検索・フォローしていて、この動画の内容に関係する一般的な言葉にする（例: 英会話、英語学習、リスニング、TOEIC、英語、スピーキング、海外旅行）。
 - tags: 8〜12個。
 - phrases: この動画で教えたフレーズ（en・ja）。
-- thumbnail（サムネイルの文言と見せ方）:
-  text は2〜3行（改行は \\n）、1行8字以内・全体で10〜18字。タイトルをそのまま縮めるのではなく、一目で「えっ？」「自分のことだ」と思う言葉（今日のフレーズ・その場面・「ネイティブはこう言う」など）にする。一番大事な1語だけを **語** で囲む（赤く目立つ）。
+- thumbnail（サムネイルの文言と見せ方）。一覧で一番に目に入るのは、上部いっぱいに出る特大の一言（text）。その下に「〇〇で使える！」の札と場面のイラスト、ずんだもんの吹き出しに今日の英語のフレーズが大きく出て、どんな場面で使えるかが一目で想像できるようにする:
+  text は2行まで（改行は \\n）、1行9字以内・全体で10〜16字。そのフレーズを使うと何ができるかが一目で分かる、インパクトのある一言にする（例:「この一言で\\n注文が**通じる**」「ネイティブは\\n**これ**で頼む」）。文字は白で、一番大事な1語だけを **語** で囲む（赤く大きく目立つ）。==語== で囲むと黄色（多用しない）。
+  scene は、このフレーズを使える場面（2〜8字。例: カフェ、空港、友だちを誘うとき）。サムネイルに「〇〇で使える！」と出る。
+  phrase は、今日のフレーズのうち一番使える英語を1つ（25字以内）。吹き出しに大きく出る。
   sub は左上の帯の短いラベル（6〜10字。例: 毎日英会話 Day{day}（7日目は 毎日英会話 まとめ））。
-  layout は、感情が強い内容なら "reaction"（ずんだもんのアップ）、本の表紙やイラストを見せたい内容なら "duo"（2人＋画像）、結論が強い一言なら "big_text"（大きな文字）。
-  zundamon・metan は、内容の感情が一目で伝わる表情（驚き・ショック・ドヤ顔・指さしなど）を一覧から選ぶ。"""
+  layout は基本 "scene"（使える場面）。感情が強い内容なら "reaction"、結論が強い一言なら "big_text"。"before_after" は使わない。
+  zundamon は、場面のフレーズが言えてうれしい表情など、内容の感情が一目で伝わる表情を一覧から選ぶ。shout は吹き出しのひと言（reaction・big_text で使う。3〜8字）。before・after は空文字、before_face・after_face は zundamon と同じ表情でよい。{book_ai.promo_short_rules("english", speech_speed)}"""
 
 
 def generate_lesson(plan: dict, day: int, level: str = "", speech_speed: float = DEFAULT_SPEECH_SPEED,
@@ -465,7 +475,8 @@ def finish_lesson_data(data: dict, plan: dict, day: int, level: str = "") -> dic
         "week": week, "day": int(day), "theme": plan.get("theme", ""), "theme_en": plan.get("theme_en", ""),
         "level": level or plan.get("level") or "a2", "phrases": data.get("phrases") or [],
     }
-    for block in data.get("blocks", []):
+    promo = data.get("promo_short") if isinstance(data.get("promo_short"), dict) else {}
+    for block in list(data.get("blocks", [])) + list(promo.get("blocks") or []):
         for line in block.get("lines", []):
             for key in ("se", "hide", "image", "image_request", "caption", "ja", "reading", "pause_text", "mood", "card",
                         "pause_style"):
@@ -479,9 +490,14 @@ def finish_lesson_data(data: dict, plan: dict, day: int, level: str = "") -> dic
                 line.pop("note", None)
             if not line.get("bullet"):
                 line.pop("bullet", None)
+        for key in ("background", "background_request", "background_name"):
+            if not block.get(key):
+                block.pop(key, None)
         if not (block.get("slide") or {}).get("title") and not (block.get("slide") or {}).get("bullets"):
             block.pop("slide", None)
     assign_audio_ids(data, week, day)
+    if promo.get("blocks"):
+        assign_audio_ids(promo, week, day)  # 本編紹介ショートの英語も、同じ英文なら本編と同じ音声を使い回す
     return data
 
 
@@ -520,6 +536,9 @@ def lesson_manual_prompt(plan: dict, day: int, level: str = "", speech_speed: fl
         _lesson_system(plan, day, level, speech_speed),
         f"第{plan.get('week', 1)}週の{day}日目の台本を、次の形式のJSONだけで出力してください"
         "（各セリフには speaker・expression・text・lang・ja・reading・voice・pause・pause_text・se・board を書く。"
+        "トップレベルには、本編紹介ショートの promo_short "
+        '（{"title_candidates": [...], "video_title": "...", "description_lead": "...", "hashtags": [...], "tags": [...], '
+        '"blocks": [本編と同じ形のブロック]}）も必ず書く。'
         "形式の例なので、中身と分量は上のルールに従う）:",
         "```json\n" + json.dumps(LESSON_SAMPLE, ensure_ascii=False, indent=2) + "\n```",
     ])

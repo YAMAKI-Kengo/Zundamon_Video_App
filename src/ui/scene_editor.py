@@ -23,6 +23,7 @@ from src.models import (
     CAMERA_LABELS,
     CHAR_MOTION_LABELS,
     FORMAT_RESOLUTIONS,
+    GUEST_CHARACTERS,
     MOOD_LABELS,
     PHASE_LABELS,
     SECTION_LABELS,
@@ -48,7 +49,6 @@ from src.utils.asset_loader import (
     is_video_path,
     list_backgrounds,
     list_characters,
-    list_content_images,
     list_content_media,
     list_illustrations,
 )
@@ -58,7 +58,6 @@ PREVIEW_AUDIO_DIR = PROJECT_ROOT / "tmp" / "preview_audio"
 
 NO_BACKGROUND_LABEL = "(背景なし)"
 NO_CONTENT_MEDIA_LABEL = "(なし)"
-NO_BEFORE_AFTER_LABEL = "(なし)"
 PREVIEW_MAX_DIM = 480  # プレビュー画像の最大辺（px）。動作を軽くするため実際の出力解像度より縮小する
 
 # テロップ1行あたりの文字数の目安（横画面・縦画面それぞれ）。
@@ -90,20 +89,6 @@ def _save_uploaded_content_media(uploaded_file, scene_id: str) -> Path:
     media_dir = ASSETS_DIR / "content_media"
     media_dir.mkdir(parents=True, exist_ok=True)
     save_path = media_dir / f"uploaded_{scene_id}_{uploaded_file.name}"
-    with open(save_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    return save_path
-
-
-def _save_uploaded_before_after_image(uploaded_file, scene_id: str, slot: str) -> Path:
-    """ビフォーアフター画像（beforeまたはafter）を保存する。
-
-    通常の資料メディアと同じ assets/content_media/ フォルダに保存する
-    （list_content_images() で画像のみに絞って選択肢に出す）。
-    """
-    media_dir = ASSETS_DIR / "content_media"
-    media_dir.mkdir(parents=True, exist_ok=True)
-    save_path = media_dir / f"uploaded_{scene_id}_{slot}_{uploaded_file.name}"
     with open(save_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
     return save_path
@@ -234,7 +219,7 @@ def _render_bulk_script_import(project: Project, characters: list[str]) -> None:
                     st.rerun()
 
 
-SCENES_PER_PAGE = 10  # シーン編集で一度に表示するシーンの数
+SCENES_PER_PAGE = 5  # シーン編集で一度に表示するシーンの数
 _PAGE_KEY = "scene_editor_page"
 
 
@@ -282,7 +267,6 @@ def render_scene_editor() -> None:
 
     bg_options = [NO_BACKGROUND_LABEL] + [str(p) for p in list_backgrounds()]
     content_media_options = [NO_CONTENT_MEDIA_LABEL] + [str(p) for p in list_content_media()]
-    before_after_options = [NO_BEFORE_AFTER_LABEL] + [str(p) for p in list_content_images()]
 
     _render_bulk_script_import(project, characters)
     st.divider()
@@ -346,48 +330,6 @@ def render_scene_editor() -> None:
                 if uploaded_media is not None:
                     saved_media_path = _save_uploaded_content_media(uploaded_media, scene.id)
                     scene.content_media_path = str(saved_media_path)
-
-                with st.expander("📸 ビフォーアフター画像（任意）", expanded=bool(scene.before_image_path or scene.after_image_path)):
-                    st.caption(
-                        "Before/After の2枚の画像を指定すると、画面を左右に分割して同時表示します"
-                        "（両方そろっている場合のみ有効になり、上の「資料メディア」より優先されます。"
-                        "静止画のみ対応・動画は選べません）。"
-                    )
-                    col_before, col_after = st.columns(2)
-
-                    with col_before:
-                        before_index = (
-                            before_after_options.index(scene.before_image_path)
-                            if scene.before_image_path in before_after_options
-                            else 0
-                        )
-                        before_choice = st.selectbox(
-                            "Before画像", options=before_after_options, index=before_index, key=f"before_{scene.id}"
-                        )
-                        scene.before_image_path = None if before_choice == NO_BEFORE_AFTER_LABEL else before_choice
-                        uploaded_before = st.file_uploader(
-                            "Before画像をアップロード", type=["png", "jpg", "jpeg", "webp"], key=f"before_upload_{scene.id}"
-                        )
-                        if uploaded_before is not None:
-                            saved_before_path = _save_uploaded_before_after_image(uploaded_before, scene.id, "before")
-                            scene.before_image_path = str(saved_before_path)
-
-                    with col_after:
-                        after_index = (
-                            before_after_options.index(scene.after_image_path)
-                            if scene.after_image_path in before_after_options
-                            else 0
-                        )
-                        after_choice = st.selectbox(
-                            "After画像", options=before_after_options, index=after_index, key=f"after_{scene.id}"
-                        )
-                        scene.after_image_path = None if after_choice == NO_BEFORE_AFTER_LABEL else after_choice
-                        uploaded_after = st.file_uploader(
-                            "After画像をアップロード", type=["png", "jpg", "jpeg", "webp"], key=f"after_upload_{scene.id}"
-                        )
-                        if uploaded_after is not None:
-                            saved_after_path = _save_uploaded_before_after_image(uploaded_after, scene.id, "after")
-                            scene.after_image_path = str(saved_after_path)
 
                 with st.expander("📝 重要な表現の解説カード（赤い下線と意味）", expanded=bool(scene.note_text)):
                     scene.note_text = st.text_input(
@@ -540,16 +482,22 @@ def render_scene_editor() -> None:
                                    "⬜ まだありません（英会話モードの「③ ネイティブ音声」を参照）")
                             )
                 show_cols = st.columns(len(characters))
-                hidden = []
+                hidden, guests = [], []
                 for col, char_key in zip(show_cols, characters):
+                    is_guest = char_key in GUEST_CHARACTERS
                     shown = col.checkbox(
-                        f"{get_character_display_name(char_key)}を表示",
-                        value=char_key not in scene.hidden_characters,
+                        f"{get_character_display_name(char_key)}を表示" + ("（ゲスト）" if is_guest else ""),
+                        value=char_key not in scene.render_hidden,
                         key=f"show_{char_key}_{scene.id}",
+                        help="ゲストは、話すシーンか、ここで表示にしたシーンだけ画面に出ます。" if is_guest else None,
                     )
-                    if not shown:
+                    if is_guest:
+                        if shown:
+                            guests.append(char_key)
+                    elif not shown:
                         hidden.append(char_key)
                 scene.hidden_characters = hidden
+                scene.guests = guests
                 if scene.speaker in hidden:
                     st.caption("💡 話者を非表示にしているため、このシーンは声だけ（ナレーション）になります。")
 
@@ -674,10 +622,8 @@ def render_scene_editor() -> None:
                         scene_preview(
                             scene.speaker, scene.expression, mouth_open, effective_background_path, preview_res,
                             content_media_path=preview_media_path,
-                            before_image_path=scene.before_image_path,
-                            after_image_path=scene.after_image_path,
                             pr_label_text=preview_pr_text,
-                            hidden_characters=scene.hidden_characters,
+                            hidden_characters=scene.render_hidden,
                             partner_expression=scene.partner_expression,
                             background_blur=project.background_blur,
                             mood=scene.mood,

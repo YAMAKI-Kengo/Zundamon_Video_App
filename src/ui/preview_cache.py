@@ -31,7 +31,7 @@ def _stamp(path: Optional[str]) -> tuple:
 @st.cache_data(max_entries=600, show_spinner=False)
 def _compose_jpeg(
     speaker: str, expression: str, mouth_open: bool, background: tuple, resolution: tuple[int, int],
-    media: tuple, before: tuple, after: tuple, pr_label_text: Optional[str], hidden: tuple[str, ...],
+    media: tuple, pr_label_text: Optional[str], hidden: tuple[str, ...],
     partner_expression: Optional[str], background_blur: float, headline: str, chapter_label: str,
     mood: str, card_text: str,
 ) -> bytes:
@@ -41,7 +41,7 @@ def _compose_jpeg(
         return buf.getvalue()
     frame = compose_dual_scene_frame(
         speaker, expression, mouth_open, background[0], resolution,
-        content_media_path=media[0], before_image_path=before[0], after_image_path=after[0],
+        content_media_path=media[0],
         pr_label_overlay=render_pr_label_overlay(resolution, pr_label_text) if pr_label_text else None,
         hidden_characters=hidden, partner_expression=partner_expression, background_blur=background_blur,
         mood=mood,
@@ -57,8 +57,7 @@ def _compose_jpeg(
 
 def scene_preview(
     speaker: str, expression: str, mouth_open: bool, background_path: Optional[str], resolution: tuple[int, int],
-    content_media_path: Optional[str] = None, before_image_path: Optional[str] = None,
-    after_image_path: Optional[str] = None, pr_label_text: Optional[str] = None,
+    content_media_path: Optional[str] = None, pr_label_text: Optional[str] = None,
     hidden_characters=(), partner_expression: Optional[str] = None, background_blur: float = 0.0,
     headline: str = "", chapter_label: str = "", mood: str = "", card_text: str = "",
 ) -> bytes:
@@ -66,7 +65,7 @@ def scene_preview(
     JPEG のバイト列で返す（st.image に渡せる）。"""
     return _compose_jpeg(
         speaker, expression, bool(mouth_open), _stamp(background_path), tuple(resolution),
-        _stamp(content_media_path), _stamp(before_image_path), _stamp(after_image_path),
+        _stamp(content_media_path),
         pr_label_text or None, tuple(sorted(hidden_characters or ())), partner_expression, float(background_blur),
         headline or "", chapter_label or "", mood or "", card_text or "",
     )

@@ -51,7 +51,7 @@ FONTS_DIR = PROJECT_ROOT / "assets" / "fonts"
 SLIDE_CACHE_DIR = PROJECT_ROOT / "tmp" / "slides"
 
 # 見た目を変更したらこの値を上げる（古いキャッシュ画像が使われ続けないように）
-STYLE_VERSION = 13
+STYLE_VERSION = 14
 
 # --- 色 ---
 BOARD_COLOR = (36, 66, 52)
@@ -196,7 +196,7 @@ def _wrap_rich(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list[
     return lines or [[("", False)]]
 
 
-_POINT_TITLE = re.compile(r"^(ポイント|POINT|Point|point|失敗の理由|成功のコツ|理由|コツ)\s*([0-9０-９]+)\s*[：:．.、\-－ー]?\s*(?=\S)")
+_POINT_TITLE = re.compile(r"^(ポイント|POINT|Point|point|失敗の理由|成功のコツ|理由|コツ|真実|問題|ステップ|STEP|Step|Q)\s*([0-9０-９]+)\s*[：:．.、\-－ー]?\s*(?=\S)")
 
 
 def normalize_title(title: str) -> str:
@@ -670,18 +670,43 @@ def split_point(plain: str) -> Optional[int]:
     n = len(plain)
     if n < 6:
         return None
-    english = sum(ch.isascii() and ch.isalpha() for ch in plain) > n * 0.5
+    # 日本語（かな・漢字）が1文字も無い文だけを英文として扱う（「Could you〜?は、」のような混ざった文は日本語扱い）
+    english = not any(ord(ch) >= 0x3000 and ch not in "〜　" for ch in plain)
+    # かっこ（「」『』（））の中では切らない
+    depth, inside = 0, [False] * (n + 1)
+    for k, ch in enumerate(plain):
+        if ch in "「『（(":
+            depth += 1
+        elif ch in "」』）)":
+            depth = max(0, depth - 1)
+        inside[k + 1] = depth > 0
     best, best_score = None, float("inf")
-    for i in range(max(1, int(n * 0.25)), min(n - 1, int(n * 0.75)) + 1):
+    lo, hi = (0.25, 0.75) if english else (0.2, 0.8)
+    for i in range(max(1, int(n * lo)), min(n - 1, int(n * hi)) + 1):
         before, after = plain[i - 1], plain[i]
         if english:
             if before != " ":
                 continue
             score = abs(i - n / 2)
         else:
+            if inside[i] or after in "」』）)、。，,！？!?：:":
+                continue  # かっこの中・行頭に来てはいけない記号の前
             if before.isascii() and after.isascii() and (before.isalnum() or before in "'-") and after.isalnum():
                 continue  # 日本語の文の中の英単語の途中
-            score = telop._break_penalty(plain, i) + abs(i - n / 2) * 0.3
+            prev = plain[i - 2] if i >= 2 else ""
+            if before == " " and prev.isascii() and (prev.isalnum() or prev in "?!.,'〜~") and after.isascii():
+                continue  # 日本語の文の中の英語のフレーズの途中（例: Can you）
+            if before in "。！？!?" and "ぁ" <= after <= "ん":
+                penalty = 4.0  # 「〜?は、」のように、記号のすぐあとに助詞が続く（まだ文の途中）
+            elif before in " 　。！？!?：:" or (before in "）)」』" and after in " 　"):
+                penalty = 0.0  # 空白・文の終わり・コロンのあと（いちばん自然な切れ目）
+            elif before in "、，," or after in "（(「『":
+                penalty = 1.0  # 読点のあと・かっこの前
+            elif prev in "」』）)" and before in "とではがをにもの":
+                penalty = 0.5  # 「〜」と / 「〜」で のように、かっこ＋助詞のあと
+            else:
+                penalty = telop._break_penalty(plain, i) + 2.0
+            score = penalty + abs(i - n / 2) * 0.15
         if score < best_score:
             best, best_score = i, score
     return best
@@ -1030,7 +1055,7 @@ def get_illustration_card_path(image_path: str, caption: str, resolution: tuple[
 # 重要な表現の解説カード（文の大事な部分に赤い下線 → 矢印 → 意味・使い方）
 # ---------------------------------------------------------------------------
 
-NOTE_VERSION = 2
+NOTE_VERSION = 3
 CHALK_RED = (255, 112, 112)
 NOTE_LABEL = "ここに注目！"
 NOTE_SENTENCE_SIZE_RATIO = 0.15   # 文の文字サイズ（板の高さに対する比率。長い文は幅に合わせて小さくする）

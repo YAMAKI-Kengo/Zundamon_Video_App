@@ -74,9 +74,8 @@ from src.services.compositor import (
     apply_mood,
     load_background_image,
     render_transition_card,
-    load_before_after_images,
     load_content_media_image,
-    paste_before_after,
+    guest_on_screen,
     paste_content_media,
     render_pr_label_overlay,
 )
@@ -306,29 +305,24 @@ def _build_dynamic_scene_clip(
     混ざらないように）。読み込みに失敗した場合（壊れたファイル・非対応コーデック等）でも
     アプリを落とさず、警告を追加したうえで処理を継続する。
 
-    合成順序は「背景 → 資料メディア/ビフォーアフター（あれば） → 立ち絵オーバーレイ →
+    合成順序は「背景 → 資料メディア（あれば） → 立ち絵オーバーレイ →
     PR表記バッジ（あれば）」の順で、compose_dual_scene_frame()（画像のみの高速パス）と
-    同じ重なり順になるようにしてある。ビフォーアフターは静止画のみ対応のため、
-    背景・資料メディアが動画のこのパスでも扱いは変わらない（毎フレーム同じ画像を貼るだけ）。
+    同じ重なり順になるようにしてある。
     """
     bg_clip, bg_static = _resolve_dynamic_background(
         effective_background_path, actual_duration, resolution, warnings, label, extra_clips, background_blur,
         scene.mood,
     )
-    before_after = load_before_after_images(scene.before_image_path, scene.after_image_path)
-    if before_after is not None:
-        media_clip, media_static = None, None
-    else:
-        media_clip, media_static = _resolve_dynamic_content_media(
-            scene.content_media_path, actual_duration, warnings, label, extra_clips
-        )
+    media_clip, media_static = _resolve_dynamic_content_media(
+        scene.content_media_path, actual_duration, warnings, label, extra_clips
+    )
 
     try:
         overlay_closed = np.array(compose_dual_character_overlay(
-            scene.speaker, scene.expression, False, resolution, scene.hidden_characters, scene.partner_expression
+            scene.speaker, scene.expression, False, resolution, scene.render_hidden, scene.partner_expression
         ))
         overlay_open = np.array(compose_dual_character_overlay(
-            scene.speaker, scene.expression, True, resolution, scene.hidden_characters, scene.partner_expression
+            scene.speaker, scene.expression, True, resolution, scene.render_hidden, scene.partner_expression
         ))
     except Exception as e:  # noqa: BLE001 - 立ち絵合成の失敗要因は多岐にわたるため広く捕捉して警告に変換する
         raise VideoBuildError(f"{label}: 立ち絵の合成に失敗しました（{e}）") from e
@@ -354,18 +348,16 @@ def _build_dynamic_scene_clip(
         else:
             canvas = (bg_static or fallback_bg_rgba).copy()
 
-        # 資料メディア/ビフォーアフターレイヤー（背景の上・立ち絵の下。未指定なら何もしない）
-        if before_after is not None:
-            paste_before_after(canvas, before_after[0], before_after[1], resolution)
-        elif media_clip is not None:
+        # 資料メディアレイヤー（背景の上・立ち絵の下。未指定なら何もしない）
+        if media_clip is not None:
             try:
                 media_frame = media_clip.get_frame(t)
                 media_img = Image.fromarray(media_frame).convert("RGBA")
-                paste_content_media(canvas, media_img, resolution)
+                paste_content_media(canvas, media_img, resolution, guest_on_screen(resolution, scene.render_hidden))
             except Exception:  # noqa: BLE001 - 資料動画の一部フレーム取得に失敗しても、その1コマだけ資料なしで継続する
                 pass
         elif media_static is not None:
-            paste_content_media(canvas, media_static, resolution)
+            paste_content_media(canvas, media_static, resolution, guest_on_screen(resolution, scene.render_hidden))
 
         composed = Image.alpha_composite(canvas, Image.fromarray(overlay))
         if pr_label_overlay is not None:
@@ -529,10 +521,8 @@ def _build_scene_clip(
                 compose_dual_scene_frame(
                     scene.speaker, scene.expression, False, effective_background_path, resolution,
                     content_media_path=scene.content_media_path,
-                    before_image_path=scene.before_image_path,
-                    after_image_path=scene.after_image_path,
                     pr_label_overlay=pr_label_overlay,
-                    hidden_characters=scene.hidden_characters,
+                    hidden_characters=scene.render_hidden,
                     partner_expression=scene.partner_expression,
                     background_blur=background_blur,
                     mood=scene.mood,
@@ -542,10 +532,8 @@ def _build_scene_clip(
                 compose_dual_scene_frame(
                     scene.speaker, scene.expression, True, effective_background_path, resolution,
                     content_media_path=scene.content_media_path,
-                    before_image_path=scene.before_image_path,
-                    after_image_path=scene.after_image_path,
                     pr_label_overlay=pr_label_overlay,
-                    hidden_characters=scene.hidden_characters,
+                    hidden_characters=scene.render_hidden,
                     partner_expression=scene.partner_expression,
                     background_blur=background_blur,
                     mood=scene.mood,

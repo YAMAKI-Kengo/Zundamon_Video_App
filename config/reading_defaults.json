@@ -1,15 +1,16 @@
 {
   "_comment": "VOICEVOXがよく読み間違える言葉の既定の読み方。台本を取り込んだとき、台本に出てくる言葉だけがプロジェクトの読み方辞書に自動で追加される。実際にVOICEVOXで読ませて間違えたものを登録している（例: 他人事→たにんごと と読まれる）。自由に追加・削除してよい。",
   "entries": [
-    {"word": "他人事", "reading": "ひとごと"},
-    {"word": "目一杯", "reading": "めいっぱい"},
-    {"word": "TODO", "reading": "トゥードゥー"},
-    {"word": "ToDo", "reading": "トゥードゥー"},
-    {"word": "To Do", "reading": "トゥードゥー"},
-    {"word": "早急", "reading": "さっきゅう"},
-    {"word": "重複", "reading": "ちょうふく"},
-    {"word": "一段落", "reading": "いちだんらく"},
-    {"word": "ずんだ餅", "reading": "ずんだもち"},
-    {"word": "四国めたん", "reading": "しこくめたん"}
+    { "word": "他人事", "reading": "ひとごと" },
+    { "word": "目一杯", "reading": "めいっぱい" },
+    { "word": "TODO", "reading": "トゥードゥー" },
+    { "word": "ToDo", "reading": "トゥードゥー" },
+    { "word": "To Do", "reading": "トゥードゥー" },
+    { "word": "早急", "reading": "さっきゅう" },
+    { "word": "重複", "reading": "ちょうふく" },
+    { "word": "一段落", "reading": "いちだんらく" },
+    { "word": "ずんだ餅", "reading": "ずんだもち" },
+    { "word": "四国めたん", "reading": "しこくめたん" },
+    { "word": "・", "reading": " " }
   ]
 }

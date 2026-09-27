@@ -85,7 +85,7 @@ def resolve_font_path() -> Optional[str]:
 
 
 def load_font(font_path: Optional[str], font_size: int) -> ImageFont.FreeTypeFont:
-    """テロップ以外（ビフォーアフターのラベル・PR表記バッジ等）からも使える公開版のフォント読み込み。
+    """テロップ以外（PR表記バッジ等）からも使える公開版のフォント読み込み。
 
     _load_font() と同じ実装で、テロップ用と同じ日本語フォント・フォールバック挙動を
     他の描画箇所でも一貫して使えるようにするための薄いラッパー。

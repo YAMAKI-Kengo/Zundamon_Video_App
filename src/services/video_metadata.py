@@ -140,7 +140,9 @@ def _explain_points(scenes: list[Scene]) -> list[str]:
     """解説パートのスライド見出し（重複を除いて登場順。「ポイント1」などの番号は外す）。"""
     points: list[str] = []
     for scene in scenes:
-        title = re.sub(r"^(ポイント|失敗の理由|成功のコツ)\s*[0-9０-９]+\s*[：:．.、]?\s*", "", _plain(scene.slide_title))
+        # 「ポイント1：」「第3位：」「Q2：」「ステップ1：」「第1章：」などの番号の部分を外す
+        title = re.sub(r"^(第?\s*[0-9０-９]+\s*[位章]|[^\s：:]{0,6}?\s*[0-9０-９]+)\s*[：:．.、]\s*", "",
+                       _plain(scene.slide_title))
         if scene.section == "explain" and title and title not in points:
             points.append(title)
     return points
@@ -154,12 +156,28 @@ def _fit(title: str) -> str:
     return title if len(title) <= TITLE_MAX_CHARS else title[: TITLE_MAX_CHARS - 1] + "…"
 
 
+SERIES_TAG = "【ずんだもん解説】"  # 解説動画（本・論文記事）のタイトルに必ず入れるシリーズ名
+
+
+def with_series_tag(title: str, project: Project) -> str:
+    """解説動画のタイトルの先頭に【ずんだもん解説】を付ける（英会話は【毎日英会話】のシリーズなので付けない）。"""
+    title = title.strip()
+    if not title or is_english(project) or SERIES_TAG in title:
+        return title
+    title = re.sub(r"【ずんだもん】|｜ずんだもん解説$", "", title).strip()
+    return _fit(SERIES_TAG + title)
+
+
 def _dedupe(items: list[str]) -> list[str]:
     return list(dict.fromkeys(i for i in items if i))
 
 
 def build_title_candidates(project: Project) -> list[str]:
-    """タイトル案（AIの案があれば先頭に、続けてテンプレートの案）。"""
+    """タイトル案（AIの案があれば先頭に、続けてテンプレートの案）。解説動画は必ず【ずんだもん解説】入り。"""
+    return _dedupe([with_series_tag(t, project) for t in _title_candidates(project)])
+
+
+def _title_candidates(project: Project) -> list[str]:
     book = project.book_title.strip()
     if is_research(project):
         return _research_title_candidates(project)
@@ -173,6 +191,8 @@ def build_title_candidates(project: Project) -> list[str]:
             f"【毎日英会話】{label} {phrase}｜{theme}" if phrase else "",
             f"【毎日英会話】{label}｜{theme}",
         ]
+        if is_short(project):
+            template = [f"{phrase} って言えますか？ #Shorts" if phrase else "", f"【毎日英会話】{theme} #Shorts"]
         return _dedupe([_fit(t.strip()) for t in project.title_candidates if t.strip()] + [_fit(t) for t in template])
     book_part = f"『{book}』" if book else "話題の本"
     worries = _section_bullets(project.scenes, "intro")
@@ -183,8 +203,8 @@ def build_title_candidates(project: Project) -> list[str]:
         hook = _first_line(project.scenes).rstrip("。")
         template = [
             f"{hook} #Shorts" if hook and len(hook) <= 30 else "",
-            f"「{worry}」を今日から変える方法 #Shorts" if worry else "",
-            f"{book_part}の一番大事なこと #Shorts",
+            f"「{worry}」を一瞬で変える方法 #Shorts" if worry else "",
+            f"9割が知らない{book_part}の結論 #Shorts",
         ]
         return _dedupe(ai + [_fit(t) for t in template])
 
@@ -192,10 +212,9 @@ def build_title_candidates(project: Project) -> list[str]:
     points_part = f"{n_points}つのポイント" if n_points else "要点"
     minutes = max(1, math.ceil(project.total_duration / 60))
     template = [
-        f"【本要約】{worry}人へ｜{book_part}の{points_part}" if worry else "",
-        f"「{worry}」を解決する{points_part}【本要約】{book_part}" if worry else "",
-        f"【本要約】{book_part}を{minutes}分で解説【ずんだもん】",
-        f"【{minutes}分で分かる】{book_part}の{points_part}｜ずんだもん解説",
+        f"「{worry}」を解決する{points_part}｜{book_part}" if worry and len(worry) <= 16 else "",
+        f"一瞬で変わる{points_part}｜{book_part}",
+        f"{book_part}を{minutes}分で要約｜{points_part}",
     ]
     return _dedupe(ai + [_fit(t) for t in template])
 
@@ -207,37 +226,75 @@ def _research_title_candidates(project: Project) -> list[str]:
         hook = _first_line(project.scenes).rstrip("。")
         template = [
             f"{hook} #Shorts" if hook and len(hook) <= 30 else "",
-            f"【研究で判明】{topic}の意外な真実 #Shorts",
+            f"9割が知らない{topic}の真実 #Shorts",
         ]
         return _dedupe(ai + [_fit(t) for t in template])
     n_points = len(_explain_points(project.scenes))
     points_part = f"{n_points}つのポイント" if n_points else "要点"
     minutes = max(1, math.ceil(project.total_duration / 60))
     template = [
-        f"【研究で判明】{topic}で失敗する理由と成功のコツ",
-        f"【論文で解説】{topic}の{points_part}｜ずんだもん解説",
-        f"【{minutes}分で分かる】{topic}を研究データで解説",
+        f"研究で判明！{topic}の{points_part}",
+        f"{topic}で失敗する人の共通点",
+        f"{minutes}分で分かる{topic}｜研究データで解説",
     ]
     return _dedupe(ai + [_fit(t) for t in template])
 
 
+MAX_HASHTAGS = 5
+REQUIRED_HASHTAG = "ずんだもん解説"
+# AIのハッシュタグが足りないときに補う、多くの人が見ている一般的なハッシュタグ
+DEFAULT_HASHTAGS = {
+    "english": ["英会話", "英語学習", "リスニング", "TOEIC"],
+    "research": ["雑学", "ライフハック", "勉強", "自己啓発"],
+    "book": ["本要約", "読書", "自己啓発", "本紹介"],
+}
+
+
 def build_hashtags(project: Project) -> list[str]:
-    """説明文に入れるハッシュタグ。先頭3つがタイトルの上に表示されるので、大事な順に並べる。"""
-    if is_english(project):
-        default = ["英会話", "英語学習", project.book_title.strip()]
-    elif is_research(project):
-        default = ["ずんだもん解説", project.book_title.strip(), "研究"]
-    else:
-        default = ["本要約", project.book_title.strip(), "ずんだもん"]
-    raw = list(project.hashtags) or default
-    if is_short(project):
-        raw = ["Shorts"] + raw
+    """説明文・Xの投稿に入れるハッシュタグ（最大5つ）。先頭は必ず #ずんだもん解説、残りは一般的でよく見られる言葉。
+    YouTube では先頭3つがタイトルの上に表示されるので、大事な順に並べる。"""
+    kind = "english" if is_english(project) else "research" if is_research(project) else "book"
     tags = []
-    for text in raw:
-        tag = _HASHTAG_UNSAFE.sub("", text)
-        if tag and len(tag) <= 20:
+    for text in [REQUIRED_HASHTAG] + list(project.hashtags) + DEFAULT_HASHTAGS[kind]:
+        tag = _HASHTAG_UNSAFE.sub("", str(text).lstrip("#＃"))
+        if tag and len(tag) <= 20 and tag.lower() != "shorts":
             tags.append(f"#{tag}")
-    return _dedupe(tags)
+    return _dedupe(tags)[:MAX_HASHTAGS]
+
+
+X_MAX_WEIGHT = 280       # X の1投稿の上限（日本語など全角は1文字=2、半角は1、URLは23として数える）
+X_URL_PLACEHOLDER = "（ここに動画のURLを貼る）"
+
+
+def x_post_length(text: str) -> int:
+    """X の文字数の数え方（全角=2・半角=1・URL=23）で、投稿文の長さを数える。280まで投稿できる。"""
+    total = 0
+    for part in re.split(r"(https?://\S+)", text):
+        if part.startswith(("http://", "https://")):
+            total += 23
+            continue
+        for ch in part.replace(X_URL_PLACEHOLDER, ""):
+            total += 1 if ord(ch) <= 0x10FF or 0x2000 <= ord(ch) <= 0x200D or 0x2010 <= ord(ch) <= 0x201F \
+                or 0x2032 <= ord(ch) <= 0x2037 else 2
+        total += 23 * part.count(X_URL_PLACEHOLDER)
+    return total
+
+
+def build_x_post(project: Project) -> str:
+    """X（旧Twitter）用の投稿文: 見どころの一言 → 動画のタイトル → URL → ハッシュタグ（280以内に収める）。"""
+    lead = [line.strip() for line in project.description_lead.splitlines() if line.strip()]
+    if not lead:
+        spec_text = re.sub(r"\*\*|==", "", str((project.thumbnail or {}).get("text") or "")).replace("\n", "")
+        lead = [spec_text] if spec_text else []
+    title = project.video_title.strip() or (build_title_candidates(project) or [""])[0]
+    hashtags = " ".join(build_hashtags(project))
+    label = "▶ 1分で分かるショート" if is_short(project) else "▶ 動画はこちら"
+    for n_lead in range(len(lead), -1, -1):
+        lines = lead[:n_lead] + ["", f"{label}", title, X_URL_PLACEHOLDER, "", hashtags]
+        text = "\n".join(lines).strip()
+        if x_post_length(text) <= X_MAX_WEIGHT:
+            return text
+    return "\n".join([title, X_URL_PLACEHOLDER, hashtags])
 
 
 def build_tags(project: Project) -> list[str]:
@@ -272,8 +329,19 @@ def bgm_credit(path: str, credits: dict[str, str]) -> str:
     normalized = _normalize_title(title)
     for key, credit in credits.items():
         if _normalize_title(key) == normalized:
-            return credit
+            return _with_honorific(credit)
     return f"{title.replace('_', ' ')}（作者名を config/bgm_credits.json に登録してください）"
+
+
+def _with_honorific(credit: str) -> str:
+    """「曲名 / 作者」「曲名 by 作者」の表記を、作者名に「様」を付けた「曲名 / 作者 様」にそろえる。"""
+    credit = credit.strip()
+    if credit.endswith("様"):
+        return credit
+    match = re.match(r"^(.*?)\s*(?:/|／|\bby\b)\s*([^/／]+)$", credit)
+    if not match or not match.group(1).strip():
+        return credit
+    return f"{match.group(1).strip()} / {match.group(2).strip()} 様"
 
 
 def _credits(project: Project) -> list[str]:
@@ -312,20 +380,6 @@ def refresh_credits(description: str, project: Project) -> str:
     return "\n".join(lines[:start] + _credits(project) + lines[end:])
 
 
-def _source_lines(project: Project) -> list[str]:
-    """説明文の「参考文献・出典」（論文・記事を調べた動画用）。"""
-    lines = ["■ 参考文献・出典"]
-    for i, s in enumerate(project.sources, start=1):
-        meta = "、".join(x for x in (s.get("publisher", ""), s.get("year", "")) if x)
-        lines.append(f"[{i}] {s.get('title', '')}" + (f"（{meta}）" if meta else ""))
-        if s.get("url"):
-            lines.append(f"    {s['url']}")
-    if len(lines) == 1:
-        lines.append("（ここに参考にした論文・記事を書いてください）")
-    lines.append("※研究結果には個人差や研究の限界があります。詳しくは各出典をご確認ください。")
-    return lines
-
-
 def _book_line(project: Project) -> str:
     if is_research(project):
         topic = project.book_title.strip()
@@ -361,6 +415,12 @@ def _english_description(project: Project, chapters: list[Chapter]) -> str:
         "音声のあとに声に出して、一緒に練習しましょう！",
     ]
     phrases = _lesson_phrases(project)
+    if is_short(project):
+        lines = lead + ["", "▼ 今日のレッスン（本編）はこちら", "（ここに本編の動画のリンクを貼ってください）", ""]
+        if phrases:
+            lines += ["■ 今日のフレーズ"] + [f"・{p}" for p in phrases] + [""]
+        lines += _credits(project) + ["", " ".join(build_hashtags(project))]
+        return "\n".join(lines)
     lines = lead + [""]
     if phrases:
         lines += ["■ " + ("今週のフレーズ" if day == "7" else "今日のフレーズ")] + [f"・{p}" for p in phrases] + [""]
@@ -374,7 +434,7 @@ def _english_description(project: Project, chapters: list[Chapter]) -> str:
         "毎日更新・1週間ごとにテーマが変わります。チャンネル登録して一緒に続けましょう！",
         "",
     ]
-    lines += _credits(project) + ["", " ".join(build_hashtags(project)[:5])]
+    lines += _credits(project) + ["", " ".join(build_hashtags(project))]
     return "\n".join(lines)
 
 
@@ -389,9 +449,9 @@ def build_description(project: Project, chapters: list[Chapter]) -> str:
             "（ここに本編の動画のリンクを貼ってください）",
             "",
         ]
-        lines += (_source_lines(project) + [""]) if is_research(project) else \
-            ["■ 紹介した本", _book_line(project), "（ここに購入リンクを貼ってください）", ""]
-        lines += _credits(project) + ["", " ".join(hashtags[:4])]
+        if not is_research(project):
+            lines += ["■ 紹介した本", _book_line(project), "（ここに購入リンクを貼ってください）", ""]
+        lines += _credits(project) + ["", " ".join(hashtags)]
         return "\n".join(lines)
 
     points = _explain_points(project.scenes)
@@ -406,16 +466,14 @@ def build_description(project: Project, chapters: list[Chapter]) -> str:
         lines += ["■ 目次"] + [f"{format_timestamp(c.start)} {c.label}" for c in chapters] + [""]
     if summary:
         lines += ["■ 今回のまとめ"] + [f"・{s}" for s in summary] + [""]
-    if is_research(project):
-        lines += _source_lines(project) + [""]
-    else:
+    if not is_research(project):
         lines += ["■ 紹介した本", _book_line(project), "（ここに購入リンクを貼ってください）", ""]
     request = "このテーマを解説してほしい" if is_research(project) else "この本を解説してほしい"
     lines += [
         "役に立ったら、高評価・チャンネル登録をよろしくお願いします！",
         f"感想や「{request}」というリクエストは、コメント欄で教えてください。", "",
     ]
-    lines += _credits(project) + ["", " ".join(hashtags[:5])]
+    lines += _credits(project) + ["", " ".join(hashtags)]
     return "\n".join(lines)
 
 
@@ -438,6 +496,8 @@ def apply_generated_metadata(project: Project, overwrite: bool = True) -> VideoM
         project.video_description = meta.description
     if overwrite or not project.video_tags:
         project.video_tags = meta.tags
+    if overwrite or not project.x_post:
+        project.x_post = build_x_post(project)
     return meta
 
 
@@ -446,5 +506,6 @@ def export_text(project: Project) -> str:
     return "\n".join([
         "【タイトル】", project.video_title, "",
         "【説明文】", refresh_credits(project.video_description, project), "",
-        "【タグ】", ", ".join(project.video_tags),
+        "【タグ】", ", ".join(project.video_tags), "",
+        "【X（旧Twitter）の投稿文】", project.x_post or build_x_post(project),
     ])

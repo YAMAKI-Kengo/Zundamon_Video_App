@@ -14,7 +14,7 @@ import streamlit as st
 
 from src.services import book_script, english_lesson
 from src.state import forget_scene_widgets, get_project, init_session_state
-from src.ui.book_mode import render_book_mode
+from src.ui.book_mode import render_book_mode, render_promo_banner
 from src.ui.english_mode import render_english_mode
 from src.ui.preview import render_export_section
 from src.ui.scene_editor import render_scene_editor
@@ -39,11 +39,14 @@ def _link_new_assets(project) -> None:
         book_script.apply_board_hold(project.scenes, 0.0)
         forget_scene_widgets(held)
     illustrated = book_script.link_requested_illustrations(project.scenes)
+    backgrounds = book_script.link_requested_backgrounds(project.scenes)
     voiced = english_lesson.link_native_audio(project.scenes)
     # シーン編集の入力欄が覚えている古い値で、反映した内容が上書きされないようにする
-    forget_scene_widgets(illustrated + voiced)
+    forget_scene_widgets(illustrated + backgrounds + voiced)
     if illustrated:
         st.toast(f"追加されたイラストを{len(illustrated)}シーンに反映しました。")
+    if backgrounds:
+        st.toast(f"追加された背景を{len(backgrounds)}シーンに反映しました。")
     if voiced:
         st.toast(f"ネイティブ音声を{len(voiced)}シーンに反映しました。")
 
@@ -64,6 +67,7 @@ def main() -> None:
     if book_script.sync_background_to_format(get_project()):
         st.toast("出力フォーマットに合わせて背景を切り替えました。")
 
+    render_promo_banner()
     tab_book, tab_english, tab_edit = st.tabs(["📚 書籍解説モード", "🗣 英会話モード", "🎬 シーン編集・書き出し"])
     with tab_book:
         render_book_mode()

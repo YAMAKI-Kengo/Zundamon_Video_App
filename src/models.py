@@ -9,6 +9,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field, fields, asdict
 from enum import Enum
+from pathlib import Path
 from typing import Optional
 
 
@@ -58,6 +59,10 @@ PHASE_LABELS: dict[str, dict[str, str]] = {
 
 def phase_label(section: str, phase: str) -> str:
     return PHASE_LABELS.get(section, {}).get(phase, "")
+
+
+# ふだんは画面にいない「ゲスト」のキャラクター（出番のあるシーンだけ、横から入ってくる）
+GUEST_CHARACTERS = ("kasukabe_tsumugi",)
 
 
 # 視聴者がリピート・回答する間（台本の "pause"）の見せ方。
@@ -119,8 +124,6 @@ class Scene:
     要件定義の「シーン編集」に対応:
       - background_path: 背景画像（未設定の場合、Projectの共通背景があればそちらを使う）
       - content_media_path: 資料として画面中央に表示する写真/動画（任意。背景とは独立したレイヤー）
-      - before_image_path / after_image_path: ビフォーアフター画像（任意。両方そろっている場合のみ
-        画面を左右に分割して表示し、content_media_pathより優先される）
       - speaker / expression: 話者と表情
       - text: 読み上げるテキスト（テロップにもそのまま使う）
       - duration: 表示秒数（この秒数で強制的にカットされる）
@@ -130,13 +133,11 @@ class Scene:
       - bgm_path: このシーンだけ使うBGM（未設定なら場面→プロジェクト全体のBGMの順で決まる）
       - slide_title / slide_bullets: 黒板風スライドの見出し・箇条書き。どちらかが入力されていれば
         slide_renderer で黒板スライド画像を生成し、資料メディアの位置に表示する
-        （content_media_path より優先。ビフォーアフターがそろっている場合はそちらが優先）
+        （content_media_path より優先）
     """
     id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     background_path: Optional[str] = None
     content_media_path: Optional[str] = None
-    before_image_path: Optional[str] = None
-    after_image_path: Optional[str] = None
     speaker: str = "zundamon"          # "zundamon" | "shikoku_metan"
     expression: str = "normal"
     text: str = ""
@@ -163,12 +164,17 @@ class Scene:
     # illustration_name の名前で assets/illustrations/ に画像を置くと、そのシーンに表示される（link_requested_illustrations）
     illustration_request: str = ""
     illustration_name: str = ""
+    # 回想・寸劇などで場所が変わるときの背景の依頼（background_name の名前で assets/backgrounds/ に画像を置くと、
+    # そのシーンの背景 background_path に反映される。link_requested_backgrounds）
+    background_request: str = ""
+    background_name: str = ""
     # 英会話モード用（src.services.english_lesson）
     lang: str = "ja"                  # セリフの言語: "ja" / "en"（英語のセリフは字幕を単語単位で折り返す）
     translation: str = ""             # 字幕の下に小さく出す訳（英語のセリフの日本語訳）
     reading: str = ""                 # VOICEVOXに読ませる文（空なら text。ずんだもんの英語をカタカナで読ませる等）
     audio_id: str = ""                # ネイティブ音声のID（assets/english_audio/<ID>.mp3 等を置くと voice_path に紐付く）
     voice_path: Optional[str] = None  # VOICEVOXの代わりに使う録音済みの音声ファイル（ネイティブ音声）
+    guests: list[str] = field(default_factory=list)  # このシーンに登場するゲスト（GUEST_CHARACTERS。話者なら自動で登場）
     silent: bool = False              # 音声を鳴らさないシーン（視聴者がリピートする間。字幕・見出しは表示する）
     pause_style: str = ""             # リピート・回答の間の見せ方（PAUSE_STYLE_LABELS のキー。空なら普通のシーン）
     lead_in: float = 0.0              # 声の前に置く秒数（カウントダウンの間。duration に含む）
@@ -186,6 +192,28 @@ class Scene:
     @property
     def has_slide(self) -> bool:
         return bool(self.slide_title.strip() or any(b.strip() for b in self.slide_bullets))
+
+    @property
+    def shows_board(self) -> bool:
+        """このシーンで黒板（または重要表現の解説カード）を画面に出すか。イラストがあればイラストが優先。"""
+        if self.illustration_path and Path(self.illustration_path).exists():
+            return False
+        if self.note_text.strip():
+            return True
+        return self.has_slide and self.show_board
+
+    @property
+    def render_hidden(self) -> list[str]:
+        """画面に描かないキャラクター（非表示にしたキャラクター＋このシーンに登場しないゲスト）。
+
+        黒板を出すシーンでは、ゲストは黒板に重なって見づらくなるため、登場中・話し中でも描かない（声だけ）。
+        """
+        hidden = list(self.hidden_characters)
+        board = self.shows_board
+        for guest in GUEST_CHARACTERS:
+            if (board or (guest not in self.guests and guest != self.speaker)) and guest not in hidden:
+                hidden.append(guest)
+        return hidden
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -243,6 +271,10 @@ class Project:
     thumbnail: dict = field(default_factory=dict)  # サムネイルの指定 {"text", "sub", "layout", "zundamon", "metan", "image"}
     lesson: dict = field(default_factory=dict)  # 英会話モードの情報 {"week", "day", "theme", "level", "phrases": [...]}
     sources: list[dict] = field(default_factory=list)  # 調べた論文・記事の出典 [{"title","publisher","year","url","kind"}]
+    # 本編紹介ショート: 本編の台本と一緒にAIが書いた、要点をまとめて本編へ誘導する縦型ショートの台本（台本JSONの promo_short）
+    promo_short: dict = field(default_factory=dict)
+    promo_of: str = ""  # このプロジェクト自体が本編紹介ショートの場合、本編のタイトル
+    x_post: str = ""    # X（旧Twitter）に投稿する文章（src.services.video_metadata で自動生成し、UIで編集できる）
 
     def resolve_bgm_path(self, scene: Scene) -> Optional[str]:
         """シーンで流すBGMを「シーン個別 → 場面の段階ごと → 場面ごと → プロジェクト全体」の優先順で決める。
@@ -319,6 +351,9 @@ class Project:
             "sources": self.sources,
             "lesson": self.lesson,
             "thumbnail": self.thumbnail,
+            "promo_short": self.promo_short,
+            "promo_of": self.promo_of,
+            "x_post": self.x_post,
         }
 
     @classmethod
@@ -359,4 +394,7 @@ class Project:
             sources=data.get("sources", []),
             lesson=data.get("lesson", {}),
             thumbnail=data.get("thumbnail", {}),
+            promo_short=data.get("promo_short", {}),
+            promo_of=data.get("promo_of", ""),
+            x_post=data.get("x_post", ""),
         )

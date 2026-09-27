@@ -70,6 +70,7 @@ from typing import Optional
 
 from src.models import (
     COUNTDOWN_SECONDS,
+    GUEST_CHARACTERS,
     CAMERA_LABELS,
     CHAR_MOTION_LABELS,
     PHASE_LABELS,
@@ -86,6 +87,7 @@ from src.services.voicevox_client import DEFAULT_SPEECH_SPEED
 from src.services.voicevox_client import VoicevoxConnectionError, VoicevoxSynthesisError
 from src.utils.asset_loader import (
     ASSETS_DIR,
+    find_background,
     find_illustration,
     find_se,
     get_character_display_name,
@@ -149,6 +151,7 @@ class BookScriptResult:
     sources: list[dict] = field(default_factory=list)  # 調べた論文・記事の出典
     lesson: dict = field(default_factory=dict)  # 英会話モードの情報（週・日・テーマ・フレーズ）
     thumbnail: dict = field(default_factory=dict)  # サムネイルの指定（台本の "thumbnail"）
+    promo_short: dict = field(default_factory=dict)  # 本編紹介ショートの台本（台本の "promo_short"）
 
 
 def extract_json_text(text: str) -> str:
@@ -716,6 +719,7 @@ def build_scenes(
     )
 
     characters = list_characters() or ["zundamon", "shikoku_metan"]
+    is_english_lesson = str(data.get("source_kind") or "").strip().lower() == "english"
     label_map = script_import._build_speaker_label_map()
     expression_maps = script_import._build_expression_label_maps(characters)
 
@@ -825,13 +829,17 @@ def build_scenes(
                     duration=round(COUNTDOWN_SECONDS + base.duration, 2),
                     headline=pause_text or DEFAULT_SHADOW_TEXT,
                 ))
-            elif pause:
+            elif pause and (style != "think" or is_english_lesson):
+                # 書籍・論文の解説では「考えてみて」の無音の間は入れない（話のテンポが悪くなるため）。
+                # 英会話のリピート・瞬発トレーニングの間は、練習に必要なので残す
                 lead = COUNTDOWN_SECONDS if style == "repeat" else 0.0
                 scenes.append(replace(
                     base, **common, silent=True, lead_in=lead, duration=round(lead + pause, 2),
                     headline=pause_text or (DEFAULT_PAUSE_TEXT if style == "repeat" else DEFAULT_THINK_TEXT),
                 ))
 
+        _apply_block_background(scenes[block_scenes_start:], block, block_no, warnings)
+        _apply_block_guests(scenes[block_scenes_start:], block, label_map)
         keep_board_shown(scenes[block_scenes_start:])
         if section == "dialog":
             keep_dialog_illustration(scenes[block_scenes_start:])
@@ -886,7 +894,59 @@ def build_scenes(
         lesson=data.get("lesson") if isinstance(data.get("lesson"), dict) else {},
         thumbnail={k: v for k, v in data["thumbnail"].items() if v} if isinstance(data.get("thumbnail"), dict) else {},
         sources=_parse_sources(data.get("sources")),
+        promo_short=promo_short_data(data),
     )
+
+
+def promo_short_data(data: dict) -> dict:
+    """台本JSONの本編紹介ショート（"promo_short"）。ブロックが無ければ空。"""
+    promo = data.get("promo_short")
+    if isinstance(promo, dict) and isinstance(promo.get("blocks"), list) and promo["blocks"]:
+        return promo
+    return {}
+
+
+# 本編紹介ショートに、本編のプロジェクトから引き継ぐ設定
+_PROMO_INHERITED = (
+    "speech_speed", "reading_dict", "bgm_path", "bgm_volume", "se_volume", "section_bgm",
+    "pr_label_enabled", "pr_label_text", "book_cover_path", "auto_camera", "auto_shake", "char_bob",
+    "auto_jump", "char_slide_in", "slide_transition", "background_blur",
+)
+
+
+def build_promo_project(main: Project, use_voicevox_timing: bool = True) -> tuple[Project, list[str]]:
+    """本編のプロジェクトが持つ本編紹介ショートの台本から、縦画面のショートのプロジェクトを作る。"""
+    if not main.promo_short.get("blocks"):
+        raise BookScriptError("本編紹介ショートの台本がありません。")
+    data = json.loads(json.dumps(main.promo_short, ensure_ascii=False))
+    for block in data["blocks"]:
+        for line in block.get("lines", []) if isinstance(block, dict) else []:
+            if isinstance(line, dict):
+                line.pop("pause", None)  # ショートには練習の間を入れない
+    data.update({
+        "style": "short",
+        "book_title": main.book_title,
+        "author": main.book_author,
+        "source_kind": main.source_kind,
+        "sources": main.sources,
+        "lesson": main.lesson,
+    })
+    short = Project()
+    for attr in _PROMO_INHERITED:
+        setattr(short, attr, json.loads(json.dumps(getattr(main, attr))))
+    short.format = VideoFormat.PORTRAIT
+    result = build_scenes(
+        data, use_voicevox_timing=use_voicevox_timing, reading_dict=main.reading_dict, add_ending=False,
+        speech_speed=main.speech_speed, video_format=VideoFormat.PORTRAIT, board_pause=main.board_pause,
+    )
+    short.promo_of = main.video_title or main.book_title or "本編"
+    apply_to_project(short, result)
+    short.name = f"ショート: {main.book_title or short.promo_of}"
+    short.promo_short = {}
+    from src.services import video_metadata  # 循環importを避けるため関数内で読み込む
+
+    video_metadata.apply_generated_metadata(short, overwrite=False)
+    return short, result.warnings
 
 
 def _parse_sources(value) -> list[dict]:
@@ -1013,6 +1073,74 @@ def illustration_requests(scenes: list[Scene]) -> list[IllustrationRequest]:
     return list(requests.values())
 
 
+def _apply_block_guests(block_scenes: list[Scene], block: dict, label_map: dict[str, str]) -> None:
+    """ブロックの "guests"（登場するゲスト）と、そのブロックで話すゲストを、ブロックの全シーンに登場させる
+    （話すセリフのたびに出たり消えたりしないように）。"""
+    guests = set()
+    for value in (block.get("guests") or []) if isinstance(block.get("guests"), list) else []:
+        key = _resolve_speaker(value, label_map)
+        if key in GUEST_CHARACTERS:
+            guests.add(key)
+    guests |= {s.speaker for s in block_scenes if s.speaker in GUEST_CHARACTERS}
+    for scene in block_scenes:
+        if not scene.card_text:
+            scene.guests = sorted(guests)
+
+
+def _apply_block_background(block_scenes: list[Scene], block: dict, block_no: int, warnings: list[str]) -> None:
+    """ブロックの "background"（手元の背景の名前）/ "background_request"・"background_name"（欲しい背景の依頼）を、
+    そのブロックの全シーンに付ける。指定が無ければ、いつもの部屋（共通の背景）のまま。"""
+    name = str(block.get("background") or "").strip()
+    request = str(block.get("background_request") or "").strip()
+    wanted = _clean_illustration_name(block.get("background_name"))
+    path = None
+    if name:
+        found = find_background(name)
+        if found is None:
+            warnings.append(f"ブロック{block_no}: 背景「{name}」が assets/backgrounds/ に見つからないため、欲しい背景として一覧に出します。")
+            wanted = wanted or _clean_illustration_name(name)
+        else:
+            path = str(found)
+    if not (path or wanted):
+        return
+    for scene in block_scenes:
+        if path:
+            scene.background_path = path
+        else:
+            scene.background_name, scene.background_request = wanted, request
+
+
+@dataclass
+class BackgroundRequest:
+    name: str
+    description: str
+    scene_numbers: list[int]
+
+
+def background_requests(scenes: list[Scene]) -> list[BackgroundRequest]:
+    """まだ用意されていない（assets/backgrounds/ に無い）依頼中の背景の一覧。同じ名前はまとめる。"""
+    requests: dict[str, BackgroundRequest] = {}
+    for i, scene in enumerate(scenes, start=1):
+        if scene.background_path or not scene.background_name:
+            continue
+        req = requests.setdefault(scene.background_name, BackgroundRequest(scene.background_name, scene.background_request, []))
+        req.scene_numbers.append(i)
+    return list(requests.values())
+
+
+def link_requested_backgrounds(scenes: list[Scene]) -> list[Scene]:
+    """依頼中の背景のうち、その名前で assets/backgrounds/ に画像が置かれたものをシーンに反映する。"""
+    linked = []
+    for scene in scenes:
+        if scene.background_path or not scene.background_name:
+            continue
+        found = find_background(scene.background_name)
+        if found is not None:
+            scene.background_path = str(found)
+            linked.append(scene)
+    return linked
+
+
 def link_requested_illustrations(scenes: list[Scene]) -> list[Scene]:
     """依頼中のイラストのうち、その名前で assets/illustrations/ に画像が置かれたものをシーンに反映する。
 
@@ -1122,6 +1250,8 @@ def apply_to_project(project: Project, result: BookScriptResult, replace: bool =
     from src.services import video_metadata  # 循環importを避けるため関数内で読み込む
 
     project.title_candidates = list(result.title_candidates)
+    if replace or result.promo_short:
+        project.promo_short = dict(result.promo_short)
     if replace or result.thumbnail:
         project.thumbnail = dict(result.thumbnail)
     project.description_lead = result.description_lead
@@ -1131,7 +1261,8 @@ def apply_to_project(project: Project, result: BookScriptResult, replace: bool =
         # 通常の動画は横画面、ショートは縦画面にする（背景も下で画面の向きに合わせる）
         project.format = VideoFormat.PORTRAIT if result.style == "short" else VideoFormat.LANDSCAPE
     project.video_title, project.video_description, project.video_tags = (
-        result.video_title or (result.title_candidates[0] if result.title_candidates else ""),
+        video_metadata.with_series_tag(
+            result.video_title or (result.title_candidates[0] if result.title_candidates else ""), project),
         result.video_description, list(result.tags),
     )
     video_metadata.apply_generated_metadata(project, overwrite=False)
@@ -1296,7 +1427,7 @@ SAMPLE_BOOK_SCRIPT = {
             ]},
             "lines": [
                 {"speaker": "shikoku_metan", "expression": "happy", "text": "今日のポイント、いくつ言えるかしら？", "se": "パパッ",
-                 "pause": 3, "pause_text": "思い出してみて！", "board": False},
+                 "board": False},
                 {"speaker": "zundamon", "expression": "happy", "text": "今夜はお風呂に入って、眠くなってから寝るのだ！"},
                 {"speaker": "shikoku_metan", "expression": "normal", "text": "8時間寝る作戦はどうしたのよ。"},
             ],

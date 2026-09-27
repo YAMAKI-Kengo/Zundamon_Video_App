@@ -187,6 +187,29 @@ def load_illustration_guide() -> dict[str, str]:
     return {str(k): str(v) for k, v in items.items() if v}
 
 
+# いつもの部屋（台本で場所を指定しないときの既定の背景）。場所の背景の候補の一覧からは外す
+DEFAULT_ROOM_BACKGROUNDS = ("zunda_room", "metan_room", "sample_room")
+
+
+def find_background(name: str) -> Optional[Path]:
+    """背景を名前（ファイル名から拡張子を除いた部分）で探す。完全一致 → 大文字小文字を無視した一致の順。"""
+    key = (name or "").strip()
+    if not key:
+        return None
+    candidates = list_backgrounds()
+    for match in (lambda p: p.stem == key, lambda p: p.stem.lower() == key.lower(), lambda p: p.name == key):
+        for p in candidates:
+            if match(p):
+                return p
+    return None
+
+
+def list_place_backgrounds() -> list[Path]:
+    """場所の背景（学校・職場など。いつもの部屋を除く）の一覧。"""
+    return [p for p in list_backgrounds() if p.stem not in DEFAULT_ROOM_BACKGROUNDS
+            and not p.stem.startswith(("uploaded_", "common_"))]
+
+
 def find_illustration(name: str) -> Optional[Path]:
     """イラストを名前（ファイル名から拡張子を除いた部分）で探す。完全一致 → 大文字小文字を無視した一致の順。"""
     key = (name or "").strip()
@@ -310,20 +333,4 @@ def list_content_media() -> list[Path]:
     return sorted(
         p for p in media_dir.iterdir()
         if p.is_file() and p.suffix.lower() in allowed_exts
-    )
-
-
-@_short_cache()
-def list_content_images() -> list[Path]:
-    """assets/content_media/ 配下の「画像ファイルのみ」の一覧を返す（動画を除く）。
-
-    ビフォーアフター機能（compositor.paste_before_after）は静止画2枚を左右に並べる
-    表示方式のみをサポートしているため、選択肢に動画ファイルは含めない。
-    """
-    media_dir = ASSETS_DIR / "content_media"
-    if not media_dir.exists():
-        return []
-    return sorted(
-        p for p in media_dir.iterdir()
-        if p.is_file() and p.suffix.lower() in BACKGROUND_IMAGE_EXTS
     )

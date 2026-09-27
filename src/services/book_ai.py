@@ -48,10 +48,12 @@ from src.utils.asset_loader import (
     get_expression_label,
     list_characters,
     list_illustrations,
+    list_place_backgrounds,
     list_se,
     load_illustration_guide,
     load_se_guide,
 )
+from src.models import GUEST_CHARACTERS
 from src.services.voicevox_client import DEFAULT_SPEECH_SPEED
 from src.utils.env_config import load_env
 
@@ -72,9 +74,10 @@ FALLBACK_MODELS = {"claude-opus-5", "claude-opus-5-5", "claude-fable-5", "claude
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
 
 ANALYSIS_MAX_TOKENS = 32000
-SCRIPT_MAX_TOKENS = 32000
+SCRIPT_MAX_TOKENS = 64000  # 20分の動画の台本（セリフ400前後・JSON）が途中で切れない長さ
 SPOKEN_CHARS_PER_MINUTE = 330  # VOICEVOXの読み上げ速度の目安（約5.5文字/秒）
 SHORT_TARGET_SECONDS = 55      # ショート動画の目標秒数（60秒を超えないよう少し余裕を持たせる）
+PROMO_SHORT_SECONDS = 45       # 本編紹介ショート（本編の要点をまとめて本編へ誘導する）の目標秒数
 
 ProgressCallback = Callable[[str], None]
 
@@ -163,7 +166,7 @@ def _characters() -> list[str]:
     return list_characters() or ["zundamon", "shikoku_metan"]
 
 
-def _script_schema() -> dict:
+def _script_schema(with_promo: bool = False) -> dict:
     characters = _characters()
     expressions = sorted({e for c in characters for e in get_available_expressions(c)})
     se_names = [""] + [p.stem for p in list_se()]
@@ -186,10 +189,15 @@ def _script_schema() -> dict:
         "image_request": _STR,
         "image_name": _STR,
     })
+    guest_keys = [c for c in characters if c in GUEST_CHARACTERS]
     block = _obj({
         "section": {"type": "string", "enum": ["intro", "explain", "summary"]},
         "phase": {"type": "string", "enum": ["", "hype", "fail", "rescue", "why", "how"]},
         "slide": _obj({"title": _STR, "bullets": _STR_LIST, "numbered": {"type": "boolean"}}),
+        "background": {"type": "string", "enum": [""] + [p.stem for p in list_place_backgrounds()]},
+        "background_request": _STR,
+        "background_name": _STR,
+        **({"guests": {"type": "array", "items": {"type": "string", "enum": guest_keys}}} if guest_keys else {}),
         "lines": {"type": "array", "items": line},
     })
     return _obj({
@@ -201,9 +209,54 @@ def _script_schema() -> dict:
         "hashtags": _STR_LIST,
         "tags": _STR_LIST,
         "readings": {"type": "array", "items": _obj({"word": _STR, "reading": _STR})},
-        "thumbnail": _obj({"text": _STR, "sub": _STR, "layout": {"type": "string", "enum": ["reaction", "duo", "big_text"]}, "zundamon": {"type": "string", "enum": expressions}, "metan": {"type": "string", "enum": expressions}}),
+        "thumbnail": _obj({"text": _STR, "sub": _STR, "shout": _STR, "layout": {"type": "string", "enum": ["before_after", "scene", "reaction", "duo", "big_text"]}, "zundamon": {"type": "string", "enum": expressions}, "metan": {"type": "string", "enum": expressions}, "before": _STR, "after": _STR, "before_face": {"type": "string", "enum": expressions}, "after_face": {"type": "string", "enum": expressions}, "scene": _STR, "phrase": _STR}),
+        "blocks": {"type": "array", "items": block},
+        **({"promo_short": promo_short_schema(block)} if with_promo else {}),
+    })
+
+
+def promo_short_schema(block: dict) -> dict:
+    """本編紹介ショート（台本の promo_short）の形式。ブロック・セリフの形は本編と同じ。"""
+    return _obj({
+        "title_candidates": _STR_LIST,
+        "video_title": _STR,
+        "description_lead": _STR,
+        "hashtags": _STR_LIST,
+        "tags": _STR_LIST,
         "blocks": {"type": "array", "items": block},
     })
+
+
+def promo_short_rules(role: str = "book", speech_speed: float = DEFAULT_SPEECH_SPEED) -> str:
+    """本編の台本と一緒に書かせる「本編紹介ショート」（要点をまとめて本編の視聴を促す縦型ショート）の書き方。
+
+    role="english" は英会話レッスン、それ以外は本・論文記事の解説動画。
+    """
+    target_chars = int(PROMO_SHORT_SECONDS / 60 * SPOKEN_CHARS_PER_MINUTE * speech_speed)
+    if role == "english":
+        content = """  1. intro（slide は title を空文字・bullets を空の配列。board は false）: 1セリフ目（0〜2秒）で、ずんだもんが今日の場面で英語に困る一言を言う（例:「カフェで注文できないのだ…！」。15字前後。挨拶・前置きは禁止）。この1セリフ目の hide には "shikoku_metan" を入れる。続けてめたんが登場し、今日覚えるフレーズを予告する。
+  2. explain: 今日のフレーズの中から1〜2個だけ紹介する。めたんが英語で言う（お手本の英語のセリフ。speaker は "shikoku_metan"、lang は "en"、voice は "A"、reading は空文字、ja に日本語訳）→ ずんだもんがカタカナ英語でまねして（lang は "en"、reading にカタカナ）ちょっとボケる → めたんが意味と使う場面を一言で、をテンポよく。リピートや瞬発トレーニングの間は入れない（pause は 0、pause_style は空文字）。slide の title は「今日のフレーズ」など、bullets は紹介したフレーズ（「英語 ― 日本語訳」の形）。このブロックのセリフは board を true。
+  3. summary（slide の title は「続きは本編で！」、bullets は explain で紹介したフレーズをもう一度（同じ書き方。まとめなので全部一度に表示される）。board は true）: 残りのフレーズや会話の練習は本編でできることを言い、最後の1セリフで本編へ誘導して締める（例: めたん「全部のフレーズは本編で練習するわよ」、ずんだもん「続きは本編で一緒に言うのだ！」）。"""
+        titles = "各28字以内（末尾の「 #Shorts」を含む）。今日のフレーズか場面が分かるようにし、末尾に「 #Shorts」を付ける。"
+        hashtags = "4つ（# は付けない。「ずんだもん解説」はアプリが必ず先頭に付けるので書かない）。書名・人名などの固有名詞ではなく、多くの人が検索・フォローしていて、この動画の内容に関係する一般的な言葉にする（例: 英会話、英語学習、リスニング、TOEIC、英語、スピーキング、海外旅行）"
+    else:
+        content = """  1. intro（slide は title を空文字・bullets を空の配列。board は false）: 1セリフ目（0〜2秒）で、本編の中で一番意外で続きが気になる一言をずんだもんに言わせる（疑問形・断言・数字。15字前後。挨拶・書名の紹介・前置きは禁止）。この1セリフ目の hide には "shikoku_metan" を入れる。続けてめたんが登場し、本編で何を解説しているかを一言で言う。
+  2. explain: 本編の要点を2〜3個、1つにつき1〜2セリフでテンポよく紹介する。slide の title は「要点まとめ」など14字以内の見出し、bullets は要点を2〜3個（各8〜15字の、読んだだけで伝わる短い文）。このブロックのセリフは board を true。要点は言い切るが、詳しい理由・具体例・やり方の細かいところまでは言わず、「なぜそうなるかは本編で」のように残して、本編を見る理由を作る。
+  3. summary（slide の title は「続きは本編で！」、bullets は explain で紹介した要点をもう一度（同じ文。まとめなので全部一度に表示される）。board は true）: 要点を一言でふり返り、最後の1〜2セリフで本編へ誘導して締める（例: めたん「詳しくは本編で解説してるわよ」、ずんだもん「続きは本編で見るのだ！」）。フォロー・チャンネル登録のお願いや長い挨拶は書かない。"""
+        titles = ("先頭に「【ずんだもん解説】」、末尾に「 #Shorts」を付ける（その2つを除いて22字以内）。"
+                  "1セリフ目のつかみを活かした疑問形・断言形にし、数字や強調フレーズ（「9割が知らない」「一瞬で〜」など）を入れる。")
+        hashtags = "4つ（# は付けない。「ずんだもん解説」はアプリが必ず先頭に付けるので書かない）。書名・人名などの固有名詞ではなく、多くの人が検索・フォローしていて、この動画の内容に関係する一般的な言葉にする（例: 睡眠、勉強法、自己啓発、読書、本要約、雑学、ライフハック、お金の勉強）"
+    return f"""
+
+## 本編紹介ショート（promo_short）… 必ず書く
+本編の台本とは別に、本編の要点をまとめて本編の視聴を促す縦型ショート動画（約{PROMO_SHORT_SECONDS}秒）の台本を、トップレベルの promo_short に書く。ショートを見た人が「続きが気になる」「本編も見たい」と思って本編を見に行くことがゴール。
+- promo_short.blocks は intro → explain → summary の3つ。ブロック・セリフの項目と書き方は本編と同じ。
+{content}
+- 本編で話している内容・数字だけを使い、本編に無いことは言わない。
+- テンポ: セリフ全体の合計はおよそ{target_chars}字（{PROMO_SHORT_SECONDS}秒以内。超えない）。セリフの数は8〜14程度。1セリフは17字以内が基本（縦画面の字幕は1行17字。長くても34字以内）。1〜2セリフごとに話者を交代し、表情も変える。
+- ずんだもんのボケとめたんのツッコミで、小さな笑いを1〜2回入れる。
+- 春日部つむぎは出さない（speaker にも guests にも入れない）。mood・card・note・image・image_request・background は使わない（空）。効果音は1〜2回。
+- 投稿用: promo_short の title_candidates は3つ。{titles}内容と違う誇張や釣りタイトルにしない。video_title はその中で一番スワイプを止めそうな1つ。description_lead は1〜2行（改行区切り、各40字以内。この動画で分かることと「詳しくは本編で」）。hashtags は {hashtags}。tags は5〜8個。"""
 
 
 # ---------------------------------------------------------------------------
@@ -273,6 +326,16 @@ def _illustration_rules() -> str:
 - board と image の指定は、すべてのセリフに必ず書く（出さないときは false・空文字）。"""
 
 
+def _background_rules() -> str:
+    """場所の背景（回想・寸劇などで学校・職場の話をしている場面用）の指示。"""
+    names = "、".join(p.stem for p in list_place_backgrounds()) or "（まだありません。background_request で依頼する）"
+    return f"""## 背景（ブロックの background・background_request・background_name）
+- 背景は基本「いつもの部屋」。ほとんどのブロックは3つとも空文字にする。
+- 回想・寸劇・たとえ話などで、学校・職場・お店・駅・病院など部屋以外の場所の出来事を「その場面として見せる」ブロックだけ、その場所の背景にする（例: ずんだもんの会社での失敗を再現する寸劇、学生時代の回想）。場所の話が終わったら、次のブロックは空文字に戻す（部屋に戻る）。1本の動画で0〜3場所まで。寸劇・回想は、そのためのブロックを分けて作る。
+- 手元にある場所の背景: {names}
+  合うものがあれば background にその名前を書く。無ければ background は空文字にして、background_request に欲しい背景（場所・時間帯・雰囲気と検索語。例:「放課後の教室。夕方で少しさみしい雰囲気（検索語: 教室 夕方 背景 イラスト）」）、background_name に保存名（日本語4〜12字。例:「放課後の教室」。同じ場所は同じ名前）を書く。人物が写っていない横長の背景がよい。"""
+
+
 def _se_guide() -> str:
     """使える効果音と、その用途の一覧（config/se_guide.json。用途が未登録の効果音は名前だけ）。"""
     names = [p.stem for p in list_se()]
@@ -301,6 +364,26 @@ _CHARACTERS_TEXT = """## キャラクター設定と口調のルール（厳密�
 - 口調の例:「知ったかぶりはやめなさいよ」「あんた、さっきと言ってることが違うじゃないの」「しょうがないわね、わたくしが教えてあげるわ」「この本によると、眠り始めがいちばん大事なのよ」"""
 
 
+def _guest_text(role: str = "book") -> str:
+    """ゲスト（春日部つむぎ）の設定と登場のさせ方。立ち絵の素材がそろっているときだけ台本に使わせる。"""
+    if "kasukabe_tsumugi" not in _characters():
+        return ""
+    appearance = (
+        "英会話では、dialog ブロックだけに登場し、会話の相手役（voice \"B\" の英語のセリフ）を、つむぎ（speaker: kasukabe_tsumugi）が話す。"
+        "dialog 以外のブロックには出さない（つむぎのセリフも書かない）。"
+        if role == "english" else
+        "出番は1本で1〜3ブロック程度で、黒板を出さないブロックだけ（回想・寸劇・具体例の再現シーンなど。slide を空にし、board はすべて false）。"
+        "黒板を出すブロックにはつむぎを登場させない（guests に入れず、つむぎのセリフも書かない）。解説の主役はめたんのまま。"
+    )
+    return f"""
+### 春日部つむぎ（kasukabe_tsumugi）… ゲスト
+- 一人称: 「あーし」。二人称: 「ずんだもん」「めたん」（呼び捨て）、視聴者には「みんな」。
+- 口調: 明るいギャル口調のタメ口（「〜じゃん」「〜っしょ」「マジで」「ウケる」「それな」「〜だし」）。敬語は使わない。ずんだもんの「〜のだ」、めたんの「〜わ」「〜のよ」は使わない（話し方で3人を区別する）。
+- 性格・役割: ノリが軽く見えるけど、実は現実的で要領がいい。等身大の体験談（「あーしの友達も〜」）、視聴者目線の素朴な質問、ずんだもんとめたんの間に入る第三の視点で、会話にメリハリを付ける。ずんだもんのボケに一緒に乗っかったり、めたんより先にツッコんだりして笑いを作ってもよい。
+- 登場のさせ方（ゲスト）: {appearance}
+  つむぎが登場するブロックは、ブロックの guests に "kasukabe_tsumugi" を入れる（そのブロックの間は画面に出る。つむぎが話すブロックは自動で出る）。黒板が画面に出ている間は、つむぎは画面から消える（黒板が見えなくなるため）。登場した最初のセリフで軽くあいさつ・自己紹介（「ちーっす、つむぎだよ〜」など）を入れる。"""
+
+
 def _common_rules() -> str:
     return f"""## 表情・効果音・表示
 - expression は、そのキャラクターの表情の一覧から、セリフの感情に合うものを選ぶ（一覧に無い表情は使わない）。同じ表情ばかり続けず、驚き・困り・喜び・怒りなど感情の起伏を表情で見せる:
@@ -314,10 +397,12 @@ def _common_rules() -> str:
   text に文（25字・8語程度まで）、focus に赤線を引く部分（text の中にそのまま含まれる語句）、meaning にその部分の意味・使い方（25字以内。例:「〜をもらえる？ お店で注文するときの定番」）を書く。
   その部分を説明する2〜3セリフに、同じ note を続けて付ける（その間は黒板の代わりに解説カードが出る）。使わない行は text・focus・meaning をすべて空文字にする。
 - bullet（黒板のどの行の話か）: 黒板の箇条書きの行を初めて話すセリフに、その行の番号（1から）を書く（その番号の行が、そのセリフで黒板に書き足される）。それ以外のセリフは 0。行の番号は、話す順番どおりに1, 2, 3…と増えるようにする。まとめ（summary）は全部の行を最初から出すので、すべて 0 でよい。
-- pause・pause_text は、視聴者に考えさせる・答えさせる無音の間（秒数と、その間に画面上部に大きく出す短い指示）。使わない行は pause を 0、pause_text を空文字にする。
+- pause・pause_text は使わない（すべての行で pause を 0、pause_text を空文字にする）。無音の「考えてみて」の間は話のテンポが悪くなるため、問いかけにはすぐ会話で答える。
 - show_book は、めたんが本（書名）を紹介するセリフだけ true にする（そのシーンで本の表紙画像が画面に出る）。それ以外はすべて false。
 
 {_illustration_rules()}
+
+{_background_rules()}
 
 ## 読み方（readings）
 - 音声合成（VOICEVOX）が読み間違えそうな言葉の読み方を、readings に {{"word": 表記, "reading": ひらがな or カタカナの読み}} で書く。
@@ -332,74 +417,119 @@ def _common_rules() -> str:
 - セリフは普通の漢字かな交じりで書く（ひらがなばかりの文は音声合成が「は」を「ハ」と読むなど誤読しやすい）。
 
 ## サムネイル
-- thumbnail（サムネイルの文言と見せ方）:
-  text は2〜3行（改行は \\n）、1行8字以内・全体で10〜18字。タイトルをそのまま縮めるのではなく、一目で「えっ？」「自分のことだ」と思う言葉（悩み・意外な結論・数字）にする。一番大事な1語だけを **語** で囲む（赤く目立つ）。
-  sub は左上の帯の短いラベル（6〜10字。例: 本要約、研究で解説、毎日英会話 Day3）。
-  layout は、感情が強い内容なら "reaction"（ずんだもんのアップ）、本の表紙やイラストを見せたい内容なら "duo"（2人＋画像）、結論が強い一言なら "big_text"（大きな文字）。
-  zundamon・metan は、内容の感情が一目で伝わる表情（驚き・ショック・ドヤ顔・指さしなど）を一覧から選ぶ。"""
+- thumbnail（サムネイルの文言と見せ方）。一覧で一番に目に入るのは、上部いっぱいに出る特大の一言（text）。その下に「見る前 → 見た後」（悩んでいるずんだもん → 解決したずんだもん）が並び、この動画を見ると自分がどう変わるかが一目で想像できるようにする:
+  text は2行まで（改行は \\n）、1行9字以内・全体で10〜16字。タイトルをそのまま縮めるのではなく、思わず手が止まるインパクトのある一言（意外な結論・常識の否定・強い数字。例:「寝る前の**スマホ**が\\n眠りを壊してた」「**9割**の人が\\n勘違いしてる」）にする。文字は白で、一番大事な1語だけを **語** で囲む（赤く大きく目立つ）。==語== で囲むと黄色（多用しない）。
+  before は「見る前」の視聴者の悩み・失敗（3〜7字。例: 寝つけない…、続かない…）、after は「見た後」の変化・結果（3〜7字。例: 朝スッキリ！、毎日続く！）。本・研究に書いてある効果の範囲で、誇張しない。
+  before_face は悩んでいる表情（落ち込み・困り・ショックなど）、after_face は解決した表情（喜び・大喜び・ドヤ顔など）を、ずんだもんの表情の一覧から選ぶ。
+  sub は左上の帯の短いラベル（6〜10字。例: ずんだもん解説、本要約、研究で解説）。
+  layout は基本 "before_after"（見る前→見た後）。変化より驚きが主役の内容なら "reaction"（ずんだもんのアップ）、本の表紙を大きく見せたいなら "duo"（2人＋画像）、結論の一言がとにかく強いなら "big_text"。"scene" は英会話用なので使わない。
+  shout はずんだもんの吹き出しのひと言（3〜8字。reaction・duo・big_text で使う）。zundamon・metan は、reaction・duo・big_text で使う表情を一覧から選ぶ。scene・phrase は空文字。"""
 
 
-def _normal_system(target_minutes: float, why_points: int, speech_speed: float = DEFAULT_SPEECH_SPEED,
-                   how_points: int = 3) -> str:
+COMEDY_RULES = """## 笑いの設計（コメディ強め。ただし解説の中身は正確に）
+書籍解説でも、見ていて笑える動画にする。キャラクターの掛け合いが面白いと「この2人の動画をまた見たい」と思ってもらえる。情報7：笑い3くらいのバランスで、30秒に1回は笑いどころを作る。
+- ずんだもんで笑わせる: 調子に乗って盛大にやらかす、極端に解釈する（「つまり僕は明日から億万長者なのだ！」）、妄想が暴走する、ずんだ餅への食い意地、本題と関係ない自慢、変なたとえ話。ボケは動画が進むほど少しずつ大きくする。
+- 天丼（くり返しのギャグ）: 導入の失敗や、ずんだもんのおなじみの一言・勘違いを、動画の中で2〜3回くり返して笑いにし、最後のオチで回収する（例: 導入で「8時間寝る作戦」→ 解説の途中で何度も持ち出す → まとめで「8時間寝る作戦はどうしたのよ」）。
+- ツッコミにバリエーションを: めたんは毎回同じ言い方にせず、短く鋭く（「違うわよ」「なんでそうなるのよ」「話を聞きなさい」「その自信はどこから来るのよ」）、ときどき呆れて無視する・毒舌で返す・食い気味に止める。1回くらいは、めたんがボケてずんだもんにツッコまれる逆転や、めたんが言い負かされる場面を入れてもよい。
+- 寸劇: 本に出てくる失敗例・あるある・たとえ話を、ずんだもんが演じる短い寸劇（3〜6セリフ）を1〜2回入れる。場面転換テロップ（card。例:「〜ずんだもんの妄想〜」「〜よくある失敗の例〜」）や回想（mood "sepia"）で始め、めたんのツッコミで現実に戻す。
+- 効果音でボケとツッコミを強調する（ツッコミ・ボヨヨーン・チーン・落ち込むなど）。ただし毎回は鳴らさず、決めどころに絞る。
+- 守ること: 笑いのために本の内容・数字・主張を曲げない。ボケは必ずツッコミで正しい理解に戻す。人を傷つける笑い（容姿・性別・年齢・国籍などのいじり、下品なネタ）や、特定の人・団体を悪く言う笑いは使わない。解説の大事な部分（結論・理由・具体例）は笑いより優先して、はっきり伝える。"""
+
+
+STRUCTURE_PATTERNS = """  - 失敗と成功: ずんだもんの失敗の原因を「失敗の理由1：〜」で解説 → 正しいやり方を「成功のコツ1：〜」で解説（前半の explain は phase "why"、後半は "how"）。やり方・習慣・お金・勉強法など「やりがちな失敗」がある本に。
+  - 思い込みと真実: 多くの人が信じていることを1つずつ取り上げ、「真実1：〜」で本当はどうなのかを解説。常識をくつがえす本に。
+  - 問題と解決: 「問題1：〜」で困りごと・その原因を示し、続けて解決策を解説。社会問題・仕事術などに。
+  - ランキング: 効果・重要度などの低い順に「第5位：〜」…「第1位：〜」と発表（1位は最後に取っておき、予告して引っぱる）。項目を比べられる本に。
+  - Q&A: 視聴者が抱きそうな疑問を「Q1：〜」の形で取り上げて答える。専門的・疑問が多いテーマに。
+  - ステップ: 「ステップ1：〜」と順番どおりに手順を解説。やり方を順に身に付ける本に。
+  - ストーリー: 「第1章：〜」と時系列・物語の流れで解説。歴史・伝記・物語・企業の成り立ちなどに。
+  - ポイント: 上のどれにも合わない場合は「ポイント1：〜」で大事なことを順に解説。"""
+
+
+def _points_guide(target_minutes: float) -> str:
+    """動画の長さに合う、解説ブロックの数の目安。"""
+    if target_minutes <= 4:
+        return "2〜3"
+    if target_minutes <= 6:
+        return "3〜4"
+    if target_minutes <= 9:
+        return "4〜5"
+    if target_minutes <= 12:
+        return "5〜6"
+    if target_minutes <= 16:
+        return "6〜8"
+    return "7〜10"
+
+
+def _normal_system(target_minutes: float, speech_speed: float = DEFAULT_SPEECH_SPEED, structure_hint: str = "") -> str:
     target_chars = int(target_minutes * SPOKEN_CHARS_PER_MINUTE * speech_speed)
+    hint = f"\n利用者からの構成の希望: {structure_hint.strip()}（この希望を最優先する）" if structure_hint.strip() else ""
     return f"""あなたは登録者数の多い書籍解説YouTubeチャンネルの構成作家です。ずんだもんと四国めたんの掛け合いで、本の内容を楽しく分かりやすく紹介する、約{target_minutes:g}分（エンディング除く）の横長動画の台本を書きます。
-目標は、視聴者が「最後まで見てしまう」「明日から試したくなる」テンポの良い動画にすることです。
+目標は、視聴者が「最後まで見てしまう」「明日から試したくなる」テンポの良い動画にすることです。毎回同じ型にならないよう、本の内容に一番合う構成を選びます。
 
 {_CHARACTERS_TEXT}
+{_guest_text()}
 
 ## 構成と視聴維持の設計（blocks の並び。phase も必ず書く）
-導入は「ずんだもんが張り切って何かを始める → 失敗する → めたんが登場して、なぜ失敗したかと成功させる方法を解説すると宣言する」という流れにする。導入は黒板を出さないので、intro の3ブロックの slide は title を空文字・bullets を空の配列にする。
+### 導入（intro の3ブロック。黒板は出さないので slide は title を空文字・bullets を空の配列にする）
+基本は「ずんだもんが張り切って何かを始める → 失敗する → めたんが登場して解説を始める」の流れ。本の内容が挑戦・失敗に合わない場合（歴史・伝記・物語など）は、ずんだもんが本のテーマで大きな勘違いをする・ピンチになる、という形に変えてよい。
+1. intro・phase "hype"（1〜3セリフ）: ずんだもんが本のテーマに関係することを、調子に乗って始める・言い出す（例:「今はやりの〇〇で、お金を稼ぐのだ！」「最近〇〇だし、今日から〇〇するって決めたのだ！」）。視聴者も「やりがち」「思いがち」なことを選ぶ。挨拶・自己紹介・書名から始めない。hide には "shikoku_metan" を入れる（ずんだもんだけ）。
+2. intro・phase "fail"（2〜4セリフ）: ずんだもんが、ありがちな間違い（分析結果の common_mistakes / misconceptions）で失敗する・勘違いが明らかになり、落ち込む・嘆く。少し笑える形にする。hide にも "shikoku_metan" を入れる。
+3. intro・phase "rescue"（3〜6セリフ）: めたんが登場して「そんなんじゃだめよ」とバッサリ言う → ずんだもん「どうしてなのだ？」→ めたんが、このあと何をどんな順番で話すかを、選んだ構成に合わせて予告する（例:「なぜ失敗したのかと、うまくいくコツに分けて話すわ」「みんなが信じている思い込みの真実を教えてあげるわ」「効果が高い方法をランキングで紹介するわ」）→「今日は『書名』（著者）で教えてあげるわ」と本を紹介する（このセリフの show_book を true にする）。hide は空の配列。
 
-1. intro・phase "hype"（導入①決意・ワクワク、1〜3セリフ）: ずんだもんが本のテーマに関係することを、調子に乗って始めると宣言する。
-   例:「今はやりの〇〇で、お金を稼ぐのだ！」「最近〇〇だし、今日から〇〇するって決めたのだ！」
-   本の内容から、視聴者も「やりがち」なことを選ぶ。挨拶・自己紹介・書名から始めない。このブロックの hide には "shikoku_metan" を入れる（ずんだもんだけ）。
-2. intro・phase "fail"（導入②失敗、2〜4セリフ）: ずんだもんが、ありがちな間違ったやり方（分析結果の common_mistakes / misconceptions）で挑戦して失敗し、落ち込む・嘆く。少し笑える失敗にする。このブロックの hide にも "shikoku_metan" を入れる。
-3. intro・phase "rescue"（導入③めたん登場、3〜6セリフ）: めたんが登場して「そんなんじゃだめよ」とバッサリ言う → ずんだもん「どうしてなのだ？」→ めたんが「これから『なぜ失敗したのか』と『成功させるにはどうすればいいのか』に分けて、分かりやすく話すわ」と宣言し、「今日は『書名』（著者）で教えてあげるわ」と本を紹介する（このセリフの show_book を true にする）。ここで話す内容の予告をして、最後まで見る理由を作る。hide は空の配列（ここからめたんが表示される）。
-4. explain・phase "why"（解説前半：なぜ失敗したのか、{why_points}ブロック）: ずんだもんの失敗の原因を、本の内容をもとに1ブロック1つずつ解説する。最初のブロックの最初のセリフは、めたんの「まずは、なぜ失敗したのか見ていくわよ」のような区切りの一言にする。
-5. explain・phase "how"（解説後半：成功させるにはどうすればいいか、{how_points}ブロック）: 本が勧める正しいやり方を1ブロック1つずつ解説する。最初のブロックの最初のセリフは、めたんの「じゃあ、どうすればうまくいくのか教えてあげるわ」のような区切りの一言にする。
-   解説ブロック（why・how とも）の共通ルール:
-   - 各ブロックは「結論 → 理由 → 具体例（本の中のデータ・エピソード）やたとえ話 → ずんだもんの言い換え・確認」の順（PREP法）。抽象論だけで終わらせず、数字や具体例を必ず1つ入れる。ずんだもんの導入の失敗と結び付けて説明する。
-   - たとえ話は身近なもの（スマホ、ゲーム、料理、学校、仕事など）で。
-   - ずんだもんは知ったかぶり・早とちり・極端な解釈・調子に乗った発言で小さな笑いを作り、めたんが容赦なくツッコんで正しい理解に戻す（1ブロックに1回以上）。
-   - 最後のブロック以外は、ブロックの最後に次への引き（「でも、これだけじゃまだ足りないのよ」「次がいちばん大事よ」など）を入れて中だるみを防ぐ。
-   - 同じ話者が3セリフ以上続かない。めたんの長い独演会にせず、ずんだもんのリアクション・質問を1〜2セリフごとに挟む。
-6. summary（まとめ・1ブロック、phase は空文字）: 黒板で「失敗の理由」と「成功のコツ」を振り返る → 「今日からできること」を1つだけ提案 → ずんだもんが導入で失敗したことに今度は正しいやり方で再挑戦すると決意し、めたんがツッコむオチで締める。
+### 解説（explain のブロック。{_points_guide(target_minutes)}ブロックが目安）
+本の内容に一番合う構成を、次の中から1つ選ぶ（本によっては2つを組み合わせてもよい）。毎回「失敗と成功」にしない。{hint}
+{STRUCTURE_PATTERNS}
+- ブロックの数は、動画の長さ（約{target_minutes:g}分）と本の内容の量で決める。1ブロック＝1つのポイント（黒板1枚）。無理に数を合わせず、大事な内容を削らない・薄い内容で水増ししない。
+- phase は「失敗と成功」の構成のときだけ "why"（前半）/ "how"（後半）を書き、それ以外の構成では空文字にする。
+- 各ブロックの最初のセリフは、めたんの区切りの一言（例:「まずは1つ目よ」「次は第2位の発表よ」「じゃあ、どうすればうまくいくのか教えてあげるわ」）にする。
+- 各ブロックは「結論 → 理由 → 具体例（本の中のデータ・エピソード）やたとえ話 → ずんだもんの言い換え・確認」の順（PREP法）。抽象論だけで終わらせず、数字や具体例を必ず1つ入れる。できるだけ、ずんだもんの導入の失敗・勘違いと結び付けて説明する。
+- たとえ話は身近なもの（スマホ、ゲーム、料理、学校、仕事など）で。
+- ずんだもんは知ったかぶり・早とちり・極端な解釈・調子に乗った発言で小さな笑いを作り、めたんが容赦なくツッコんで正しい理解に戻す（1ブロックに1回以上）。
+- 最後のブロック以外は、ブロックの最後に次への引き（「でも、これだけじゃまだ足りないのよ」「次がいちばん大事よ」など）を入れて中だるみを防ぐ。
+- 同じ話者が3セリフ以上続かない。めたんの長い独演会にせず、ずんだもんのリアクション・質問を1〜2セリフごとに挟む。
+- 10分を超える長い動画では、途中（半分くらいの所）で1回、それまでの内容を短く振り返る（ずんだもんが言い、めたんが補う）と、途中から見た人も付いてこられる。
+
+### まとめ（summary・1ブロック、phase は空文字）
+黒板で各ポイントの結論を振り返る → 「今日からできること」を1つだけ提案 → ずんだもんが導入の失敗・勘違いに今度は正しいやり方で再挑戦すると決意し、めたんがツッコむオチで締める。
 エンディング（「ご視聴ありがとうございました」やチャンネル登録のお願い）はアプリが自動で付けるので書かないでください。
+
+{COMEDY_RULES}
 
 ## 身になって、また見たくなる工夫（必ず入れる）
 面白いだけで終わらず「分かった・覚えた・やってみたい」と感じてもらい、次の動画も見たくなるようにする。学習の研究で効果が大きいとされる「思い出す練習（途中の小テスト）」「理由を問う質問」「絵と言葉の組み合わせ」と、動画の視聴維持で使われる「開いたループ（予告して後で回収）」を取り入れる。
-1. 途中クイズ（2〜3回）: 解説の途中で、めたんが視聴者に問題を出す（例:「ここで問題よ。〇〇と〇〇、どっちが正しいと思う？」）。そのセリフの pause を 3〜4、pause_text を「考えてみて！」などにする → ずんだもんが自信満々に間違える → めたんが答えと理由を言う。問題は、直前に説明したことを思い出せば答えられるものにする（ひっかけ・雑学クイズにしない）。
+1. 途中クイズ（5分あたり1回、2〜5回）: 解説の途中で、めたんがずんだもんに問題を出す（例:「ここで問題よ。〇〇と〇〇、どっちが正しいと思う？」）→ ずんだもんが間を置かずに自信満々で答えて間違える → めたんが答えと理由を言う。無音の間は入れず、テンポよく会話で進める（視聴者はずんだもんと一緒に考える）。問題は、直前に説明したことを思い出せば答えられるものにする（ひっかけ・雑学クイズにしない）。
 2. 理由を掘る: 大事なポイントでは、ずんだもんに「なんでそうなるのだ？」と聞かせ、めたんが仕組み（なぜ効くのか）を身近なたとえで説明する。結論だけで終わらせない。
 3. 予告して回収する: 導入の最後か解説の最初に「最後に、いちばん効く方法を教えるわ」のように、後で出す内容を1つ予告し、動画の後半で必ず回収する。
-4. まとめは思い出しテスト: summary の最初に、めたんが「今日のポイント、いくつ言えるかしら？」と問いかける（pause を 4、pause_text を「思い出してみて！」）→ そのあと黒板で答え合わせ。
+4. まとめは思い出しテスト: summary の最初に、めたんが「今日のポイント、いくつ言えるかしら？」と問いかける → ずんだもんが思い出しながら答える（1つ言えて、1つ言い間違えるなど）→ 黒板で答え合わせ。無音の間は入れない。
 5. 行動は具体的に: 「今日からできること」は、いつ・どこで・何をするかが分かる1文にする（例:「今夜、布団に入る1時間前にスマホを充電器に置く」）。
 6. シリーズ感: ずんだもんの「おなじみのボケ」（調子に乗る・すぐ極端に走る）と、めたんの決めゼリフ風のツッコミを毎回同じ型で入れ、最後はずんだもんの「今日のずんだもんメモ」（今日学んだことを自分の言葉で1文）で締める。
 
 ## テンポ（速めに）
 - 1セリフは10〜30字（字幕1行＝30字に収める）、平均20字程度。どうしても長くなる場合も60字（字幕2行）以内にし、長い説明は必ず複数のセリフに分ける。
-- 動画全体のセリフの合計がおよそ{target_chars}字（約{target_minutes:g}分）になるようにする。導入（intro の3ブロック合計）は全体の15%程度に収め、長くしすぎない。
+- 動画全体のセリフの合計がおよそ{target_chars}字（約{target_minutes:g}分）になるようにする。導入（intro の3ブロック合計）は全体の15%程度（長い動画では1分半程度まで）に収め、長くしすぎない。
 - 前置き・繰り返し・つなぎの言葉（「さて」「それでは」「ということで」）は削る。短いリアクション（「えっ！？」「マジなのだ！？」）で会話を弾ませる。
 - 驚き・納得・笑いを交互に入れ、感情の起伏を作る。
 
 ## 黒板スライド（explain と summary の slide）
-- title は20字以内。why のブロックは「失敗の理由1：〜」、how のブロックは「成功のコツ1：〜」のように、番号の後に全角の「：」を付けてから結論を書く（番号はそれぞれ1から数える）。summary は「まとめ」。
+- title は20字以内。選んだ構成の見出しの形（「失敗の理由1：〜」「真実1：〜」「第3位：〜」「Q1：〜」「ステップ1：〜」「第1章：〜」「ポイント1：〜」など）で、番号の後に全角の「：」を付けてから結論を書く。summary は「まとめ」。
 - bullets は3〜5個。一言のキーワードではなく、黒板を読んだだけで要点が伝わる短い文（各15〜28字）にする。1つの文は黒板の1行に収めて表示するので、28字を超えない。
   1つ目は結論、続けて理由・具体例（数字やデータがあれば入れる）・やり方を書く（例:「寝る1〜2時間前にお風呂に入る」「体の内側の温度が下がると自然に眠くなる」）。
   最も大事な語句を1〜2か所 **語句** の形で強調してよい。
-- summary の bullets は、「失敗の理由」と「成功のコツ」の結論を1文ずつ（各15〜28字）。
+- summary の bullets は、各ポイントの結論を1文ずつ（各15〜28字。ポイントが多いときは大事な5つまで）。
 - 黒板の箇条書きはセリフの進行に合わせて上から順に書き足されるので、セリフで話す順番に並べる。
 
 {_common_rules()}
 
 ## 投稿用のタイトル・説明文
-- title_candidates: タイトル案を3つ。それぞれ違う型で書く:
-  ① 失敗あるある型（例:「【本要約】〇〇で失敗する人の共通点｜『書名』」）
-  ② 意外性型（例:「その〇〇、逆効果かも？【本要約】」）
-  ③ ベネフィット型（例:「〇〇を成功させる3つのコツ【本要約】」）
-  各32字以内。スマホで途中が切れても伝わるよう、大事な言葉（悩み・書名）を前半に置き、数字や【】を使う。内容と違う誇張や、本に無い数字を使った釣りタイトルにしない。
+- title_candidates: タイトル案を3つ。どれも先頭に必ず「【ずんだもん解説】」を付け、それぞれ違う型で書く（選んだ構成に合う型を優先する）:
+  ① 数字型（例:「【ずんだもん解説】〇〇な人の特徴5選」「【ずんだもん解説】〇〇が変わる3つの習慣｜『書名』」）
+  ② 共通点・あるある型（例:「【ずんだもん解説】〇〇で失敗する人の共通点」）
+  ③ 強調・ベネフィット型（例:「【ずんだもん解説】一瞬で〇〇する方法」「【ずんだもん解説】9割が知らない〇〇の真実」）
+  「特徴〇選」「〜する人の共通点」「一瞬で〜する方法」「9割が知らない」「〇つの習慣」のような数字・強調フレーズを、どの案にも必ず1つ以上入れる。【ずんだもん解説】を除いて28字以内。スマホで途中が切れても伝わるよう、大事な言葉（悩み・結論）を前半に置く。数字は動画の内容（ポイントの数など）と合わせ、本に無い数字や内容と違う誇張の釣りタイトルにしない。書名は入りきるときだけ最後に「｜『書名』」で付ける。
 - video_title: title_candidates の中で、最もクリックされそうな1つ。
-- description_lead: 説明欄の冒頭2〜3行（改行区切り、各40字以内）。1行目で視聴者の「やりがちな失敗」に呼びかけ、2行目でこの動画を見ると何が分かるか（失敗の理由と成功のコツ）を書く。
-- hashtags: 3つ（# は付けない）。1つ目は「本要約」、2つ目は書名（長ければ短く）、3つ目は本のテーマ（例: 睡眠）。
+- description_lead: 説明欄の冒頭2〜3行（改行区切り、各40字以内）。1行目で視聴者の悩み・思い込みに呼びかけ、2行目でこの動画を見ると何が分かるかを書く。
+- hashtags: 4つ（# は付けない。「ずんだもん解説」はアプリが必ず先頭に付けるので書かない）。書名・人名などの固有名詞ではなく、多くの人が検索・フォローしていて、この動画の内容に関係する一般的な言葉にする（例: 睡眠、勉強法、自己啓発、読書、本要約、雑学、ライフハック、お金の勉強）。
 - tags: 8〜12個（書名・著者名・テーマ・悩みのキーワードなど）。"""
 
 
@@ -409,6 +539,7 @@ def _short_system(speech_speed: float = DEFAULT_SPEECH_SPEED) -> str:
 ショートは、最初の1〜2秒で見るかスワイプするかが決まり、最後まで見られた割合と繰り返し再生（ループ）で広まります。
 
 {_CHARACTERS_TEXT}
+{_guest_text().replace('出番は1本で1〜3ブロック程度', 'ショートでは出番は0〜1回（出すなら一言だけ）')}
 
 ## 構成（blocks は intro → explain → summary の3つ）
 1. intro: ホワイトボードは出さないので、slide は title を空文字・bullets を空の配列にする。
@@ -418,8 +549,12 @@ def _short_system(speech_speed: float = DEFAULT_SPEECH_SPEED) -> str:
 2. explain: 扱うのは本の中の「一番意外で、今日すぐ使える」ポイント1つだけ。理由 → 具体例（本の中のデータ・エピソード）を短く。途中で1回、ずんだもんの知ったかぶりか早とちりにめたんがツッコむ小さなオチを入れる。
 3. summary: 今日からやることを1つだけ言い切る → ずんだもんのオチ → 最後の1セリフで、本編への誘導だけを短く言う（例: めたん「詳しくは本編で解説してるわよ」、ずんだもん「続きは本編で見るのだ！」）。フォロー・チャンネル登録・他の動画を見てほしい等のお願いは書かない。最後のセリフの内容が1セリフ目のつかみに自然につながるようにして、ループ再生を誘う。長いお礼・挨拶も書かない。
 
+## 笑い（ショート。コメディ強め、ただし内容は正確に）
+- 1分の中に笑いどころを3回以上入れる。ずんだもんの極端な早とちり・妄想・調子に乗った一言に、めたんが短く鋭くツッコむ。ボケは段々大きくして、最後のオチでいちばん大きく笑わせる。
+- 笑いのために本の内容や数字を曲げない。ボケは必ずツッコミで正す。人を傷つける笑い（容姿・属性いじり・下品なネタ）は使わない。
+
 ## 身になる工夫（ショート）
-- 答えを言う前に1回だけ、ずんだもんか視聴者に「どっちだと思う？」と問いかけ、そのセリフの pause を 1.5、pause_text を「どっち？」などにする（考える間で、最後まで見る理由を作る）。
+- 答えを言う前に1回だけ、めたんがずんだもんに「どっちだと思う？」と問いかけ、ずんだもんがすぐ答えて外す（最後まで見る理由を作る）。無音の間は入れない。
 - 最後の「今日からやること」は、いつ・何をするかが分かる1文にする。
 
 ## テンポ（とにかく速く）
@@ -435,19 +570,21 @@ def _short_system(speech_speed: float = DEFAULT_SPEECH_SPEED) -> str:
 - ショートでは効果音を、つかみ・驚き・オチの2〜4回に絞る。
 
 ## 投稿用のタイトル・説明文
-- title_candidates: タイトル案を3つ。各28字以内（末尾の「 #Shorts」を含む）。1セリフ目のつかみを活かした疑問形・断言形にし、末尾に「 #Shorts」を付ける。内容と違う誇張や、本に無い数字を使った釣りタイトルにしない。
+- title_candidates: タイトル案を3つ。先頭に「【ずんだもん解説】」、末尾に「 #Shorts」を付ける（その2つを除いて22字以内）。1セリフ目のつかみを活かした疑問形・断言形にし、数字や強調フレーズ（「9割が知らない」「一瞬で〜」など）を入れる。内容と違う誇張や、本に無い数字を使った釣りタイトルにしない。
 - video_title: title_candidates の中で、最もスワイプを止めそうな1つ。
 - description_lead: 説明欄の冒頭1〜2行（改行区切り、各40字以内）。この動画で分かることを一言で。
-- hashtags: 3つ（# は付けない。Shorts はアプリが自動で付けるので不要）。「本要約」、書名またはテーマ、「ずんだもん」。
+- hashtags: 4つ（# は付けない。「ずんだもん解説」はアプリが必ず先頭に付けるので書かない）。書名・人名などの固有名詞ではなく、多くの人が検索・フォローしていて、この動画の内容に関係する一般的な言葉にする（例: 睡眠、勉強法、自己啓発、読書、本要約、雑学、ライフハック、お金の勉強）。
 - tags: 5〜8個。"""
 
 
-def _script_system(style: str, target_minutes: float, num_points: int,
-                   speech_speed: float = DEFAULT_SPEECH_SPEED, how_points: int = 3) -> str:
-    """style="normal" では num_points が「失敗の理由」、how_points が「成功のコツ」の数。"""
+def _script_system(style: str, target_minutes: float, speech_speed: float = DEFAULT_SPEECH_SPEED,
+                   structure_hint: str = "") -> str:
+    """style="normal" は、構成（失敗と成功・ランキング・Q&A など）とポイントの数を本の内容と長さからAIが選ぶ。
+    structure_hint は利用者の構成の希望（任意。「ランキング形式で」など）。"""
     if style == "short":
         return _short_system(speech_speed)
-    return _normal_system(target_minutes, num_points, speech_speed, how_points)
+    # 通常の動画には、本編の視聴を促す「本編紹介ショート」の台本も必ず一緒に書かせる
+    return _normal_system(target_minutes, speech_speed, structure_hint) + promo_short_rules("book", speech_speed)
 
 
 def _hints_text(title_hint: str, author_hint: str, worry_hint: str) -> str:
@@ -461,10 +598,11 @@ def _hints_text(title_hint: str, author_hint: str, worry_hint: str) -> str:
     return ("利用者からのヒント:\n" + "\n".join(hints)) if hints else ""
 
 
-def manual_script_prompt(style: str = "normal", target_minutes: float = 5, num_points: int = 3, title_hint: str = "",
+def manual_script_prompt(style: str = "normal", target_minutes: float = 5, title_hint: str = "",
                          author_hint: str = "", worry_hint: str = "",
-                         speech_speed: float = DEFAULT_SPEECH_SPEED, how_points: int = 3,
-                         source_kind: str = "book", focus: str = "", urls: Optional[list[str]] = None) -> str:
+                         speech_speed: float = DEFAULT_SPEECH_SPEED,
+                         source_kind: str = "book", focus: str = "", urls: Optional[list[str]] = None,
+                         structure_hint: str = "") -> str:
     """APIを使わずに、Claudeのチャット画面（claude.ai）で台本を作ってもらうためのプロンプト。
 
     本のファイルをチャットに添付し、このプロンプトを貼り付ける。返ってきたJSONを「台本JSONを読み込む」に貼る。
@@ -483,11 +621,14 @@ def manual_script_prompt(style: str = "normal", target_minutes: float = 5, num_p
     else:
         first_step = "添付した本を読み、上のルールで台本を作ってください。"
     return "\n\n".join(filter(None, [
-        _script_system(style, target_minutes, num_points, speech_speed, how_points) + research_script_rules(source_kind),
+        _script_system(style, target_minutes, speech_speed, structure_hint) + research_script_rules(source_kind),
         first_step + "出力は次の形式のJSONだけにしてください"
         "（blocks には section・phase・slide・lines を、各セリフには speaker・expression・text・se・hide・show_book・board・image・caption・image_request・image_name を必ず書く。"
         "トップレベルには book_title・author・title_candidates・video_title・description_lead・hashtags・tags・readings も書く）。"
-        "形式の例（blocks の中身の書き方の参考。セリフの内容や分量は上のルールに従う）:",
+        + ("さらにトップレベルに、本編紹介ショートの promo_short "
+           '（{"title_candidates": [...], "video_title": "...", "description_lead": "...", "hashtags": [...], "tags": [...], '
+           '"blocks": [本編と同じ形のブロック]}）も必ず書く。' if style != "short" else "")
+        + "形式の例（blocks の中身の書き方の参考。セリフの内容や分量は上のルールに従う）:",
         "```json\n" + sample_script_text() + "\n```",
         f'最後に、トップレベルに "style": "{style}" を必ず入れてください。',
         _hints_text(title_hint, author_hint, worry_hint),
@@ -606,13 +747,13 @@ def analyze_book(book_text: str, title_hint: str = "", author_hint: str = "", wo
                  ANALYSIS_MAX_TOKENS, progress or (lambda _m: None))
 
 
-def generate_script(analysis: dict, style: str = "normal", target_minutes: float = 5, num_points: int = 3,
+def generate_script(analysis: dict, style: str = "normal", target_minutes: float = 5,
                     worry_hint: str = "", progress: Optional[ProgressCallback] = None,
-                    speech_speed: float = DEFAULT_SPEECH_SPEED, how_points: int = 3) -> AIResult:
+                    speech_speed: float = DEFAULT_SPEECH_SPEED, structure_hint: str = "") -> AIResult:
     """② 分析結果から、ずんだもんと四国めたんの掛け合い台本（台本JSON）を作る。
 
-    style="normal" は横画面の通常の解説動画（target_minutes 分・num_points 個のポイント）、
-    style="short" は縦画面の約1分のショート動画（ポイントは1つ。target_minutes・num_points は使わない）。
+    style="normal" は横画面の通常の解説動画（target_minutes 分。構成とポイントの数はAIが本の内容から選ぶ）、
+    style="short" は縦画面の約1分のショート動画（ポイントは1つ。target_minutes は使わない）。
     """
     instruction = "\n\n".join(filter(None, [
         "次の分析結果をもとに、動画の台本を書いてください。",
@@ -620,17 +761,23 @@ def generate_script(analysis: dict, style: str = "normal", target_minutes: float
         f"ずんだもんの悩みは「{worry_hint.strip()}」を中心にしてください。" if worry_hint.strip() else "",
     ]))
     source_kind = "research" if analysis.get("source_kind") == "research" else "book"
-    result = _call(_script_system(style, target_minutes, num_points, speech_speed, how_points)
+    result = _call(_script_system(style, target_minutes, speech_speed, structure_hint)
                    + research_script_rules(source_kind),
                    [{"type": "text", "text": instruction}],
-                   _script_schema(), SCRIPT_MAX_TOKENS, progress or (lambda _m: None))
+                   _script_schema(with_promo=style != "short"), SCRIPT_MAX_TOKENS, progress or (lambda _m: None))
     result.data["style"] = style
     if source_kind == "research":
         result.data["source_kind"] = "research"
         result.data["sources"] = analysis.get("sources") or []
         result.data["author"] = ""
-    # 構造化出力の都合で全項目を必須にしているため、未使用の値（空の効果音・空のhide）は取り除いておく
-    for block in result.data.get("blocks", []):
+    tidy_script_lines(result.data, source_kind)
+    return result
+
+
+def tidy_script_lines(data: dict, source_kind: str = "book") -> None:
+    """構造化出力の都合で全項目を必須にしているため、未使用の値（空の効果音・空のhide）を取り除く（本編紹介ショートも）。"""
+    promo_blocks = (data.get("promo_short") or {}).get("blocks") or [] if isinstance(data.get("promo_short"), dict) else []
+    for block in list(data.get("blocks", [])) + list(promo_blocks):
         for line in block.get("lines", []):
             if not line.get("se"):
                 line.pop("se", None)
@@ -652,9 +799,11 @@ def generate_script(analysis: dict, style: str = "normal", target_minutes: float
                 line.pop("note", None)
             if not line.get("bullet"):
                 line.pop("bullet", None)
+        for key in ("background", "background_request", "background_name"):
+            if not block.get(key):
+                block.pop(key, None)
         if block.get("section") == "intro" and not (block.get("slide") or {}).get("title"):
             block.pop("slide", None)  # 導入は黒板を出さない
-    return result
 
 
 # ---------------------------------------------------------------------------
@@ -723,7 +872,7 @@ _RESEARCH_SCRIPT_RULES = """
 - 解説では「〇〇大学の研究によると」「〇〇年の調査では」「WHOによると」のように、出典をセリフで示す（黒板にも「〇〇大学の研究」のように書いてよい）。
 - 数字・研究結果は分析結果にあるものだけを使い、作らない。1つの研究だけで言い切りすぎず（「〜という研究結果があるわ」「まだ研究の途中だけど」）、相関と因果を混同しない。
 - 健康・医療・お金の話では、めたんが一言「個人差があるから、気になる人は専門家に相談してね」のように添える。
-- タイトル・説明文・ハッシュタグに「本要約」「書評」は使わない。タイトルは【研究で判明】【論文で解説】【データで解説】などを使う。hashtags は「ずんだもん解説」・テーマ・関連キーワードの3つ。book_title には動画のテーマ名を、author には空文字を書く。"""
+- タイトル・説明文・ハッシュタグに「本要約」「書評」は使わない。タイトルも先頭は【ずんだもん解説】にし、「研究で判明」「データで分かった」などはその後ろの本文に入れてよい。hashtags は、研究のテーマに関係する一般的な言葉（例: 睡眠、健康、勉強法、雑学、ライフハック）にする。book_title には動画のテーマ名を、author には空文字を書く。"""
 
 _MANUAL_RESEARCH_STEP = """まず、次のテーマについて Web検索で信頼できる情報（学術論文（メタ分析・大規模研究を優先）、公的機関の資料・統計、専門家の記事）を日本語と英語で調べ、重要なものは本文を読んで数字を確かめてください。個人ブログ・まとめサイト・広告記事は根拠にしないでください。調べた内容をもとに、上のルールで台本を作ってください。
 トップレベルに "source_kind": "research" と、"sources": [{"title": ..., "publisher": ..., "year": ..., "kind": "論文/公的資料/記事", "url": ...}]（実際に確認できた出典だけ）も入れてください。"""

@@ -33,6 +33,7 @@ from src.utils.asset_loader import (
     get_expression_image_path,
     has_expression_assets,
     is_video_path,
+    list_characters,
 )
 
 PLACEHOLDER_SIZE = (600, 900)
@@ -43,6 +44,13 @@ CHARACTER_HEIGHT_RATIO = 0.92  # 立ち絵の高さ = 画面の高さに対す�
 # 画面左から順に配置するキャラクター（左:四国めたん、右:ずんだもん）
 DUAL_CHARACTER_ORDER = ("shikoku_metan", "zundamon")
 DUAL_CHARACTER_CENTER_X_RATIOS = (0.095, 0.905)   # 各キャラクターの水平中心位置（画面幅に対する比率。端寄りに配置）
+# 描く順番（後ろ → 前）。ゲスト（春日部つむぎ）はめたんの隣（内側）に立つ。縦画面でもめたんの隣
+# （黒板を出すシーンにはゲストを出さない。Scene.render_hidden を参照）
+CHARACTER_ORDER = ("kasukabe_tsumugi", "shikoku_metan", "zundamon")
+GUEST_CENTER_X_RATIO = 0.27
+GUEST_PORTRAIT_CENTER_X_RATIO = 0.30
+# ゲストがいる横画面では、イラスト・写真を中央のまま少し小さくして、ゲストとの重なりを減らす
+GUEST_MEDIA_SCALE = 0.78
 DUAL_CHARACTER_MAX_WIDTH_RATIO = 0.40           # 1人あたりの最大幅（画面幅に対する比率）
 DUAL_CHARACTER_MAX_HEIGHT_RATIO = 0.80          # 1人あたりの最大高さ（画面高さに対する比率・横画面）
 DUAL_CHARACTER_PORTRAIT_MAX_HEIGHT_RATIO = 0.34  # 同上（縦画面。上部の資料エリアを広く取るため小さめ）
@@ -65,16 +73,7 @@ CONTENT_MEDIA_PORTRAIT_MAX_WIDTH_RATIO = 0.94
 CONTENT_MEDIA_PORTRAIT_MAX_HEIGHT_RATIO = 0.60
 CONTENT_MEDIA_PORTRAIT_TOP_MARGIN_RATIO = 0.04
 
-# 「ビフォーアフター」（1シーンで2枚の画像を左右に並べて見せる）のレイアウト設定。
-# 資料メディアと同じ画面上部〜中央のエリアを、2枚の画像で左右に分割して使う
-# （静止画2枚のみ対応。動画には非対応）。
-BEFORE_AFTER_AREA_WIDTH_RATIO = 0.90     # 2枚合わせて使う横幅（画面幅に対する比率）
-BEFORE_AFTER_AREA_HEIGHT_RATIO = 0.58    # 1枚あたりの最大高さ（画面高さに対する比率。資料メディアと同じ）
-BEFORE_AFTER_TOP_MARGIN_RATIO = 0.05     # 画面上端からの余白（画面比率）
-BEFORE_AFTER_GAP_RATIO = 0.02            # 2枚の画像の間の隙間（画面幅に対する比率）
-BEFORE_AFTER_LABEL_COLOR = "white"
-BEFORE_AFTER_LABEL_BG_COLOR = (0, 0, 0, 170)
-BEFORE_AFTER_LABEL_FONT_SIZE_RATIO = 0.035  # ラベル文字サイズ（画面短辺に対する比率）
+
 
 # PR/広告表記バッジのレイアウト設定。動画全体・常時、画面右上に固定表示する
 # （ステマ規制対応。表示の有無・文言はプロジェクト設定で切り替え可能）。
@@ -307,15 +306,26 @@ def illustration_max_size(resolution: tuple[int, int]) -> tuple[int, int]:
     return round(width * ILLUSTRATION_MAX_WIDTH_RATIO), round(height * ILLUSTRATION_MAX_HEIGHT_RATIO)
 
 
-def place_content_media(media_img: Image.Image, resolution: tuple[int, int]) -> tuple[Image.Image, tuple[int, int]]:
+def guest_on_screen(resolution: tuple[int, int], hidden_characters: Collection[str]) -> bool:
+    """ゲストが画面にいる横画面か（イラスト・写真を少し小さくする）。"""
+    return resolution[0] >= resolution[1] and any(
+        g in list_characters() and g not in hidden_characters for g in CHARACTER_ORDER if g not in DUAL_CHARACTER_ORDER
+    )
+
+
+def place_content_media(media_img: Image.Image, resolution: tuple[int, int],
+                        guest: bool = False) -> tuple[Image.Image, tuple[int, int]]:
     """資料メディアを枠に収まるサイズに縮小し、(縮小後の画像, 貼り付け位置(左上)) を返す。
 
     イメージイラスト（読み込み時に info["layout"] == "illustration" を付けた画像）は、黒板より大きな枠に置く。
+    guest=True（ゲストがいる横画面）は、中央のまま少し小さくする（多少キャラクターと重なってもよい）。
     """
     if media_img.info.get("layout") == "illustration":
         max_w, max_h = illustration_max_size(resolution)
     else:
         max_w, max_h = content_media_max_size(resolution)
+    if guest:
+        max_w, max_h = round(max_w * GUEST_MEDIA_SCALE), round(max_h * GUEST_MEDIA_SCALE)
     target_w, target_h = _fit_size(media_img.size, max_w, max_h)
     resized = media_img if (target_w, target_h) == media_img.size else media_img.resize((target_w, target_h), Image.LANCZOS)
     x = (resolution[0] - target_w) // 2
@@ -325,9 +335,10 @@ def place_content_media(media_img: Image.Image, resolution: tuple[int, int]) -> 
     return resized, (x, y)
 
 
-def paste_content_media(canvas: Image.Image, media_img: Image.Image, resolution: tuple[int, int]) -> None:
-    """資料メディアを画面上部〜中央に、containフィット・水平中央揃えで貼り付ける。"""
-    resized, position = place_content_media(media_img, resolution)
+def paste_content_media(canvas: Image.Image, media_img: Image.Image, resolution: tuple[int, int],
+                        guest: bool = False) -> None:
+    """資料メディアを画面上部〜中央に、containフィット・水平中央揃えで貼り付ける（guest は place_content_media）。"""
+    resized, position = place_content_media(media_img, resolution, guest)
     canvas.paste(resized, position, resized)
 
 
@@ -338,25 +349,6 @@ def _fit_size(src_size: tuple[int, int], max_w: int, max_h: int) -> tuple[int, i
     return max(1, round(src_w * scale)), max(1, round(src_h * scale))
 
 
-def load_before_after_images(
-    before_path: Optional[str], after_path: Optional[str]
-) -> Optional[tuple[Image.Image, Image.Image]]:
-    """ビフォーアフター用の2枚の画像を読み込む。
-
-    2枚そろって初めて成立する表示のため、どちらか一方でも未指定/読み込み失敗の場合は
-    Noneを返す（片方だけの中途半端な表示はしない。呼び出し側は通常の資料メディア表示に
-    フォールバックする）。現状は静止画のみ対応（動画ファイルは非対応）。
-    """
-    if not before_path or not after_path:
-        return None
-    try:
-        before_img = Image.open(before_path).convert("RGBA")
-        after_img = Image.open(after_path).convert("RGBA")
-        return before_img, after_img
-    except Exception:  # noqa: BLE001 - 読み込み失敗要因は多岐にわたるため広く捕捉してフォールバックする
-        return None
-
-
 def _draw_label_badge(
     canvas: Image.Image,
     text: str,
@@ -365,7 +357,7 @@ def _draw_label_badge(
     text_color: str,
     bg_color: tuple[int, int, int, int],
 ) -> None:
-    """半透明の背景ボックス付きの小さなラベル文字を描画する（Before/After・PR表記で共通利用）。"""
+    """半透明の背景ボックス付きの小さなラベル文字を描画する（PR表記で使用）。"""
     draw = ImageDraw.Draw(canvas)
     font = telop.load_font(telop.resolve_font_path(), font_size)
     pad_x = round(font_size * 0.5)
@@ -379,44 +371,6 @@ def _draw_label_badge(
     radius = max(3, round(font_size * 0.25))
     draw.rounded_rectangle([x0, y0, x0 + box_w, y0 + box_h], radius=radius, fill=bg_color)
     draw.text((x0 + pad_x - bbox[0], y0 + pad_y - bbox[1]), text, font=font, fill=text_color)
-
-
-def paste_before_after(
-    canvas: Image.Image,
-    before_img: Image.Image,
-    after_img: Image.Image,
-    resolution: tuple[int, int],
-) -> None:
-    """ビフォーアフター画像2枚を、画面上部〜中央に左右分割・containフィットで貼り付ける。
-
-    資料メディアと同じ画面エリア（上部〜中央、立ち絵・テロップと重ならない範囲）を
-    2分割して使う。それぞれの画像の左上に「BEFORE」「AFTER」のラベルバッジを重ねる。
-    """
-    area_width = round(resolution[0] * BEFORE_AFTER_AREA_WIDTH_RATIO)
-    gap = round(resolution[0] * BEFORE_AFTER_GAP_RATIO)
-    half_max_w = max(1, (area_width - gap) // 2)
-    half_max_h = max(1, round(resolution[1] * BEFORE_AFTER_AREA_HEIGHT_RATIO))
-    area_left = (resolution[0] - area_width) // 2
-    top_y = round(resolution[1] * BEFORE_AFTER_TOP_MARGIN_RATIO)
-    font_size = max(10, round(min(resolution) * BEFORE_AFTER_LABEL_FONT_SIZE_RATIO))
-
-    slots = [
-        ("BEFORE", before_img, area_left),
-        ("AFTER", after_img, area_left + half_max_w + gap),
-    ]
-    for label, img, slot_left in slots:
-        target_w, target_h = _fit_size(img.size, half_max_w, half_max_h)
-        resized = img.resize((target_w, target_h), Image.LANCZOS)
-        x = slot_left + (half_max_w - target_w) // 2
-        canvas.paste(resized, (x, top_y), resized)
-        _draw_label_badge(
-            canvas,
-            label,
-            (x + round(font_size * 0.3), top_y + round(font_size * 0.3)),
-            font_size,
-            BEFORE_AFTER_LABEL_COLOR,
-            BEFORE_AFTER_LABEL_BG_COLOR,
-        )
 
 
 def render_pr_label_overlay(resolution: tuple[int, int], text: str) -> Image.Image:
@@ -561,9 +515,9 @@ def _paste_dual_characters(
     話していないもう一方のキャラクターは、そのキャラクターの既定表情
     (config/characters.jsonのdefault_expression)で口を閉じた待機状態にする。
     """
-    for character_key in DUAL_CHARACTER_ORDER:
+    for character_key in CHARACTER_ORDER:
         # 非表示にしたキャラクターは描かない（もう一方は定位置のまま。話者を隠した場合は声だけになる）
-        if character_key in hidden_characters:
+        if character_key in hidden_characters or character_key not in _drawable_characters():
             continue
         if character_key == active_speaker:
             expression, mouth_open = active_expression, active_mouth_open
@@ -616,18 +570,29 @@ def _character_sprite_cached(
     char_img = _crop_bust_up(char_img, DUAL_CHARACTER_CROP_TOP_RATIO)
     target_w, target_h = _fit_size(char_img.size, max_w, max_h)
     resized = char_img.resize((target_w, target_h), Image.LANCZOS)
-    center_ratio = DUAL_CHARACTER_CENTER_X_RATIOS[DUAL_CHARACTER_ORDER.index(character_key)] \
-        if character_key in DUAL_CHARACTER_ORDER else 0.5
+    center_ratio = _center_ratio(character_key, resolution)
     x = round(resolution[0] * center_ratio) - target_w // 2
     y = resolution[1] - target_h - bottom_margin
     return resized, (x, y)
+
+
+def _center_ratio(character_key: str, resolution: tuple[int, int]) -> float:
+    """キャラクターの立つ水平位置（画面幅に対する比率）。"""
+    if character_key in DUAL_CHARACTER_ORDER:
+        return DUAL_CHARACTER_CENTER_X_RATIOS[DUAL_CHARACTER_ORDER.index(character_key)]
+    return GUEST_PORTRAIT_CENTER_X_RATIO if resolution[1] > resolution[0] else GUEST_CENTER_X_RATIO
+
+
+def _drawable_characters() -> set[str]:
+    """描けるキャラクター（2人＋素材がそろっているゲスト）。ゲストの素材が無ければ描かない。"""
+    return set(DUAL_CHARACTER_ORDER) | set(list_characters())
 
 
 def character_side(character_key: str) -> int:
     """キャラクターが画面の左右どちら側にいるか（左=-1、右=+1）。登場時にどちらから入ってくるかに使う。"""
     if character_key in DUAL_CHARACTER_ORDER:
         return -1 if DUAL_CHARACTER_CENTER_X_RATIOS[DUAL_CHARACTER_ORDER.index(character_key)] < 0.5 else 1
-    return 1
+    return -1  # ゲストは左（めたんの側）から入ってくる
 
 
 def dual_character_sprites(
@@ -639,8 +604,8 @@ def dual_character_sprites(
 ) -> dict[str, dict[bool, tuple[Image.Image, tuple[int, int]]]]:
     """表示する各キャラクターの立ち絵を {キャラ: {口開き(True/False): (画像, 定位置)}} で返す（動き付きの合成用）。"""
     sprites = {}
-    for character_key in DUAL_CHARACTER_ORDER:
-        if character_key in hidden_characters:
+    for character_key in CHARACTER_ORDER:
+        if character_key in hidden_characters or character_key not in _drawable_characters():
             continue
         if character_key == active_speaker:
             sprites[character_key] = {
@@ -659,8 +624,6 @@ def compose_dual_scene_frame(
     background_path: Optional[str],
     resolution: tuple[int, int],
     content_media_path: Optional[str] = None,
-    before_image_path: Optional[str] = None,
-    after_image_path: Optional[str] = None,
     pr_label_overlay: Optional[Image.Image] = None,
     hidden_characters: Collection[str] = (),
     partner_expression: Optional[str] = None,
@@ -674,20 +637,14 @@ def compose_dual_scene_frame(
 
     content_media_path を指定すると、背景の上・立ち絵の下のレイヤーとして、
     画面中央上部に写真/動画（資料メディア）をcontainフィットで重ねる。
-    before_image_path と after_image_path が両方そろっている場合は、
-    そちらを優先してビフォーアフター（左右分割）表示にする（content_media_pathは使われない）。
     pr_label_overlay を渡すと、一番上のレイヤーとしてPR/広告表記バッジを重ねる
     （render_pr_label_overlay()で事前に作った画像をそのまま渡す想定）。
     """
     canvas = load_background_image(background_path, resolution, background_blur, mood)
 
-    before_after = load_before_after_images(before_image_path, after_image_path)
-    if before_after is not None:
-        paste_before_after(canvas, before_after[0], before_after[1], resolution)
-    else:
-        media_img = load_content_media_image(content_media_path)
-        if media_img is not None:
-            paste_content_media(canvas, media_img, resolution)
+    media_img = load_content_media_image(content_media_path)
+    if media_img is not None:
+        paste_content_media(canvas, media_img, resolution, guest_on_screen(resolution, hidden_characters))
 
     canvas = _paste_dual_characters(
         canvas, active_speaker, active_expression, active_mouth_open, resolution, hidden_characters, partner_expression

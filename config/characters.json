@@ -1,7 +1,9 @@
 {
   "zundamon": {
     "display_name": "ずんだもん",
-    "aliases": ["ずんだ"],
+    "aliases": [
+      "ずんだ"
+    ],
     "accent_color": "#5FAE3E",
     "default_expression": "normal",
     "telop": {
@@ -33,7 +35,9 @@
   },
   "shikoku_metan": {
     "display_name": "四国めたん",
-    "aliases": ["めたん"],
+    "aliases": [
+      "めたん"
+    ],
     "accent_color": "#E39AB8",
     "default_expression": "normal",
     "telop": {
@@ -59,6 +63,35 @@
       "laugh": "笑い",
       "blush": "照れ",
       "whisper": "ひそひそ"
+    }
+  },
+  "kasukabe_tsumugi": {
+    "display_name": "春日部つむぎ",
+    "aliases": [
+      "つむぎ",
+      "春日部"
+    ],
+    "accent_color": "#F2A33A",
+    "default_expression": "normal",
+    "guest": true,
+    "telop": {
+      "color": "#C8660E",
+      "stroke_color": "#FFFFFF",
+      "box_color": "#FFFFFFEB",
+      "border_color": "#F2A33A"
+    },
+    "expressions": {
+      "normal": "普通",
+      "happy": "喜び",
+      "laugh": "大笑い",
+      "surprised": "驚き",
+      "troubled": "困り",
+      "explain": "説明",
+      "point": "指さし",
+      "wink": "ウインク",
+      "smug": "ドヤ顔",
+      "sad": "悲しみ",
+      "angry": "怒り"
     }
   }
 }

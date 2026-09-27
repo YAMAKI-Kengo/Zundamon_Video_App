@@ -33,6 +33,7 @@ from src.services.compositor import (
     character_side,
     dual_character_sprites,
     load_content_media_image,
+    guest_on_screen,
     place_content_media,
 )
 
@@ -172,7 +173,7 @@ def entering_characters(project: Project, scene: Scene, prev: Optional[Scene]) -
     """前のシーンでは非表示で、このシーンから表示されるキャラクター（横から入ってくる）。"""
     if not project.char_slide_in or prev is None:
         return set()
-    return set(prev.hidden_characters) - set(scene.hidden_characters)
+    return set(prev.render_hidden) - set(scene.render_hidden)
 
 
 def _board_key(scene: Scene):
@@ -219,8 +220,6 @@ def board_change(project: Project, scene: Scene, prev: Optional[Scene]) -> Optio
 
 
 def needs_motion(project: Project, scene: Scene, ctx: SceneContext) -> bool:
-    if scene.before_image_path and scene.after_image_path:
-        return False  # ビフォーアフター表示のシーンは動き無し（従来どおりの合成）
     return (
         resolve_camera(project, scene) != "none"
         or resolve_shake(project, scene)
@@ -242,7 +241,7 @@ def _load_board(scene: Optional[Scene], resolution: tuple[int, int]):
     img = load_content_media_image(path)
     if img is None:
         return None
-    return place_content_media(img, resolution)
+    return place_content_media(img, resolution, guest_on_screen(resolution, scene.render_hidden))
 
 
 def _text_bands(diff: Image.Image) -> list[tuple[int, int, int, int]]:
@@ -319,7 +318,7 @@ def build_motion_clip(
 
     # --- 立ち絵 ---
     sprites = dual_character_sprites(
-        scene.speaker, scene.expression, resolution, scene.hidden_characters, scene.partner_expression
+        scene.speaker, scene.expression, resolution, scene.render_hidden, scene.partner_expression
     )
     motions = resolve_char_motion(project, scene, ctx.prev)
     entering = entering_characters(project, scene, ctx.prev) & set(sprites)

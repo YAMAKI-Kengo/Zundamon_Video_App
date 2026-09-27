@@ -1,124 +1,124 @@
 {
-  "theme": "大学入試リスニングに出るフレーズ",
-  "theme_en": "Key Phrases for University Entrance Exam Listening",
-  "goal": "大学入試リスニングによく出る遠回しな返事・予定の変化・条件の比較・反論・講義の展開・結論の合図を聞き取り、話し手の本当の意図と要点をつかめる",
+  "theme": "誘う・断る・日程調整の英語",
+  "theme_en": "Making Plans",
+  "goal": "友達や同僚を気軽に誘い、角を立てずに断り、日程を調整・変更・確認できる",
   "days": [
     {
       "day": 1,
-      "title": "遠回しな断り I'd love to, but 〜",
-      "situation": "大学のキャンパスで、留学生の友達を週末のバーベキューに誘うが、遠回しに断られる",
-      "zunda_trouble": "\"I'd love to, but …\" の I'd love to だけ聞いて「来てくれるのだ！」と喜び、友達の分まで肉を買ってしまう",
+      "title": "気軽に誘う Do you want to 〜?",
+      "situation": "同僚をランチや週末の予定に気軽に誘う",
+      "zunda_trouble": "Would you please go to lunch with me? と丁寧すぎる誘い方をして、デートの申し込みだと勘違いされて相手が固まる",
       "phrases": [
         {
-          "en": "I'd love to, but I have a paper due on Monday.",
-          "ja": "行きたいんだけど、月曜締め切りのレポートがあるんだ。",
-          "point": "I'd love to は前置きで、but の後が本当の答え（断り）になる入試頻出のパターン"
+          "en": "Do you want to grab lunch sometime this week?",
+          "ja": "今週どこかでランチでもどう？",
+          "point": "grab は「さっと〜する」の気軽な言い方で、grab a coffee / grab a drink のように飲食の誘いによく使う"
+        },
+        {
+          "en": "Are you free this Saturday?",
+          "ja": "今週の土曜って空いてる？",
+          "point": "予定を聞くいちばん自然な言い方で、free は「ひま」ではなく「予定が空いている」の意味、Are you busy? より前向きに聞こえる"
+        }
+      ],
+      "grammar": "Do you want to は会話では「ドゥユワナ」「ヤワナ」のように弱く速く読まれ、want to は wanna になる"
+    },
+    {
+      "day": 2,
+      "title": "誘いに乗る I'd love to!",
+      "situation": "誘われて喜んでOKし、時間を相手に合わせる",
+      "zunda_trouble": "誘われて Yes. OK. とだけ返事し、そっけなさすぎて相手に「本当は行きたくないのかな」と思われる",
+      "phrases": [
+        {
+          "en": "I'd love to! What time works for you?",
+          "ja": "ぜひ！何時がいい？",
+          "point": "What time works for you? は相手の都合を優先して聞く定番で、What time is good? より気づかいが伝わる"
+        },
+        {
+          "en": "Sounds good. Count me in!",
+          "ja": "いいね、私も入れて！",
+          "point": "Count me in は「参加する」のくだけた言い方で、反対に参加しないときは Count me out と言う"
+        }
+      ],
+      "grammar": "I'd love to の to の後ろは、くり返しを避けて動詞を省略する（I'd love to (go).）。to は最後まで弱めずにはっきり言う"
+    },
+    {
+      "day": 3,
+      "title": "角を立てずに断る I'd love to, but 〜",
+      "situation": "誘いを断りつつ、また誘ってほしい気持ちを伝える",
+      "zunda_trouble": "断るつもりで No, I can't. とだけ言い放ち、冷たく聞こえて相手ががっかりする",
+      "phrases": [
+        {
+          "en": "I'd love to, but I already have plans.",
+          "ja": "行きたいんだけど、もう予定が入ってて。",
+          "point": "2日目の I'd love to に but をつけるだけで、気持ちは前向きなまま上手に断れる"
         },
         {
           "en": "Can I take a rain check?",
           "ja": "また今度にしてもいい？",
-          "point": "誘いを断るときに「次の機会に」とつなぐ決まり文句で、Maybe next time? とも言える"
+          "point": "rain check は「次の機会にまた誘ってほしい」という意味で、ただの No より関係を大切にしている印象になる"
         }
       ],
-      "grammar": "I'd love to の to の後ろは come が省略されている（代不定詞）。to で文が止まっても「〜したい」の意味が残る"
-    },
-    {
-      "day": 2,
-      "title": "予定と違った It turns out 〜",
-      "situation": "図書館で勉強する予定だったが休館だとわかり、友達と別の場所を探す（Day1の I'd love to, but 〜 も使う）",
-      "zunda_trouble": "\"It turns out\" を「ひっくり返る」と直訳して、「図書館がひっくり返ったのだ？」と大騒ぎする",
-      "phrases": [
-        {
-          "en": "I was going to study at the library, but it's closed today.",
-          "ja": "図書館で勉強するつもりだったんだけど、今日は休館なんだ。",
-          "point": "was going to 〜 は「〜するつもりだった（けどしなかった）」で、予定が変わった合図になる"
-        },
-        {
-          "en": "It turns out the café on campus is open until nine.",
-          "ja": "実は、キャンパスのカフェが9時まで開いてるんだって。",
-          "point": "It turns out (that) 〜 は「調べたら〜だとわかった」で、新しくわかった事実を伝えるときに使う"
-        }
-      ],
-      "grammar": "was going to は会話では \"was gonna\"（ワズガナ）と聞こえることが多く、going to を探していると聞き逃す"
-    },
-    {
-      "day": 3,
-      "title": "条件で比べる It's 〜, but it's much 〜",
-      "situation": "新学期に住むアパートを友達と比べ、家賃・距離・広さの条件で1つに決める（Day2の It turns out 〜 も使う）",
-      "zunda_trouble": "\"It's a bit far, but …\" の far だけ聞いて候補から外し、いちばん安い部屋を自分で消してしまう",
-      "phrases": [
-        {
-          "en": "It's a bit far from campus, but it's much cheaper.",
-          "ja": "キャンパスから少し遠いけど、ずっと安いよ。",
-          "point": "短所と長所を but でつなぐ形で、条件選択の問題では but の後の長所が決め手になりやすい"
-        },
-        {
-          "en": "What matters most to me is being close to the station.",
-          "ja": "僕にとって一番大事なのは、駅に近いことなんだ。",
-          "point": "What matters most (to me) is 〜 で優先順位をはっきり言え、入試ではこの部分が正解の条件になる"
-        }
-      ],
-      "grammar": "比較級の強調は much / a lot を使う（much cheaper）。very cheaper とは言わない"
+      "grammar": "決まっている予定は現在進行形で言う（I'm meeting my parents on Saturday.）。will や be going to より確定した予定に聞こえる"
     },
     {
       "day": 4,
-      "title": "やわらかく反論する That's a fair point, but 〜",
-      "situation": "ゼミのディスカッションで「大学生はアルバイトをすべきか」について意見を言い合う",
-      "zunda_trouble": "反対意見を言おうとして \"No, you're wrong!\" と言い放ち、ゼミの空気を凍らせる",
+      "title": "別の日を提案する How about 〜 instead?",
+      "situation": "都合が合わないので、別の日時を提案して調整する",
+      "zunda_trouble": "「Friday is OK?」と上げ調子だけで聞き、相手が質問か断定か分からず混乱する",
       "phrases": [
         {
-          "en": "That's a fair point, but students need time to study, too.",
-          "ja": "それはもっともだけど、学生には勉強する時間も必要だよ。",
-          "point": "相手の意見を一度認めてから反論する形で、話し手の本当の立場は but の後にある"
+          "en": "How about Thursday instead?",
+          "ja": "代わりに木曜はどう？",
+          "point": "How about 〜? の後ろは名詞か -ing（How about meeting at six?）で、instead をつけると「その代わりに」の気持ちが伝わる"
         },
         {
-          "en": "I'm not so sure about that.",
-          "ja": "それはどうかなあ。",
-          "point": "I disagree. よりやわらかい反対の表明で、リスニングでは「この人は反対派」と判断する手がかりになる"
+          "en": "Does Friday evening work for you?",
+          "ja": "金曜の夜は都合どう？",
+          "point": "2日目の work for you を使った聞き方で、主語を日時にすると Are you OK on Friday? より自然"
         }
       ],
-      "grammar": "fair point は t が落ちて「フェアポイン」と聞こえ、That's a は「ザッツァ」とつながる"
+      "grammar": "work は「働く」だけでなく「（予定が）うまくいく・都合がいい」の意味でよく使う（That works for me. = それで大丈夫）"
     },
     {
       "day": 5,
-      "title": "講義の流れをつかむ In other words, 〜",
-      "situation": "大学の授業で、教授が「睡眠と記憶」について話す短い講義を聞いてメモを取る",
-      "zunda_trouble": "\"In other words\" の前と後を別々のポイントだと思い、同じ内容を2回ノートに書いて混乱する",
+      "title": "予定を変更する Can we push it back?",
+      "situation": "急な用事ができて、約束の日時を後ろにずらしてもらう",
+      "zunda_trouble": "予定を変えたくて Let's change the schedule! と勢いよく言い、何が起きたか説明しないまま相手を置き去りにする",
       "phrases": [
         {
-          "en": "In other words, sleep helps your brain store new information.",
-          "ja": "言いかえると、睡眠は脳が新しい情報を記憶するのを助けるのです。",
-          "point": "In other words の後は直前の内容をやさしく言い直すので、難しい部分を聞き逃してもここで取り戻せる"
+          "en": "Something came up. Can we push it back to next week?",
+          "ja": "急な用事ができちゃって。来週にずらせる？",
+          "point": "Something came up は理由を細かく言わずに済む便利な一言で、push back は「予定を後ろにずらす」、前にずらすなら move up"
         },
         {
-          "en": "Now, let's move on to the second reason.",
-          "ja": "では、2つ目の理由に移りましょう。",
-          "point": "move on to 〜 は話題が次へ進む合図で、講義問題では「理由がいくつあるか」を数える目印になる"
+          "en": "Sorry for the short notice.",
+          "ja": "急な連絡でごめんね。",
+          "point": "short notice は「直前の連絡」の意味で、変更やキャンセルを伝えるときに添えると印象がやわらぐ"
         }
       ],
-      "grammar": "In other words は「インナザワーズ」とつながり、other の前の n と o がくっついて聞こえる"
+      "grammar": "句動詞の目的語が it や them などの代名詞のときは、必ず間にはさむ（push it back ○ / push back it ×）"
     },
     {
       "day": 6,
-      "title": "結論を聞き取る The bottom line is 〜",
-      "situation": "グループ発表の最後に、発表者が調査結果の結論をまとめる（Day4の That's a fair point, but 〜 で質疑応答もする）",
-      "zunda_trouble": "発表の途中の具体例ばかりメモして、最後の \"The bottom line is …\" を聞き逃し、結論が書けない",
+      "title": "約束を確認する Are we still on for 〜?",
+      "situation": "前日にメッセージで、決めた約束の時間と場所を確認する",
+      "zunda_trouble": "確認のつもりで Don't forget our promise! と送り、promise の重さに相手がびっくりする",
       "phrases": [
         {
-          "en": "The bottom line is that most students want more study space.",
-          "ja": "結論としては、ほとんどの学生がもっと勉強スペースを求めているということです。",
-          "point": "The bottom line is 〜 は「要するに・結論は」で、In conclusion より会話的で今よく使われる"
+          "en": "Just to confirm, are we still on for Friday at seven?",
+          "ja": "念のため確認だけど、金曜の7時で変わりない？",
+          "point": "be still on for 〜 は「予定どおり〜の約束は生きている？」の定番で、4日目・5日目で決めた日時の確認にそのまま使える"
         },
         {
-          "en": "On the other hand, some students prefer studying at home.",
-          "ja": "一方で、家で勉強するほうがいいという学生もいます。",
-          "point": "On the other hand は対立する情報の合図で、グラフ問題では少数派の意見を示すことが多い"
+          "en": "Let me know if anything changes.",
+          "ja": "何か変わったら教えてね。",
+          "point": "Let me know は「教えて」の気軽な言い方で、Please tell me より自然、if 以下を変えれば何にでも応用できる"
         }
       ],
-      "grammar": "bottom の t はアメリカ英語で弱いラ行のような音になり、「バダム」「バラム」に近く聞こえる"
+      "grammar": "約束は英語で promise ではなく plans（make plans / have plans）。promise は「誓い」に近く、日常の予定には使わない"
     }
   ],
-  "next_theme_idea": "大学生活で使う英語（授業の質問・サークル・履修相談）",
+  "next_theme_idea": "お店で買い物・返品をする英語",
   "week": 1,
   "level": "b1"
 }

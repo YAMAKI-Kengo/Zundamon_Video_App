@@ -35,6 +35,7 @@ VOICEVOX_BASE_URL = "http://localhost:50021"
 VOICEVOX_SPEAKER_IDS: dict[str, int] = {
     "zundamon": 3,        # ずんだもん（ノーマル）
     "shikoku_metan": 2,   # 四国めたん（ノーマル）
+    "kasukabe_tsumugi": 8,  # 春日部つむぎ（ノーマル）
 }
 
 CONNECT_TIMEOUT = 3.0     # 起動確認・クエリ生成用の接続タイムアウト（秒）

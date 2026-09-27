@@ -19,12 +19,16 @@ import streamlit as st
 
 from src.models import MOOD_LABELS, Project
 
-from src.services import book_ai, book_loader, book_script, motion, slide_renderer, thumbnail, video_metadata
+from src.services import (
+    book_ai, book_loader, book_script, motion, promo_short, slide_renderer, thumbnail, video_metadata,
+)
 from src.ui.preview_cache import scene_preview
-from src.state import forget_scene_widgets, get_project
+from src.state import forget_scene_widgets, get_project, set_project
 from src.utils.asset_loader import get_available_expressions, get_character_display_name, get_expression_label
 
 _BOOK_IMPORT_FLASH_KEY = "_book_import_flash"
+_PROMO_PAIR_KEY = "_promo_pair"
+_PROMO_FLASH_KEY = "_promo_flash"
 USD_TO_JPY = 150  # 費用の目安表示用のレート
 BOOK_COVER_DIR = Path(__file__).resolve().parents[2] / "assets" / "books"
 STYLE_LABELS = {"normal": "通常（横画面・数分）", "short": "ショート（縦画面・約1分）"}
@@ -55,15 +59,20 @@ def _import_script(project: Project, script_text: str, use_voicevox_timing: bool
         return False
     book_script.apply_to_project(project, result, replace=replace_existing)
     book_script.sync_background_to_format(project)
-    for key in ("meta_title", "meta_description", "meta_tags", "meta_title_candidate", "reading_dict_editor",
-                "thumb_text", "thumb_sub", "thumb_zundamon", "thumb_metan", "thumb_image"):
+    pair = st.session_state.get(_PROMO_PAIR_KEY)
+    if pair and pair["main"] is project:
+        st.session_state.pop(_PROMO_PAIR_KEY, None)  # 台本が変わったので、前のショートは使わない
+    for key in ("meta_title", "meta_description", "meta_tags", "meta_title_candidate", "meta_x_post", "reading_dict_editor"):
         st.session_state.pop(key, None)
+    for key in [k for k in st.session_state.keys() if str(k).startswith("thumb_") and not str(k).startswith("thumb_dl_")]:
+        del st.session_state[key]
     timing = "VOICEVOXの読み上げ時間に合わせました" if result.used_voicevox_timing else "文字数からの概算です"
     st.session_state[_BOOK_IMPORT_FLASH_KEY] = {
         "success": (
             f"{len(result.scenes)}件のシーンを生成しました（合計 約{sum(s.duration for s in result.scenes):.0f}秒・"
             f"表示秒数は{timing}）。下の「構成の確認」で内容を確認してください。"
             + ("（ショート用の台本なので、出力フォーマットを縦画面に切り替えました）" if result.style == "short" else "")
+            + ("本編紹介ショートの台本も読み込みました（構成の確認の最後から作れます）。" if result.promo_short else "")
         ),
         "warnings": result.warnings,
     }
@@ -138,23 +147,22 @@ def _render_ai_generation(project: Project) -> None:
             help="空欄なら、本の内容から自動で決めます。",
         )
         if style == "short":
-            target_minutes, num_points, how_points = book_ai.SHORT_TARGET_SECONDS / 60, 1, 0
+            target_minutes, structure_hint = book_ai.SHORT_TARGET_SECONDS / 60, ""
             st.caption(f"ショート: 縦画面・約{book_ai.SHORT_TARGET_SECONDS}秒・ポイント1つ（冒頭1〜2秒のつかみ → 答え → オチ → ループ）")
         else:
             st.caption(
-                "構成: 導入（ずんだもんが張り切って始める → 失敗 → めたん登場「そんなんじゃだめよ」）"
-                " → 解説①なぜ失敗したのか → 解説②成功させるには → まとめ"
+                "構成: 導入（ずんだもんが張り切って始める → 失敗・勘違い → めたん登場「そんなんじゃだめよ」）→ 解説 → まとめ。"
+                "解説の組み立て（失敗と成功・思い込みと真実・ランキング・Q&A・ステップ・ストーリーなど）とポイントの数は、"
+                "本の内容と動画の長さに合わせてAIが選びます。"
             )
-            col_len, col_why, col_how = st.columns(3)
+            col_len, col_hint = st.columns([1, 2])
             target_minutes = col_len.select_slider(
-                "動画の長さの目安（エンディング除く）", options=[3, 5, 8, 10, 15], value=5,
+                "動画の長さの目安（エンディング除く）", options=[3, 5, 8, 10, 12, 15, 20], value=8,
                 format_func=lambda m: f"約{m}分", key="ai_target_minutes",
             )
-            num_points = col_why.select_slider(
-                "「失敗の理由」の数", options=[1, 2, 3, 4], value=2, key="ai_why_points",
-            )
-            how_points = col_how.select_slider(
-                "「成功のコツ」の数", options=[1, 2, 3, 4, 5], value=3, key="ai_how_points",
+            structure_hint = col_hint.text_input(
+                "構成の希望（任意）", key="ai_structure_hint",
+                placeholder="例: ランキング形式で / Q&A形式で / 失敗の理由と成功のコツに分けて（空欄ならおまかせ）",
             )
 
         if mode.startswith("手動"):
@@ -164,8 +172,8 @@ def _render_ai_generation(project: Project) -> None:
             )
             st.code(
                 book_ai.manual_script_prompt(
-                    style, target_minutes, num_points, title_hint, author_hint, worry_hint, project.speech_speed,
-                    how_points, source_kind=source_kind, focus=focus, urls=urls,
+                    style, target_minutes, title_hint, author_hint, worry_hint, project.speech_speed,
+                    source_kind=source_kind, focus=focus, urls=urls, structure_hint=structure_hint,
                 ),
                 language="markdown",
             )
@@ -185,7 +193,7 @@ def _render_ai_generation(project: Project) -> None:
             _render_research_button(title_hint, focus, urls, worry_hint)
         else:
             _render_book_analysis(model, title_hint, author_hint, worry_hint)
-        _render_script_generation(project, style, target_minutes, num_points, how_points, worry_hint)
+        _render_script_generation(project, style, target_minutes, structure_hint, worry_hint)
 
 
 def _render_research_button(topic: str, focus: str, urls: list[str], worry_hint: str) -> None:
@@ -262,8 +270,8 @@ def _render_book_analysis(model: str, title_hint: str, author_hint: str, worry_h
                     st.rerun()
 
 
-def _render_script_generation(project: Project, style: str, target_minutes: float, num_points: int,
-                              how_points: int, worry_hint: str) -> None:
+def _render_script_generation(project: Project, style: str, target_minutes: float, structure_hint: str,
+                              worry_hint: str) -> None:
     """② 分析結果（本 / 調べた論文・記事）から台本を作る。"""
     costs = st.session_state.get("_ai_costs", {})
     if "ai_analysis_text" in st.session_state:
@@ -284,8 +292,8 @@ def _render_script_generation(project: Project, style: str, target_minutes: floa
             with st.status("台本を書いています…", expanded=True) as status:
                 try:
                     result = book_ai.generate_script(
-                        analysis, style, target_minutes, num_points, worry_hint, progress=status.write,
-                        speech_speed=project.speech_speed, how_points=how_points,
+                        analysis, style, target_minutes, worry_hint, progress=status.write,
+                        speech_speed=project.speech_speed, structure_hint=structure_hint,
                     )
                 except book_ai.BookAIError as e:
                     status.update(label="台本の生成に失敗しました", state="error")
@@ -420,7 +428,7 @@ def _render_group_preview(project: Project, group: book_script.SceneGroup) -> No
             book_script.effective_background_path(project, scene),
             _preview_resolution(project.resolution),
             content_media_path=media,
-            hidden_characters=scene.hidden_characters,
+            hidden_characters=scene.render_hidden,
             partner_expression=scene.partner_expression,
             background_blur=project.background_blur,
             headline=scene.headline,
@@ -520,6 +528,10 @@ def _render_overview(project: Project) -> None:
                         se += "　🟩黒板" + ("（番号付き）" if scene.slide_numbered else "")
                     if scene.note_text:
                         se += f"　📝解説「{scene.note_focus or scene.note_text}」"
+                    if scene.background_path and project.common_background_path != scene.background_path:
+                        se += f"　🏞{Path(scene.background_path).stem}"
+                    elif scene.background_name:
+                        se += f"　🏞（用意待ち: {scene.background_name}）"
                     if scene.board_hold:
                         se += f"　📖+{scene.board_hold:.1f}秒"
                     if scene.mood:
@@ -585,6 +597,30 @@ def _render_illustration_requests(project: Project) -> None:
             st.rerun()
 
 
+def _render_background_requests(project: Project) -> None:
+    """回想・寸劇などで場所が変わる場面で、Claudeが「こういう背景が欲しい」と書いたものの一覧。"""
+    requests = book_script.background_requests(project.scenes)
+    if not requests:
+        return
+    with st.expander(f"🏞 欲しい背景一覧（{len(requests)}件・まだ用意されていません）", expanded=True):
+        st.caption(
+            "回想や寸劇で、学校・職場など部屋以外の場所の話をしている場面です。下の「ファイル名」の名前で画像"
+            "（横長 16:9 がおすすめ）を assets/backgrounds/ に置くと、その場面の背景に自動で反映されます。"
+            "用意できないものは、いつもの部屋の背景のまま書き出されます。"
+        )
+        rows = [{"ファイル名": req.name, "欲しい背景": req.description,
+                 "シーン": "、".join(str(n) for n in req.scene_numbers)} for req in requests]
+        st.dataframe(rows, use_container_width=True, hide_index=True)
+        text = "\n".join(f"{r['ファイル名']}.png\t{r['欲しい背景']}\t（シーン {r['シーン']}）" for r in rows)
+        col_dl, col_link = st.columns(2)
+        col_dl.download_button(
+            "⬇️ 一覧をテキストで保存", data=text, file_name=f"{project.book_title or 'video'}_欲しい背景.txt",
+            mime="text/plain", key="bg_requests_download", use_container_width=True,
+        )
+        if col_link.button("🔄 追加した背景を反映", key="bg_requests_link", use_container_width=True):
+            st.rerun()
+
+
 def _render_ending_button(project: Project) -> None:
     if not project.scenes or book_script.has_ending(project.scenes):
         return
@@ -605,6 +641,7 @@ def _regenerate_metadata() -> None:
     st.session_state["meta_title"] = project.video_title
     st.session_state["meta_description"] = project.video_description
     st.session_state["meta_tags"] = ", ".join(project.video_tags)
+    st.session_state["meta_x_post"] = project.x_post
     st.session_state.pop("meta_title_candidate", None)
 
 
@@ -627,6 +664,7 @@ def _render_metadata(project: Project) -> None:
         ("meta_title", project.video_title),
         ("meta_description", project.video_description),
         ("meta_tags", ", ".join(project.video_tags)),
+        ("meta_x_post", project.x_post or video_metadata.build_x_post(project)),
     ):
         st.session_state.setdefault(key, value)
     # BGMや config/bgm_credits.json を変えたら、説明文のクレジット欄だけ最新にする（他の部分の手直しは残す）
@@ -656,10 +694,29 @@ def _render_metadata(project: Project) -> None:
             f"💡 YouTubeの目次（チャプター）は各区間が10秒以上必要です。{names} が10秒未満のため、"
             "このままだとチャプターとして表示されない場合があります。"
         )
+    _render_x_post(project)
     st.download_button(
         "⬇️ タイトル・説明文・タグをテキストで保存", data=video_metadata.export_text(project),
         file_name=f"{project.book_title or 'video'}_投稿用.txt", mime="text/plain", key="meta_download",
     )
+
+
+def _render_x_post(project: Project) -> None:
+    """X（旧Twitter）に投稿する文章（編集でき、下の枠の右上のボタンでコピーできる）。"""
+    st.markdown("**𝕏 X（旧Twitter）の投稿文**")
+    project.x_post = st.text_area(
+        "X（旧Twitter）の投稿文", key="meta_x_post", height=200, label_visibility="collapsed",
+        help="「（ここに動画のURLを貼る）」を、投稿した動画のURLに置き換えてください。",
+    )
+    length = video_metadata.x_post_length(project.x_post)
+    ok = length <= video_metadata.X_MAX_WEIGHT
+    st.caption(
+        f"{'✅' if ok else '⚠️'} 文字数 {length} / {video_metadata.X_MAX_WEIGHT}"
+        "（Xの数え方: 日本語は1文字=2、英数字は1、URLは23）。"
+        + ("" if ok else "長すぎるので、少し削ってください。")
+        + "下の枠の右上のボタンでコピーできます。"
+    )
+    st.code(project.x_post, language=None)
 
 
 @st.cache_data(max_entries=60, show_spinner=False)
@@ -673,45 +730,98 @@ def _thumbnail_png(spec_json: str, background: str, stamps: tuple) -> bytes:
 
 
 def _render_thumbnail(project: Project) -> None:
-    """サムネイル（1280×720）を3つのレイアウトで作り、選んで保存する。"""
+    """サムネイル（1280×720）をいくつかのレイアウトで作り、選んで保存する。"""
     if not project.scenes:
         return
     st.subheader("🖼 サムネイル")
     spec = thumbnail.default_spec(project)
+    english = project.source_kind == "english"
     st.caption(
-        "台本のAIが考えた文言（無ければタイトルから）で作っています。文字は2〜3行・1行8字くらいまでが見やすく、"
-        "**語** で囲んだ語が赤く目立ちます。下のプレビューは、スマホでの見え方に近い大きさです。"
+        "台本のAIが考えた文言（無ければタイトルから）で作っています。上の大きな文字は2行・1行8字くらいまでが見やすく、"
+        "文字の色は、何も付けなければ白、**語** で囲むと赤（大きく）、==語== で囲むと黄色になります。"
+        "下のプレビューは、スマホでの見え方に近い大きさです。"
     )
-    col_text, col_opt = st.columns([3, 2])
-    spec["text"] = col_text.text_area("サムネイルの文字（改行で行を分ける）", value=spec.get("text", ""),
-                                      key="thumb_text", height=110)
-    spec["sub"] = col_opt.text_input("左上の帯", value=spec.get("sub", ""), key="thumb_sub")
-    z_opts, m_opts = get_available_expressions("zundamon"), get_available_expressions("shikoku_metan")
-    spec["zundamon"] = col_opt.selectbox(
-        "ずんだもんの表情", z_opts, index=z_opts.index(spec["zundamon"]) if spec.get("zundamon") in z_opts else 0,
-        format_func=lambda e: get_expression_label("zundamon", e), key="thumb_zundamon")
-    spec["metan"] = col_opt.selectbox(
-        "めたんの表情（2人のレイアウト）", m_opts, index=m_opts.index(spec["metan"]) if spec.get("metan") in m_opts else 0,
-        format_func=lambda e: get_expression_label("shikoku_metan", e), key="thumb_metan")
     images = [None] + ([project.book_cover_path] if project.book_cover_path else []) + list(dict.fromkeys(
         s.illustration_path for s in project.scenes if s.illustration_path))
-    current = spec.get("image") if spec.get("image") in images else (images[1] if len(images) > 1 else None)
-    spec["image"] = col_opt.selectbox("真ん中の画像（2人のレイアウト）", images, index=images.index(current),
+    current_image = spec.get("image") if spec.get("image") in images else (images[1] if len(images) > 1 else None)
+    z_opts, m_opts = get_available_expressions("zundamon"), get_available_expressions("shikoku_metan")
+    panel_images = [None] + thumbnail.video_images(project)
+
+    def pick(value, options, fallback):
+        return value if value in options else (fallback if fallback in options else options[0])
+
+    # 入力欄の値は session_state に入れてから表示する（value= で渡すと、台本を読み込み直したときに
+    # ブラウザ側に残っていた前の文字が、次の操作で送り返されて上書きしてしまうため）
+    defaults = {
+        "thumb_text": spec.get("text", ""),
+        "thumb_sub": spec.get("sub", ""),
+        "thumb_shout": spec["shout"] if spec.get("shout") is not None
+        else thumbnail.DEFAULT_SHOUTS.get(spec.get("zundamon"), ""),
+        "thumb_before": spec.get("before", ""),
+        "thumb_after": spec.get("after", ""),
+        "thumb_scene": spec.get("scene", ""),
+        "thumb_phrase": spec.get("phrase", ""),
+        "thumb_zundamon": pick(spec.get("zundamon"), z_opts, "surprised"),
+        "thumb_metan": pick(spec.get("metan"), m_opts, "point"),
+        "thumb_before_face": pick(spec.get("before_face"), z_opts, "gloomy"),
+        "thumb_after_face": pick(spec.get("after_face"), z_opts, "happy"),
+        "thumb_image": current_image,
+        "thumb_before_image": spec.get("before_image"),
+        "thumb_after_image": spec.get("after_image"),
+    }
+    for key, value in defaults.items():
+        st.session_state.setdefault(key, value)
+    for key, options in (("thumb_zundamon", z_opts), ("thumb_before_face", z_opts), ("thumb_after_face", z_opts),
+                         ("thumb_metan", m_opts), ("thumb_image", images), ("thumb_before_image", panel_images),
+                         ("thumb_after_image", panel_images)):
+        if st.session_state[key] not in options:
+            st.session_state[key] = defaults[key] if defaults[key] in options else options[0]
+
+    col_text, col_opt = st.columns([3, 2])
+    spec["text"] = col_text.text_area("一番大きく出す一言（改行で行を分ける）", key="thumb_text", height=90)
+    if english:
+        col_scene, col_phrase = col_text.columns([1, 2])
+        spec["scene"] = col_scene.text_input("使える場面（「〇〇で使える！」）", key="thumb_scene")
+        spec["phrase"] = col_phrase.text_input("英語のフレーズ（吹き出し）", key="thumb_phrase")
+    else:
+        col_before, col_after = col_text.columns(2)
+        spec["before"] = col_before.text_input("見る前（悩み・失敗）", key="thumb_before")
+        spec["after"] = col_after.text_input("見た後（解決・変化）", key="thumb_after")
+        spec["before_face"] = col_before.selectbox(
+            "見る前の表情", z_opts, format_func=lambda e: get_expression_label("zundamon", e), key="thumb_before_face")
+        spec["after_face"] = col_after.selectbox(
+            "見た後の表情", z_opts, format_func=lambda e: get_expression_label("zundamon", e), key="thumb_after_face")
+        image_label = lambda v: "（なし）" if not v else Path(v).stem  # noqa: E731
+        spec["before_image"] = col_before.selectbox("見る前の画面に敷く画像（動画で使った画像）", panel_images,
+                                                    format_func=image_label, key="thumb_before_image")
+        spec["after_image"] = col_after.selectbox("見た後の画面に敷く画像（動画で使った画像）", panel_images,
+                                                  format_func=image_label, key="thumb_after_image")
+    spec["sub"] = col_opt.text_input("左上の帯", key="thumb_sub")
+    spec["shout"] = col_opt.text_input("ずんだもんの吹き出し（空欄なら出さない）", key="thumb_shout")
+    spec["zundamon"] = col_opt.selectbox(
+        "ずんだもんの表情", z_opts, format_func=lambda e: get_expression_label("zundamon", e), key="thumb_zundamon")
+    spec["metan"] = col_opt.selectbox(
+        "めたんの表情（2人のレイアウト）", m_opts, format_func=lambda e: get_expression_label("shikoku_metan", e),
+        key="thumb_metan")
+    spec["image"] = col_opt.selectbox("画像（2人・使える場面のレイアウト）", images,
                                       format_func=lambda v: "（なし）" if not v else Path(v).stem, key="thumb_image")
     project.thumbnail = {k: v for k, v in spec.items() if k != "image"} | ({"image": spec["image"]} if spec["image"] else {})
 
     background = book_script.effective_background_path(project, project.scenes[0]) or ""
-    stamps = tuple(Path(p).stat().st_mtime if p and Path(p).exists() else 0 for p in (background, spec.get("image")))
-    cols = st.columns(len(thumbnail.LAYOUTS))
-    for col, (layout, label) in zip(cols, thumbnail.LAYOUTS.items()):
-        png = _thumbnail_png(json.dumps(spec | {"layout": layout}, ensure_ascii=False), background, stamps)
-        chosen = spec.get("layout") == layout
-        col.image(png, caption=("⭐ AIのおすすめ・" if chosen else "") + label, use_container_width=True)
-        col.download_button(
-            "⬇️ このサムネイルを保存", data=png, key=f"thumb_dl_{layout}", use_container_width=True,
-            file_name=f"{project.book_title or 'video'}_サムネイル_{layout}.png", mime="image/png",
-            type="primary" if chosen else "secondary",
-        )
+    stamps = tuple(Path(p).stat().st_mtime if p and Path(p).exists() else 0 for p in (background, spec.get("image"), spec.get("before_image"), spec.get("after_image")))
+    layouts = [k for k in thumbnail.LAYOUTS if k != ("before_after" if english else "scene")]
+    for row in range(0, len(layouts), 2):
+        cols = st.columns(2)
+        for col, layout in zip(cols, layouts[row:row + 2]):
+            png = _thumbnail_png(json.dumps(spec | {"layout": layout}, ensure_ascii=False), background, stamps)
+            chosen = spec.get("layout") == layout
+            col.image(png, caption=("⭐ AIのおすすめ・" if chosen else "") + thumbnail.LAYOUTS[layout],
+                      use_container_width=True)
+            col.download_button(
+                "⬇️ このサムネイルを保存", data=png, key=f"thumb_dl_{layout}", use_container_width=True,
+                file_name=f"{project.book_title or 'video'}_サムネイル_{layout}.png", mime="image/png",
+                type="primary" if chosen else "secondary",
+            )
 
 
 def render_book_mode() -> None:
@@ -731,7 +841,122 @@ def render_project_review(project: Project) -> None:
     """構成の確認・イラストの依頼・エンディング・投稿用のタイトルと説明文（英会話モードのタブからも使う）。"""
     _render_overview(project)
     _render_illustration_requests(project)
+    _render_background_requests(project)
     _render_ending_button(project)
     st.divider()
     _render_metadata(project)
     _render_thumbnail(project)
+    _render_promo_short(project)
+
+
+# ---------------------------------------------------------------------------
+# 本編紹介ショート（本編の要点をまとめて「詳しくは本編で」と締める縦型ショート）
+# ---------------------------------------------------------------------------
+
+def _promo_pair() -> dict | None:
+    """いま作業中の本編とそのショートの組 {"main": Project, "short": Project}（本編とショートを行き来するため）。"""
+    return st.session_state.get(_PROMO_PAIR_KEY)
+
+
+def _open_promo_short(main: Project, rebuild: bool = False) -> None:
+    pair = _promo_pair()
+    short = pair["short"] if pair and pair["main"] is main and not rebuild else None
+    warnings: list[str] = []
+    if short is None:
+        with st.spinner("本編紹介ショートを作っています…"):
+            short, warnings = book_script.build_promo_project(
+                main, use_voicevox_timing=st.session_state.get("book_script_timing", True),
+            )
+    st.session_state[_PROMO_PAIR_KEY] = {"main": main, "short": short}
+    set_project(short)
+    st.session_state[_PROMO_FLASH_KEY] = {
+        "success": f"本編紹介ショート（{len(short.scenes)}シーン・約{short.total_duration:.0f}秒・縦画面）に切り替えました。"
+                   "「🎬 シーン編集・書き出し」タブで確認・書き出しできます。",
+        "warnings": warnings,
+    }
+
+
+def render_promo_banner() -> None:
+    """本編紹介ショートを編集しているときに、画面の上に出す案内（本編に戻るボタン付き）。"""
+    project = get_project()
+    flash = st.session_state.pop(_PROMO_FLASH_KEY, None)
+    if flash:
+        st.success(flash["success"])
+        for w in flash["warnings"]:
+            st.warning(w)
+    if not project.promo_of:
+        return
+    col_info, col_back = st.columns([4, 1])
+    col_info.info(f"📱 本編「{project.promo_of}」の紹介ショートを編集しています（縦画面）。")
+    pair = _promo_pair()
+    if pair and pair["short"] is project and col_back.button("↩ 本編に戻る", key="promo_back", use_container_width=True):
+        set_project(pair["main"])
+        st.rerun()
+
+
+def _render_promo_short(project: Project) -> None:
+    """本編の構成確認の最後に出す、本編紹介ショートの確認・作成。"""
+    if project.video_style == "short" or project.promo_of or not project.scenes:
+        return
+    st.divider()
+    st.subheader("📱 本編紹介ショート")
+    st.caption(
+        f"本編の要点をまとめて「詳しくは本編で」と締める、縦画面・約{book_ai.PROMO_SHORT_SECONDS}秒のショートです。"
+        "投稿したら、ショートの説明欄のリンクと「関連動画」に本編を設定すると、本編に誘導できます。"
+    )
+    promo = project.promo_short
+    if not promo.get("blocks"):
+        st.info("この台本には、本編紹介ショートの台本が入っていません。本編の台本から作れます。")
+        _render_promo_generation(project)
+        return
+    lines = [(line.get("speaker", ""), str(line.get("text") or "").strip())
+             for block in promo["blocks"] if isinstance(block, dict)
+             for line in block.get("lines", []) if isinstance(line, dict) and str(line.get("text") or "").strip()]
+    chars = sum(len(t) for _, t in lines)
+    title = promo.get("video_title") or (promo.get("title_candidates") or [""])[0]
+    st.markdown(f"**{title}**　セリフ{len(lines)}個・約{chars / (5.5 * project.speech_speed):.0f}秒の見込み")
+    with st.expander("ショートのセリフを見る"):
+        st.markdown("\n".join(f"- **{get_character_display_name(sp)}**：{tx}" for sp, tx in lines))
+    pair = _promo_pair()
+    opened = bool(pair and pair["main"] is project)
+    col_open, col_rebuild = st.columns(2)
+    if col_open.button("📱 作りかけのショートに切り替える" if opened else "📱 ショートを作って開く（編集・書き出し）",
+                       type="primary", key="promo_open", use_container_width=True):
+        _open_promo_short(project)
+        st.rerun()
+    if opened and col_rebuild.button("🔄 台本からショートを作り直す（ショートで直した内容は消えます）",
+                                     key="promo_rebuild", use_container_width=True):
+        _open_promo_short(project, rebuild=True)
+        st.rerun()
+    with st.expander("台本を作り直す（Claude）"):
+        _render_promo_generation(project)
+
+
+def _render_promo_generation(project: Project) -> None:
+    """本編のセリフの一覧から、本編紹介ショートの台本だけを作る（API / チャット画面）。"""
+    if book_ai.api_key_configured():
+        if st.button("🤖 本編の台本からショートの台本を作る（Claude API）", key="promo_generate"):
+            with st.status("ショートの台本を書いています…", expanded=True) as status:
+                try:
+                    result = promo_short.generate(project, progress=status.write)
+                except (book_ai.BookAIError, book_script.BookScriptError) as e:
+                    status.update(label="ショートの台本を作れませんでした", state="error")
+                    st.error(str(e))
+                    return
+                status.update(label="ショートの台本ができました", state="complete")
+            st.session_state.pop(_PROMO_PAIR_KEY, None)
+            st.session_state[_PROMO_FLASH_KEY] = {"success": f"ショートの台本を作りました（{_format_cost(result)}）。",
+                                                  "warnings": []}
+            st.rerun()
+    st.caption("APIを使わない場合: 下のプロンプトを Claude のチャットに貼り付け、返ってきたJSONを下に貼って読み込みます。")
+    st.code(promo_short.manual_prompt(project), language="markdown")
+    pasted = st.text_area("返ってきたJSON", key="promo_paste", height=120)
+    if st.button("📥 ショートの台本を読み込む", key="promo_import", disabled=not pasted.strip()):
+        try:
+            promo_short.attach(project, book_script.load_book_script(pasted))
+        except book_script.BookScriptError as e:
+            st.error(str(e))
+            return
+        st.session_state.pop(_PROMO_PAIR_KEY, None)
+        st.session_state[_PROMO_FLASH_KEY] = {"success": "ショートの台本を読み込みました。", "warnings": []}
+        st.rerun()
