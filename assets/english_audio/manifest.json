@@ -9,7 +9,7 @@
     }
   },
   "w01d1_02": {
-    "text": "Sure! I'm pretty busy until Wednesday, though.",
+    "text": "Sure! How about Wednesday?",
     "voice": "B",
     "tts": {
       "engine": "kokoro",
@@ -18,7 +18,7 @@
     }
   },
   "w01d1_03": {
-    "text": "Thursday, then? There's a new taco place nearby.",
+    "text": "Wednesday is perfect. Are you free this Saturday?",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -27,7 +27,7 @@
     }
   },
   "w01d1_04": {
-    "text": "Perfect. Oh, and are you free this Saturday?",
+    "text": "I think so. What's up?",
     "voice": "B",
     "tts": {
       "engine": "kokoro",
@@ -36,7 +36,7 @@
     }
   },
   "w01d1_05": {
-    "text": "I think so. Why, what's going on this weekend?",
+    "text": "A few of us are going hiking. Want to come?",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -45,7 +45,7 @@
     }
   },
   "w01d1_06": {
-    "text": "A few of us are going hiking. You should come!",
+    "text": "Sounds fun! I'm in.",
     "voice": "B",
     "tts": {
       "engine": "kokoro",
@@ -63,7 +63,7 @@
     }
   },
   "w01d1_08": {
-    "text": "Do you want to grab a coffee after work?",
+    "text": "Do you want to grab a coffee?",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -81,24 +81,6 @@
     }
   },
   "w01d1_10": {
-    "text": "Are you free tonight? I'm thinking about trying that new ramen place.",
-    "voice": "A",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "af_heart",
-      "speed": 0.9
-    }
-  },
-  "w01d1_11": {
-    "text": "Do you want to grab a drink after work?",
-    "voice": "A",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "af_heart",
-      "speed": 0.9
-    }
-  },
-  "w01d1_12": {
     "text": "Are you free tonight?",
     "voice": "A",
     "tts": {
@@ -107,8 +89,8 @@
       "speed": 0.9
     }
   },
-  "w01d1_13": {
-    "text": "Do you want to grab a coffee sometime this week?",
+  "w01d1_11": {
+    "text": "Do you want to grab a drink sometime this week?",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -117,6 +99,15 @@
     }
   },
   "w01d2_01": {
+    "text": "Hey, do you want to grab lunch this week?",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d2_02": {
     "text": "I'd love to! What time works for you?",
     "voice": "A",
     "tts": {
@@ -125,43 +116,16 @@
       "speed": 0.9
     }
   },
-  "w01d2_02": {
-    "text": "Thursday at noon? A couple of people from marketing are coming, too.",
+  "w01d2_03": {
+    "text": "How about Thursday at noon? Some friends are coming, too.",
     "voice": "B",
     "tts": {
       "engine": "kokoro",
       "voice": "am_michael",
-      "speed": 0.9
-    }
-  },
-  "w01d2_03": {
-    "text": "Sounds good. Count me in! Should I book a table?",
-    "voice": "A",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "af_heart",
       "speed": 0.9
     }
   },
   "w01d2_04": {
-    "text": "That would be great. Let's try the new taco place.",
-    "voice": "B",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "am_michael",
-      "speed": 0.9
-    }
-  },
-  "w01d2_05": {
-    "text": "I'd love to! What day works for you next week?",
-    "voice": "A",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "af_heart",
-      "speed": 0.9
-    }
-  },
-  "w01d2_06": {
     "text": "Sounds good. Count me in!",
     "voice": "A",
     "tts": {
@@ -170,16 +134,16 @@
       "speed": 0.9
     }
   },
-  "w01d2_07": {
-    "text": "Sorry, count me out this time. I have to work late.",
-    "voice": "A",
+  "w01d2_05": {
+    "text": "Great! Let's try the new taco place.",
+    "voice": "B",
     "tts": {
       "engine": "kokoro",
-      "voice": "af_heart",
+      "voice": "am_michael",
       "speed": 0.9
     }
   },
-  "w01d2_08": {
+  "w01d2_06": {
     "text": "I'd love to! What day works for you?",
     "voice": "A",
     "tts": {
@@ -188,8 +152,26 @@
       "speed": 0.9
     }
   },
+  "w01d2_07": {
+    "text": "Sorry, count me out this time.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d2_08": {
+    "text": "How about Thursday at noon?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
   "w01d2_09": {
-    "text": "Sounds good. Count me in for the hike!",
+    "text": "Sounds good. Count me in for the party!",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -198,7 +180,7 @@
     }
   },
   "w01d2_10": {
-    "text": "Sorry, count me out this time. I'm really tired.",
+    "text": "I'd love to!",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -206,98 +188,8 @@
       "speed": 0.9
     }
   },
-  "w01d1_14": {
-    "text": "Hey, Tsumugi. Do you want to grab lunch sometime this week?",
-    "voice": "A",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "af_heart",
-      "speed": 0.9
-    }
-  },
-  "w01d1_15": {
-    "text": "Sure! How about Wednesday, then?",
-    "voice": "B",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "am_michael",
-      "speed": 0.9
-    }
-  },
-  "w01d1_16": {
-    "text": "Wednesday works. Oh, and are you free this Saturday?",
-    "voice": "A",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "af_heart",
-      "speed": 0.9
-    }
-  },
-  "w01d1_17": {
-    "text": "I think so. What's up?",
-    "voice": "B",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "am_michael",
-      "speed": 0.9
-    }
-  },
-  "w01d1_18": {
-    "text": "A few of us are going hiking. Want to come?",
-    "voice": "A",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "af_heart",
-      "speed": 0.9
-    }
-  },
-  "w01d1_19": {
-    "text": "Yes! That sounds really fun.",
-    "voice": "B",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "am_michael",
-      "speed": 0.9
-    }
-  },
-  "w01d1_20": {
-    "text": "Do you want to grab a coffee?",
-    "voice": "A",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "af_heart",
-      "speed": 0.9
-    }
-  },
-  "w01d1_21": {
-    "text": "Are you free tomorrow night?",
-    "voice": "A",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "af_heart",
-      "speed": 0.9
-    }
-  },
-  "w01d1_22": {
-    "text": "Are you free this Sunday?",
-    "voice": "A",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "af_heart",
-      "speed": 0.9
-    }
-  },
-  "w01d1_23": {
-    "text": "Do you want to grab lunch tomorrow?",
-    "voice": "A",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "af_heart",
-      "speed": 0.9
-    }
-  },
-  "w01d1_24": {
-    "text": "Are you free on Friday night?",
+  "w01d2_11": {
+    "text": "Count me in!",
     "voice": "A",
     "tts": {
       "engine": "kokoro",

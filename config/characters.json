@@ -31,7 +31,8 @@
       "explain": "説明",
       "whisper": "ひそひそ",
       "gloomy": "どんより"
-    }
+    },
+    "illustrator": "坂本アヒル 様"
   },
   "shikoku_metan": {
     "display_name": "四国めたん",
@@ -63,7 +64,8 @@
       "laugh": "笑い",
       "blush": "照れ",
       "whisper": "ひそひそ"
-    }
+    },
+    "illustrator": "坂本アヒル 様"
   },
   "kasukabe_tsumugi": {
     "display_name": "春日部つむぎ",
@@ -92,6 +94,7 @@
       "smug": "ドヤ顔",
       "sad": "悲しみ",
       "angry": "怒り"
-    }
+    },
+    "illustrator": "坂本アヒル 様"
   }
 }

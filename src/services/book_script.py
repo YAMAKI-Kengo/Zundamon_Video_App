@@ -1260,11 +1260,14 @@ def apply_to_project(project: Project, result: BookScriptResult, replace: bool =
         project.video_style = result.style
         # 通常の動画は横画面、ショートは縦画面にする（背景も下で画面の向きに合わせる）
         project.format = VideoFormat.PORTRAIT if result.style == "short" else VideoFormat.LANDSCAPE
-    project.video_title, project.video_description, project.video_tags = (
+    project.tag_candidates = list(result.tags)
+    project.video_title, project.video_description = (
         video_metadata.with_series_tag(
             result.video_title or (result.title_candidates[0] if result.title_candidates else ""), project),
-        result.video_description, list(result.tags),
+        result.video_description,
     )
+    # タグ = AIが考えたタグ（表記ゆれ・変換ミス）＋ 書名・キャラクター名などの書き方の違い（上限500字に収める）
+    project.video_tags = video_metadata.build_tags(project)
     video_metadata.apply_generated_metadata(project, overwrite=False)
     # VOICEVOXが読み間違えそうな言葉を読み方辞書に追加する（台本のreadings + 既定の読み方のうち台本に出てくるもの）
     project.reading_dict = merge_readings(project.reading_dict, result.readings + default_readings_for(project.scenes))

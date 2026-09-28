@@ -31,6 +31,9 @@ TELOP_FONT_SIZE_RATIO = 0.05
 TELOP_BG_COLOR = (255, 255, 255, 235)  # 字幕の背景（白）
 # 画面下端からテロップ全体（背景ボックス込み）までの余白（画面の高さに対する比率）
 TELOP_MARGIN_BOTTOM_RATIO = 0.05
+# 縦画面（ショート）では、下端はYouTubeのタイトル・説明文・ボタンに隠れるので、字幕を画面の真ん中あたりに出す。
+# 字幕ボックスの縦の中心の位置（画面の高さに対する比率）。上の黒板（〜約62%）と下の立ち絵の顔の間に来る位置。
+TELOP_PORTRAIT_CENTER_Y_RATIO = 0.6
 
 # 折り返し目安の計算に使う代表文字（全角のひらがな1文字分の幅を基準にする）
 _SAMPLE_FULLWIDTH_CHAR = "あ"
@@ -484,9 +487,11 @@ def render_telop_image(
     box_w = min(width, text_block_w + pad_x * 2)
     box_h = text_block_h + pad_y * 2
 
-    margin_bottom = round(height * TELOP_MARGIN_BOTTOM_RATIO)
     box_x0 = (width - box_w) // 2
-    box_y0 = height - box_h - margin_bottom
+    if height > width:
+        box_y0 = round(height * TELOP_PORTRAIT_CENTER_Y_RATIO) - box_h // 2
+    else:
+        box_y0 = height - box_h - round(height * TELOP_MARGIN_BOTTOM_RATIO)
     box_x1 = box_x0 + box_w
     box_y1 = box_y0 + box_h
 

@@ -59,3 +59,53 @@ def set_project(project: Project) -> None:
                 "board_pause")
     ]:
         del st.session_state[key]
+
+
+# --- 画面上部のタブ（開いているタブだけを描いて軽くする。どのタブを開いているかは覚えておく） ---
+TAB_KEY = "main_tab"
+TABS = {"book": "📚 書籍解説モード", "english": "🗣 英会話モード", "edit": "🎬 シーン編集・書き出し",
+        "analytics": "📈 振り返り"}
+_GOTO_TAB_KEY = "_goto_tab"
+
+
+def go_to_tab(name: str) -> None:
+    """次の描画でタブを切り替える（ボタンのコールバックや、処理のあとの st.rerun() の前に呼ぶ）。"""
+    st.session_state[_GOTO_TAB_KEY] = TABS[name]
+
+
+def apply_pending_tab() -> None:
+    """go_to_tab() で予約したタブを開く（タブを描く前に呼ぶ）。"""
+    target = st.session_state.pop(_GOTO_TAB_KEY, None)
+    if target:
+        st.session_state[TAB_KEY] = target
+
+
+# 開いていないタブの入力欄は描かれないため、そのままだとStreamlitが入力内容を捨ててしまう。
+# 台本の設定・貼り付けた台本・分析結果などの入力内容は、タブを行き来しても残す
+_KEEP_PREFIXES = ("ai_", "book_script_", "en_", "promo_", "meta_", "thumb_", "export_", "scene_editor_", "analytics_")
+_KEEP_VALUE_TYPES = {
+    "bool_value", "int_value", "double_value", "string_value",
+    "string_array_value", "int_array_value", "double_array_value",
+}
+
+
+def keep_widget_values() -> None:
+    """開いていないタブの入力欄の値を残す（文字・数値・選択・チェックの入力欄だけ。ボタンやファイルは対象外）。"""
+    try:
+        from streamlit.runtime.state import get_session_state
+
+        state = get_session_state()._state
+        mapper = state._key_id_mapper
+        metadata = state._new_widget_state.widget_metadata
+    except Exception:  # noqa: BLE001 - Streamlitの内部が変わっていたら、何もしない（入力内容が消えるだけ）
+        return
+    for key in list(st.session_state.keys()):
+        if not str(key).startswith(_KEEP_PREFIXES):
+            continue
+        meta = metadata.get(mapper.get_id_from_key(key, key))
+        if meta is None or meta.value_type not in _KEEP_VALUE_TYPES:
+            continue
+        try:
+            st.session_state[key] = st.session_state[key]
+        except Exception:  # noqa: BLE001
+            pass

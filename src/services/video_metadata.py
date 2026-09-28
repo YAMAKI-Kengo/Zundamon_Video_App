@@ -23,17 +23,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from src.models import SECTION_LABELS, Project, Scene
-from src.utils.asset_loader import get_character_display_name
+from src.utils.asset_loader import get_character_display_name, load_character_config
 
 TITLE_MAX_CHARS = 100          # YouTubeのタイトルの文字数上限
 TITLE_VISIBLE_CHARS = 32       # スマホの一覧で省略されずに見える文字数の目安
 CHAPTER_MIN_SECONDS = 10.0     # YouTubeのチャプターとして認識される1区間の最短秒数
-BASE_TAGS = ["本要約", "書評", "本紹介", "読書", "ずんだもん", "四国めたん", "VOICEVOX"]
-SHORT_TAGS = ["Shorts", "本要約", "ずんだもん"]
-RESEARCH_TAGS = ["ずんだもん解説", "解説", "研究", "論文", "ずんだもん", "四国めたん", "VOICEVOX"]
-RESEARCH_SHORT_TAGS = ["Shorts", "ずんだもん解説", "ずんだもん"]
 BGM_CREDITS_PATH = Path(__file__).resolve().parents[2] / "config" / "bgm_credits.json"
-ENGLISH_TAGS =["英会話", "英語学習", "毎日英会話", "英語リスニング", "シャドーイング", "ずんだもん", "四国めたん", "VOICEVOX"]
 
 _EMPHASIS = re.compile(r"\*\*(.+?)\*\*")
 _HASHTAG_UNSAFE = re.compile(r"[\s　・「」『』【】（）()！!？?、。,.:：/／\-－~〜#＃]")
@@ -297,16 +292,76 @@ def build_x_post(project: Project) -> str:
     return "\n".join([title, X_URL_PLACEHOLDER, hashtags])
 
 
+TAGS_MAX_CHARS = 500  # YouTubeのタグ欄の上限（カンマ・スペースを含むタグの引用符も数える）
+# タグは、検索したときの表記ゆれ・変換ミス・打ち間違いでも動画が見つかるようにするためのもの。
+# よく検索される言葉について、ひらがな・カタカナ・英語・よくある打ち間違いを入れておく
+CHARACTER_TAGS = ["ずんだもん", "ズンダモン", "zundamon", "ずんだもん解説", "ずんだモン", "四国めたん", "しこくめたん", "めたん",
+                  "VOICEVOX", "ボイスボックス"]
+GUEST_TAGS = {"kasukabe_tsumugi": ["春日部つむぎ", "かすかべつむぎ", "つむぎ"]}
+KIND_TAGS = {
+    "english": ["英会話", "えいかいわ", "英語", "えいご", "English", "english conversation", "英語学習", "英語 勉強",
+                "リスニング", "listening", "TOEIC", "toeic", "トーイック", "英検", "毎日英会話", "シャドーイング", "shadowing",
+                "英語 初心者", "スピーキング"],
+    "research": ["解説", "研究", "論文", "雑学", "ざつがく", "豆知識", "ライフハック"],
+    "book": ["本要約", "本 要約", "要約", "本紹介", "書評", "読書", "どくしょ", "おすすめ本", "ビジネス書", "自己啓発"],
+}
+_KATAKANA = re.compile(r"[ァ-ヶー]")
+
+
+def _to_hiragana(text: str) -> str:
+    return "".join(chr(ord(ch) - 0x60) if "ァ" <= ch <= "ヶ" else ch for ch in text)
+
+
+def _to_katakana(text: str) -> str:
+    return "".join(chr(ord(ch) + 0x60) if "ぁ" <= ch <= "ゖ" else ch for ch in text)
+
+
+def tag_variants(word: str) -> list[str]:
+    """1つの言葉の、検索で使われそうな書き方の違い（記号・スペースを除いた形、ひらがな⇔カタカナ）。"""
+    word = re.sub(r"[『』「」【】]", "", str(word or "")).strip()
+    if not word:
+        return []
+    variants = [word, re.sub(r"[\s　・]", "", word)]
+    if _KATAKANA.search(word):
+        variants.append(_to_hiragana(word))
+    if re.fullmatch(r"[ぁ-ゖー]+", word):
+        variants.append(_to_katakana(word))
+    main = re.split(r"[（(：:～〜\-―]", word)[0].strip()  # 副題・かっこを除いた書名
+    if main and main != word:
+        variants.append(main)
+    return _dedupe(variants)
+
+
+def _tags_length(tags: list[str]) -> int:
+    return sum(len(t) + (2 if " " in t else 0) for t in tags) + max(0, len(tags) - 1)
+
+
 def build_tags(project: Project) -> list[str]:
-    tags = [project.book_title.strip(), project.book_author.strip()]
-    tags += [t.lstrip("#") for t in project.hashtags]
-    if is_english(project):
-        tags += [p.split(" ― ")[0] for p in _lesson_phrases(project)] + ENGLISH_TAGS
-    elif is_research(project):
-        tags += RESEARCH_SHORT_TAGS if is_short(project) else RESEARCH_TAGS
-    else:
-        tags += SHORT_TAGS if is_short(project) else BASE_TAGS
-    return _dedupe(tags)
+    """YouTubeのタグ（表記ゆれ・変換ミス・打ち間違いでも検索に引っかかるように）。上限500字に収める。"""
+    kind = "english" if is_english(project) else "research" if is_research(project) else "book"
+    tags: list[str] = []
+    for word in (project.book_title, project.book_author):
+        tags += tag_variants(word)
+    tags += [t.lstrip("#＃").strip() for t in project.tag_candidates]
+    tags += [t.lstrip("#＃") for t in project.hashtags]
+    if kind == "english":
+        tags += [p.split(" ― ")[0] for p in _lesson_phrases(project)][:3]
+    tags += KIND_TAGS[kind] + CHARACTER_TAGS
+    speakers = {s.speaker for s in project.scenes}
+    for guest, names in GUEST_TAGS.items():
+        if guest in speakers:
+            tags += names
+    result: list[str] = []
+    seen: set[str] = set()
+    for tag in tags:
+        tag = re.sub(r"[<>,，、]", " ", str(tag)).strip()
+        if not tag or len(tag) > 30 or tag.lower() in seen:
+            continue
+        if _tags_length(result + [tag]) > TAGS_MAX_CHARS:
+            continue
+        seen.add(tag.lower())
+        result.append(tag)
+    return result
 
 
 def _load_bgm_credits() -> dict[str, str]:
@@ -351,11 +406,17 @@ def _credits(project: Project) -> list[str]:
     if speakers:
         lines.append("・音声：" + "、".join(f"VOICEVOX:{get_character_display_name(s)}" for s in speakers))
     if any(s.voice_path for s in project.scenes):
-        lines.append("・英語音声：（使用した音声サービス名をここに記載してください）")
-    lines += [
-        "・立ち絵：坂本アヒル 様",
-        "・効果音：効果音ラボ（https://soundeffect-lab.info/sound/anime/）",
-    ]
+        lines.append("・英語音声：Kokoro（hexgrad/Kokoro-82M・Apache License 2.0）")
+    illustrators: dict[str, list[str]] = {}
+    for key in speakers + [g for s in project.scenes for g in s.guests]:
+        name = str((load_character_config().get(key) or {}).get("illustrator") or "").strip() \
+            or f"（{get_character_display_name(key)}の立ち絵の作者名を config/characters.json の illustrator に書いてください）"
+        chars = illustrators.setdefault(name, [])
+        if get_character_display_name(key) not in chars:
+            chars.append(get_character_display_name(key))
+    for name, chars in illustrators.items():
+        lines.append(f"・立ち絵（{'・'.join(chars)}）：{name}")
+    lines.append("・効果音：効果音ラボ（https://soundeffect-lab.info/sound/anime/）")
     if bgm_paths:
         credits = _load_bgm_credits()
         lines.append("・BGM：OpenTracks（https://opentracks.com/）")
@@ -378,6 +439,20 @@ def refresh_credits(description: str, project: Project) -> str:
     while end < len(lines) and lines[end].strip() and not lines[end].startswith("■"):
         end += 1
     return "\n".join(lines[:start] + _credits(project) + lines[end:])
+
+
+def _source_lines(project: Project) -> list[str]:
+    """説明文の「参考文献・出典」（論文・記事を調べた動画用。あおり系との違いになり、信頼につながる）。"""
+    lines = ["■ 参考文献・出典"]
+    for i, s in enumerate(project.sources, start=1):
+        meta = "、".join(x for x in (s.get("publisher", ""), s.get("year", "")) if x)
+        lines.append(f"[{i}] {s.get('title', '')}" + (f"（{meta}）" if meta else ""))
+        if s.get("url"):
+            lines.append(f"    {s['url']}")
+    if len(lines) == 1:
+        lines.append("（ここに参考にした論文・記事を書いてください）")
+    lines.append("※研究結果には個人差や研究の限界があります。詳しくは各出典をご確認ください。")
+    return lines
 
 
 def _book_line(project: Project) -> str:
@@ -416,7 +491,8 @@ def _english_description(project: Project, chapters: list[Chapter]) -> str:
     ]
     phrases = _lesson_phrases(project)
     if is_short(project):
-        lines = lead + ["", "▼ 今日のレッスン（本編）はこちら", "（ここに本編の動画のリンクを貼ってください）", ""]
+        lines = lead + ["", "▼ 今日のレッスン（本編）はこちら", "（ここに本編の動画のリンクを貼ってください）",
+                        "▼ 毎日のレッスン（再生リスト）", "（ここに再生リストのリンクを貼ってください）", ""]
         if phrases:
             lines += ["■ 今日のフレーズ"] + [f"・{p}" for p in phrases] + [""]
         lines += _credits(project) + ["", " ".join(build_hashtags(project))]
@@ -431,6 +507,10 @@ def _english_description(project: Project, chapters: list[Chapter]) -> str:
         "・「リピート！」が出たら、音声のあとに続けて声に出してみましょう",
         "・「英語で言ってみよう！」が出たら、答えが流れる前に英語で言ってみましょう",
         "",
+        "1日6分で、今日ひとつ「言えた！」が増える英会話。ずんだもんと一緒に、間違えながら覚えましょう。",
+        "💬 今日のフレーズを使って、コメント欄に英語を1文書いてみてください（書くことが一番の練習になります）。",
+        "▼ 今週のレッスン（再生リスト・Day1から順番に）",
+        "（ここに再生リストのリンクを貼ってください）",
         "毎日更新・1週間ごとにテーマが変わります。チャンネル登録して一緒に続けましょう！",
         "",
     ]
@@ -449,8 +529,8 @@ def build_description(project: Project, chapters: list[Chapter]) -> str:
             "（ここに本編の動画のリンクを貼ってください）",
             "",
         ]
-        if not is_research(project):
-            lines += ["■ 紹介した本", _book_line(project), "（ここに購入リンクを貼ってください）", ""]
+        lines += (_source_lines(project) + [""]) if is_research(project) else \
+            ["■ 紹介した本", _book_line(project), "（ここに購入リンクを貼ってください）", ""]
         lines += _credits(project) + ["", " ".join(hashtags)]
         return "\n".join(lines)
 
@@ -466,7 +546,9 @@ def build_description(project: Project, chapters: list[Chapter]) -> str:
         lines += ["■ 目次"] + [f"{format_timestamp(c.start)} {c.label}" for c in chapters] + [""]
     if summary:
         lines += ["■ 今回のまとめ"] + [f"・{s}" for s in summary] + [""]
-    if not is_research(project):
+    if is_research(project):
+        lines += _source_lines(project) + [""]
+    else:
         lines += ["■ 紹介した本", _book_line(project), "（ここに購入リンクを貼ってください）", ""]
     request = "このテーマを解説してほしい" if is_research(project) else "この本を解説してほしい"
     lines += [

@@ -8,12 +8,16 @@
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import streamlit as st
 
 from src.services import video_metadata
 from src.services.video_builder import DEFAULT_SPEED_PRESET, VideoBuildError, build_video
 from src.services.voicevox_client import VoicevoxConnectionError, VoicevoxSynthesisError
 from src.state import get_project
+
+_LAST_EXPORT_KEY = "_last_export"  # 最後に書き出した動画 {"name": プロジェクト名, "path", "warnings"}
 
 _SPEED_PRESET_OPTIONS: dict[str, str] = {
     "fast": "⚡ 高速優先（下書き確認向け。ファイルサイズは大きめ）",
@@ -51,8 +55,31 @@ def render_export_section() -> None:
         ),
     )
 
-    if st.button("🚀 動画を生成する", type="primary", use_container_width=True):
+    kind = "本編紹介ショート" if project.promo_of else ("ショート" if project.video_style == "short" else "本編")
+    if st.button(f"🚀 動画を生成する（{kind}・{'縦' if project.resolution[1] > project.resolution[0] else '横'}画面）",
+                 type="primary", use_container_width=True, key="export_generate"):
         _run_generation(project, speed_preset)
+    _render_last_export(project)
+
+
+def _render_last_export(project) -> None:
+    """最後に書き出した動画（このプロジェクトのもの）を表示する。ほかの操作をしても消えない。"""
+    last = st.session_state.get(_LAST_EXPORT_KEY)
+    if not last or last.get("name") != project.name:
+        return
+    path = Path(last["path"])
+    if not path.exists():
+        return
+    st.success(f"動画を生成しました: {path.name}（保存先: {path.parent}）")
+    if last.get("warnings"):
+        with st.expander(f"⚠️ 生成時の注意事項（{len(last['warnings'])}件）"):
+            for w in last["warnings"]:
+                st.warning(w)
+    st.video(str(path))
+    st.download_button(
+        "⬇️ MP4をダウンロード", data=lambda: path.read_bytes(), file_name=path.name, mime="video/mp4",
+        use_container_width=True, key="export_download",
+    )
 
 
 def _run_generation(project, speed_preset: str = DEFAULT_SPEED_PRESET) -> None:
@@ -89,14 +116,10 @@ def _run_generation(project, speed_preset: str = DEFAULT_SPEED_PRESET) -> None:
             st.exception(e)
         return
 
-    status_box.update(label="動画の生成が完了しました 🎉", state="complete")
-
-    if result.warnings:
-        with st.expander(f"⚠️ 生成時の注意事項（{len(result.warnings)}件）", expanded=True):
-            for w in result.warnings:
-                st.warning(w)
-
-    st.success(f"動画を生成しました: {result.output_path.name}")
+    status_box.update(label="動画の生成が完了しました 🎉", state="complete", expanded=False)
+    st.session_state[_LAST_EXPORT_KEY] = {
+        "name": project.name, "path": str(result.output_path), "warnings": list(result.warnings),
+    }
     if project.video_title or project.video_description:
         # 投稿用のタイトル・説明文も動画と同じ場所にテキストで保存しておく
         info_path = result.output_path.with_name(result.output_path.stem + "_投稿用.txt")
@@ -105,12 +128,3 @@ def _run_generation(project, speed_preset: str = DEFAULT_SPEED_PRESET) -> None:
             st.caption(f"📝 タイトル・説明文を {info_path.name} に保存しました（書籍解説モードで編集できます）。")
         except OSError:
             pass
-    st.video(str(result.output_path))
-    with open(result.output_path, "rb") as f:
-        st.download_button(
-            "⬇️ MP4をダウンロード",
-            data=f.read(),
-            file_name=result.output_path.name,
-            mime="video/mp4",
-            use_container_width=True,
-        )

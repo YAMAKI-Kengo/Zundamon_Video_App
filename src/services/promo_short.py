@@ -50,6 +50,10 @@ def _system(role: str, speech_speed: float) -> str:
     return f"""あなたはYouTubeショートで何度も大きく再生されている構成作家です。これから渡す本編の動画の台本（黒板とセリフの一覧）をもとに、ずんだもんと四国めたんの掛け合いで、本編の要点をまとめて本編の視聴を促す縦型ショート動画の台本だけを書きます。
 
 {book_ai._CHARACTERS_TEXT}
+
+{book_ai.CHANNEL_CORE}
+
+{book_ai.ENGLISH_POLICY if role == "english" else book_ai.EXPLAINER_POLICY}
 {book_ai.promo_short_rules(role, speech_speed)}
 
 ## 表情・効果音・使わない項目

@@ -13,8 +13,11 @@ from __future__ import annotations
 import streamlit as st
 
 from src.services import book_script, english_lesson
-from src.state import forget_scene_widgets, get_project, init_session_state
-from src.ui.book_mode import render_book_mode, render_promo_banner
+from src.state import (
+    TAB_KEY, TABS, apply_pending_tab, forget_scene_widgets, get_project, init_session_state, keep_widget_values,
+)
+from src.ui.analytics import render_analytics
+from src.ui.book_mode import render_book_mode, render_project_bar
 from src.ui.english_mode import render_english_mode
 from src.ui.preview import render_export_section
 from src.ui.scene_editor import render_scene_editor
@@ -53,6 +56,7 @@ def _link_new_assets(project) -> None:
 
 def main() -> None:
     init_session_state()
+    keep_widget_values()
 
     # st.title()だと見出しが大きすぎるため、一段階小さいst.headerを使用する
     st.header("🎬 ずんだもん・四国めたん 解説動画ジェネレーター")
@@ -67,16 +71,24 @@ def main() -> None:
     if book_script.sync_background_to_format(get_project()):
         st.toast("出力フォーマットに合わせて背景を切り替えました。")
 
-    render_promo_banner()
-    tab_book, tab_english, tab_edit = st.tabs(["📚 書籍解説モード", "🗣 英会話モード", "🎬 シーン編集・書き出し"])
-    with tab_book:
-        render_book_mode()
-    with tab_english:
-        render_english_mode()
-    with tab_edit:
-        render_scene_editor()
-        st.divider()
-        render_export_section()
+    render_project_bar()
+    apply_pending_tab()
+    # 開いているタブの中身だけを描く（全部のタブを毎回描くと重く、切り替えの途中で古い画面が残って見えるため）
+    tab_book, tab_english, tab_edit, tab_analytics = st.tabs(list(TABS.values()), key=TAB_KEY, on_change="rerun")
+    if tab_book.open:
+        with tab_book:
+            render_book_mode()
+    if tab_english.open:
+        with tab_english:
+            render_english_mode()
+    if tab_edit.open:
+        with tab_edit:
+            render_scene_editor()
+            st.divider()
+            render_export_section()
+    if tab_analytics.open:
+        with tab_analytics:
+            render_analytics()
 
 
 if __name__ == "__main__":

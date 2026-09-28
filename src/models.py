@@ -275,6 +275,7 @@ class Project:
     promo_short: dict = field(default_factory=dict)
     promo_of: str = ""  # このプロジェクト自体が本編紹介ショートの場合、本編のタイトル
     x_post: str = ""    # X（旧Twitter）に投稿する文章（src.services.video_metadata で自動生成し、UIで編集できる）
+    tag_candidates: list[str] = field(default_factory=list)  # AIが考えたタグ（表記ゆれ・変換ミス対策。タグの自動生成で使う）
 
     def resolve_bgm_path(self, scene: Scene) -> Optional[str]:
         """シーンで流すBGMを「シーン個別 → 場面の段階ごと → 場面ごと → プロジェクト全体」の優先順で決める。
@@ -354,6 +355,7 @@ class Project:
             "promo_short": self.promo_short,
             "promo_of": self.promo_of,
             "x_post": self.x_post,
+            "tag_candidates": self.tag_candidates,
         }
 
     @classmethod
@@ -397,4 +399,5 @@ class Project:
             promo_short=data.get("promo_short", {}),
             promo_of=data.get("promo_of", ""),
             x_post=data.get("x_post", ""),
+            tag_candidates=data.get("tag_candidates", []),
         )

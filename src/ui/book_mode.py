@@ -20,10 +20,10 @@ import streamlit as st
 from src.models import MOOD_LABELS, Project
 
 from src.services import (
-    book_ai, book_loader, book_script, motion, promo_short, slide_renderer, thumbnail, video_metadata,
+    book_ai, book_loader, book_script, motion, promo_short, slide_renderer, thumbnail, video_history, video_metadata,
 )
 from src.ui.preview_cache import scene_preview
-from src.state import forget_scene_widgets, get_project, set_project
+from src.state import forget_scene_widgets, get_project, go_to_tab, set_project
 from src.utils.asset_loader import get_available_expressions, get_character_display_name, get_expression_label
 
 _BOOK_IMPORT_FLASH_KEY = "_book_import_flash"
@@ -59,6 +59,7 @@ def _import_script(project: Project, script_text: str, use_voicevox_timing: bool
         return False
     book_script.apply_to_project(project, result, replace=replace_existing)
     book_script.sync_background_to_format(project)
+    video_history.record(project)  # 次の台本で「最近の動画と被らせない」ため・振り返りで数字を書き込むため
     pair = st.session_state.get(_PROMO_PAIR_KEY)
     if pair and pair["main"] is project:
         st.session_state.pop(_PROMO_PAIR_KEY, None)  # 台本が変わったので、前のショートは使わない
@@ -685,8 +686,15 @@ def _render_metadata(project: Project) -> None:
     )
     project.video_title = st.text_input("タイトル", key="meta_title", max_chars=video_metadata.TITLE_MAX_CHARS)
     project.video_description = st.text_area("説明文", key="meta_description", height=380)
-    tags_text = st.text_input("タグ（カンマ区切り）", key="meta_tags")
+    tags_text = st.text_area(
+        "タグ（カンマ区切り）", key="meta_tags", height=100,
+        help="タグは、検索したときの表記ゆれ・変換ミス・打ち間違い（例: えいかいわ、トーイック、ズンダモン）でも"
+             "動画が見つかるようにするためのものです。動画と関係のない言葉は入れないでください。",
+    )
     project.video_tags = [t.strip() for t in tags_text.replace("、", ",").split(",") if t.strip()]
+    used = video_metadata._tags_length(project.video_tags)
+    st.caption(f"{'✅' if used <= video_metadata.TAGS_MAX_CHARS else '⚠️'} タグ {len(project.video_tags)}個・"
+               f"{used} / {video_metadata.TAGS_MAX_CHARS}字（YouTubeの上限）")
 
     if meta.short_chapters:
         names = "、".join(f"「{c.label}」({c.duration:.0f}秒)" for c in meta.short_chapters)
@@ -871,27 +879,54 @@ def _open_promo_short(main: Project, rebuild: bool = False) -> None:
     set_project(short)
     st.session_state[_PROMO_FLASH_KEY] = {
         "success": f"本編紹介ショート（{len(short.scenes)}シーン・約{short.total_duration:.0f}秒・縦画面）に切り替えました。"
-                   "「🎬 シーン編集・書き出し」タブで確認・書き出しできます。",
+                   "上のバーの「🎬 本編 / 📱 紹介ショート」でいつでも切り替えられます。「🎬 書き出しへ」で書き出せます。",
         "warnings": warnings,
     }
 
 
-def render_promo_banner() -> None:
-    """本編紹介ショートを編集しているときに、画面の上に出す案内（本編に戻るボタン付き）。"""
+def _switch_pair_view() -> None:
+    """プロジェクトバーの「本編 / 本編紹介ショート」の切り替え。"""
+    pair = _promo_pair()
+    choice = st.session_state.get("pair_view")
+    if not pair or choice not in ("main", "short"):
+        return
+    target = pair[choice]
+    if target is not get_project():
+        set_project(target)
+
+
+def render_project_bar() -> None:
+    """画面上部のバー: いま編集中の動画（名前・縦横・長さ）と、本編⇔本編紹介ショートの切り替え・書き出しへの移動。
+
+    いつも同じ場所に同じ形で出す（出したり消したりすると、描き直しの途中で古いボタンが残って見えるため）。
+    """
     project = get_project()
     flash = st.session_state.pop(_PROMO_FLASH_KEY, None)
+    pair = _promo_pair()
+    in_pair = bool(pair and (project is pair["main"] or project is pair["short"]))
+    with st.container(border=True, key="project_bar"):
+        col_info, col_switch, col_go = st.columns([5, 3, 2], vertical_alignment="center")
+        portrait = project.resolution[1] > project.resolution[0]
+        minutes, seconds = divmod(int(round(project.total_duration)), 60)
+        kind = "📱 本編紹介ショート" if project.promo_of else ("📱 ショート" if project.video_style == "short" else "🎬 本編")
+        col_info.markdown(
+            f"**{project.book_title or project.name}**　{kind}・{'縦' if portrait else '横'}画面・"
+            f"{len(project.scenes)}シーン・{minutes}分{seconds:02d}秒"
+        )
+        if in_pair:
+            st.session_state["pair_view"] = "short" if project is pair["short"] else "main"
+            col_switch.segmented_control(
+                "表示する動画", ["main", "short"], format_func={"main": "🎬 本編", "short": "📱 紹介ショート"}.get,
+                key="pair_view", on_change=_switch_pair_view, required=True, label_visibility="collapsed",
+            )
+        elif project.promo_of:
+            col_switch.caption(f"本編「{project.promo_of}」の紹介ショート")
+        col_go.button("🎬 書き出しへ", key="bar_go_export", on_click=go_to_tab, args=("edit",),
+                      use_container_width=True, disabled=not project.scenes)
     if flash:
         st.success(flash["success"])
         for w in flash["warnings"]:
             st.warning(w)
-    if not project.promo_of:
-        return
-    col_info, col_back = st.columns([4, 1])
-    col_info.info(f"📱 本編「{project.promo_of}」の紹介ショートを編集しています（縦画面）。")
-    pair = _promo_pair()
-    if pair and pair["short"] is project and col_back.button("↩ 本編に戻る", key="promo_back", use_container_width=True):
-        set_project(pair["main"])
-        st.rerun()
 
 
 def _render_promo_short(project: Project) -> None:
