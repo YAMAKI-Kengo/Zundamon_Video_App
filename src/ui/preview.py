@@ -17,7 +17,7 @@ from src.services.video_builder import DEFAULT_SPEED_PRESET, VideoBuildError, bu
 from src.services.voicevox_client import VoicevoxConnectionError, VoicevoxSynthesisError
 from src.state import get_project
 
-_LAST_EXPORT_KEY = "_last_export"  # 最後に書き出した動画 {"name": プロジェクト名, "path", "warnings"}
+_LAST_EXPORT_KEY = "_last_export"  # 最後に書き出した動画 {"names": [本編・ショートの名前], "items": [{"label", "path", "warnings", "notes"}]}
 
 _SPEED_PRESET_OPTIONS: dict[str, str] = {
     "fast": "⚡ 高速優先（下書き確認向け。ファイルサイズは大きめ）",
@@ -41,17 +41,23 @@ def render_speed_setting() -> str:
 
 
 def run_generation(project, speed_preset: str = DEFAULT_SPEED_PRESET) -> None:
-    """動画を書き出す（上部のバーの「🚀 動画を作る」から呼ぶ）。"""
-    _run_generation(project, speed_preset)
+    """動画を書き出す（上部のバーの「🚀 動画を作る」から呼ぶ）。本編と紹介ショートの両方を書き出す。"""
+    from src.ui.book_mode import export_targets  # book_mode がこのモジュールを読み込むため、ここで読み込む
+
+    main, with_short = export_targets(project)
+    _run_generation(main, with_short, speed_preset)
 
 
 def render_last_export(project) -> None:
     """最後に書き出した動画（このプロジェクトのもの）を、上部のバーのすぐ下に折りたたんで出す。"""
     last = st.session_state.get(_LAST_EXPORT_KEY)
-    if not last or last.get("name") != project.name or not Path(last["path"]).exists():
+    if not last or project.name not in last.get("names", []):
+        return
+    paths = [Path(item["path"]) for item in last["items"] if Path(item["path"]).exists()]
+    if not paths:
         return
     just_made = st.session_state.pop(_JUST_MADE_KEY, False)
-    with st.expander(f"🎬 できた動画: {Path(last['path']).name}", expanded=just_made):
+    with st.expander(f"🎬 できた動画: {'、'.join(p.name for p in paths)}", expanded=just_made):
         _render_last_export(project)
 
 
@@ -84,52 +90,87 @@ def render_export_section() -> None:
         ),
     )
 
-    kind = "本編紹介ショート" if project.promo_of else ("ショート" if project.video_style == "short" else "本編")
-    if st.button(f"🚀 動画を生成する（{kind}・{'縦' if project.resolution[1] > project.resolution[0] else '横'}画面）",
-                 type="primary", width="stretch", key="export_generate"):
-        _run_generation(project, speed_preset)
+    from src.ui.book_mode import export_targets  # book_mode がこのモジュールを読み込むため、ここで読み込む
+
+    main, with_short = export_targets(project)
+    kind = "本編＋紹介ショート" if with_short else ("ショート" if video_metadata.is_short(main) else "本編")
+    if st.button(f"🚀 動画を生成する（{kind}）", type="primary", width="stretch", key="export_generate"):
+        _run_generation(main, with_short, speed_preset)
     _render_last_export(project)
 
 
+def _export_label(project) -> str:
+    return "本編紹介ショート" if project.promo_of else ("ショート" if video_metadata.is_short(project) else "本編")
+
+
 def _render_last_export(project) -> None:
-    """最後に書き出した動画（このプロジェクトのもの）を表示する。ほかの操作をしても消えない。"""
+    """最後に書き出した動画（このプロジェクトのもの。本編と紹介ショートの両方）を表示する。ほかの操作をしても消えない。"""
     last = st.session_state.get(_LAST_EXPORT_KEY)
-    if not last or last.get("name") != project.name:
+    if not last or project.name not in last.get("names", []):
         return
-    path = Path(last["path"])
-    if not path.exists():
-        return
-    st.success(f"動画を生成しました: {path.name}（保存先: {path.parent}）")
-    if last.get("warnings"):
-        with st.expander(f"⚠️ 生成時の注意事項（{len(last['warnings'])}件）"):
-            for w in last["warnings"]:
-                st.warning(w)
-    st.video(str(path))
-    st.download_button(
-        "⬇️ MP4をダウンロード", data=lambda: path.read_bytes(), file_name=path.name, mime="video/mp4",
-        width="stretch", key="export_download",
-    )
+    for i, item in enumerate(last["items"]):
+        path = Path(item["path"])
+        if not path.exists():
+            continue
+        st.success(f"{item['label']}を生成しました: {path.name}（保存先: {path.parent}）")
+        for note in item.get("notes", []):
+            st.caption(note)
+        if item.get("warnings"):
+            with st.expander(f"⚠️ 生成時の注意事項（{len(item['warnings'])}件）"):
+                for w in item["warnings"]:
+                    st.warning(w)
+        st.video(str(path))
+        st.download_button(
+            f"⬇️ MP4をダウンロード（{item['label']}）", data=lambda p=path: p.read_bytes(), file_name=path.name,
+            mime="video/mp4", width="stretch", key=f"export_download_{i}",
+        )
 
 
-def output_filename_for(project) -> str:
-    """書き出すファイル名（題名_本編/ショート_日時.mp4）。毎回別の名前にして、前の動画や同時に作っている動画を上書きしない。"""
-    import datetime as _dt
-    import re as _re
-
-    title = _re.sub(r'[\\/:*?"<>|\s　【】『』#]+', "_", project.book_title or project.name or "video").strip("_")[:40] or "video"
-    kind = "ショート" if (project.promo_of or project.video_style == "short") else "本編"
-    return f"{title}_{kind}_{_dt.datetime.now():%Y%m%d_%H%M%S}.mp4"
-
-
-def _run_generation(project, speed_preset: str = DEFAULT_SPEED_PRESET) -> None:
+def _run_generation(main, with_short: bool, speed_preset: str = DEFAULT_SPEED_PRESET) -> None:
+    """本編（と紹介ショート）を続けて書き出す。どのタブ・どちらの動画を表示しているかには左右されない。"""
     status_box = st.status("動画を生成しています…", expanded=True)
+    used: list[str] = []
+    items: list[dict] = []
+    targets: list[tuple] = [(main, [])]
+    short = None
+    failed = False
+    while targets:
+        project, extra_warnings = targets.pop(0)
+        label = _export_label(project)
+        status_box.write(f"▶ {label}の書き出しを始めます")
+        result = _build_one(project, label, status_box, speed_preset, used)
+        if result is None:
+            failed = True
+            break
+        items.append({"label": label, "path": str(result.output_path),
+                      "warnings": extra_warnings + list(result.warnings),
+                      "notes": _save_post_texts(project, result.output_path)})
+        if with_short and project is main:
+            try:
+                from src.ui.book_mode import promo_for_export
 
-    def on_progress(message: str) -> None:
-        status_box.write(message)
+                short, warnings = promo_for_export(main)
+            except Exception as e:  # noqa: BLE001 - ショートが作れなくても、書き出した本編はそのまま残す
+                st.warning(f"本編紹介ショートを作れなかったため、本編だけを書き出しました（{e}）")
+            else:
+                targets.append((short, warnings))
+    if not failed:
+        status_box.update(label="動画の生成が完了しました 🎉", state="complete", expanded=False)
+    if items:
+        names = [main.name] + ([short.name] if short is not None else [])
+        st.session_state[_LAST_EXPORT_KEY] = {"names": names, "items": items}
+        st.session_state[_JUST_MADE_KEY] = True
 
+
+def _build_one(project, label: str, status_box, speed_preset: str, used: list[str]):
+    """1本を書き出す（ファイル名は動画のタイトル）。想定内のエラーは分かりやすく表示して None を返す（アプリは落とさない）。"""
+    stem = video_metadata.safe_filename(project.video_title or project.name)
+    if stem in used:  # 本編とショートのタイトルが同じでも、上書きしない
+        stem = video_metadata.safe_filename(f"{stem}_{label}")
+    used.append(stem)
     try:
-        result = build_video(project, progress_callback=on_progress, speed_preset=speed_preset,
-                             output_filename=output_filename_for(project))
+        return build_video(project, progress_callback=status_box.write, speed_preset=speed_preset,
+                           output_filename=stem + ".mp4")
     except VoicevoxConnectionError:
         status_box.update(label="VOICEVOXに接続できませんでした", state="error")
         st.error(
@@ -140,32 +181,30 @@ def _run_generation(project, speed_preset: str = DEFAULT_SPEED_PRESET) -> None:
             "VOICEVOXアプリ（またはVOICEVOX ENGINE）を起動した状態で、"
             "もう一度「🚀 動画を生成する」ボタンを押してください。"
         )
-        return
     except VoicevoxSynthesisError as e:
         status_box.update(label="音声合成に失敗しました", state="error")
-        st.error(f"音声合成でエラーが発生しました: {e}")
-        return
+        st.error(f"{label}の音声合成でエラーが発生しました: {e}")
     except VideoBuildError as e:
         status_box.update(label="動画生成に失敗しました", state="error")
-        st.error(f"動画の生成中にエラーが発生しました: {e}")
-        return
+        st.error(f"{label}の生成中にエラーが発生しました: {e}")
     except Exception as e:  # noqa: BLE001 - 想定外の例外もアプリを落とさず表示する
         status_box.update(label="予期しないエラーが発生しました", state="error")
         st.error("予期しないエラーが発生しました。お手数ですが開発者にお問い合わせください。")
         with st.expander("エラーの詳細（開発者向け）"):
             st.exception(e)
-        return
+    return None
 
-    status_box.update(label="動画の生成が完了しました 🎉", state="complete", expanded=False)
-    st.session_state[_LAST_EXPORT_KEY] = {
-        "name": project.name, "path": str(result.output_path), "warnings": list(result.warnings),
-    }
-    st.session_state[_JUST_MADE_KEY] = True
-    if project.video_title or project.video_description:
-        # 投稿用のタイトル・説明文も動画と同じ場所にテキストで保存しておく
-        info_path = result.output_path.with_name(result.output_path.stem + "_投稿用.txt")
+
+def _save_post_texts(project, output_path: Path) -> list[str]:
+    """投稿用のタイトル・説明文を動画と同じ場所にテキストで保存する（縦動画は TikTok・Instagram 用も）。"""
+    if not (project.video_title or project.video_description):
+        return []
+    saved = []
+    for suffix, text in video_metadata.export_files(project).items():
+        info_path = output_path.with_name(output_path.stem + suffix + ".txt")
         try:
-            info_path.write_text(video_metadata.export_text(project), encoding="utf-8")
-            st.caption(f"📝 タイトル・説明文を {info_path.name} に保存しました（書籍解説モードで編集できます）。")
+            info_path.write_text(text, encoding="utf-8")
         except OSError:
-            pass
+            continue
+        saved.append(info_path.name)
+    return [f"📝 投稿用の文章を保存しました: {'、'.join(saved)}（書籍解説モードで編集できます）"] if saved else []

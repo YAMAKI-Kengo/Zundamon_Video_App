@@ -104,6 +104,7 @@ def _import_lesson(project, data: dict) -> None:
         replace_existing=True, add_ending=st.session_state.get("en_ending", True), reveal_bullets=True,
     )
     if ok:
+        project = get_project()  # 紹介ショートを表示中だった場合は、本編の側に取り込まれている
         english_lesson.link_native_audio(project.scenes, english_lesson.native_gap(project))
         if st.session_state.get("en_auto_tts", True) and english_tts.is_available():
             _generate_missing_audio(project)  # 足りないお手本の音声を、読み上げAIで自動で作る

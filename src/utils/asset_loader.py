@@ -192,22 +192,76 @@ DEFAULT_ROOM_BACKGROUNDS = ("zunda_room", "metan_room", "sample_room")
 
 
 def find_background(name: str) -> Optional[Path]:
-    """背景を名前（ファイル名から拡張子を除いた部分）で探す。完全一致 → 大文字小文字を無視した一致の順。"""
+    """背景を名前で探す。ファイル名（拡張子を除く）→ 背景の日本語名（素材フォルダの index.json の name。
+    例: みんちりえの「学校の廊下（夕方）」）の順に、完全一致 → 大文字小文字を無視した一致で探す。"""
     key = (name or "").strip()
     if not key:
         return None
     candidates = list_backgrounds()
-    for match in (lambda p: p.stem == key, lambda p: p.stem.lower() == key.lower(), lambda p: p.name == key):
+    for match in (lambda p: p.stem == key, lambda p: p.stem.lower() == key.lower(), lambda p: p.name == key,
+                  lambda p: background_label(p) == key):
         for p in candidates:
             if match(p):
                 return p
     return None
 
 
+@lru_cache(maxsize=None)
+def _background_index(folder: str, mtime: float) -> dict[str, str]:
+    """背景素材フォルダの index.json（{ファイル名: {"name": 日本語名, ...}}）の {ファイル名: 日本語名}。"""
+    try:
+        data = json.loads((Path(folder) / "index.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {str(k): str(v.get("name") or "").strip() for k, v in data.items() if isinstance(v, dict) and v.get("name")}
+
+
+def background_label(path) -> str:
+    """背景の表示名。素材フォルダに index.json（みんちりえの背景など）があればその日本語名、無ければファイル名。"""
+    path = Path(path)
+    index_path = path.parent / "index.json"
+    try:
+        mtime = index_path.stat().st_mtime
+    except OSError:
+        return path.stem
+    return _background_index(str(path.parent), mtime).get(path.name) or path.stem
+
+
 def list_place_backgrounds() -> list[Path]:
     """場所の背景（学校・職場など。いつもの部屋を除く）の一覧。"""
     return [p for p in list_backgrounds() if p.stem not in DEFAULT_ROOM_BACKGROUNDS
             and not p.stem.startswith(("uploaded_", "common_"))]
+
+
+PLACE_BACKGROUND_ENUM_MAX = 80  # 台本のAIに選択肢（enum）として渡す背景の数の上限（多すぎると指定の形式が重くなる）
+
+
+def place_background_names() -> list[str]:
+    """場所の背景の名前（台本の background に書く名前。日本語名があればそれ）の一覧。"""
+    return list(dict.fromkeys(background_label(p) for p in list_place_backgrounds()))
+
+
+def place_background_schema() -> dict:
+    """台本のAIの出力形式での background の指定（数が多いときは選択肢にせず、名前を書かせて読み込み時に確かめる）。"""
+    names = place_background_names()
+    if len(names) <= PLACE_BACKGROUND_ENUM_MAX:
+        return {"type": "string", "enum": [""] + names}
+    return {"type": "string"}
+
+
+def place_background_listing() -> str:
+    """AIへの指示に載せる場所の背景の一覧。「学校の廊下（日中）」「学校の廊下（夕方）」のような時間帯違いは
+    「学校の廊下（日中／夕方）」のようにまとめて短くする。"""
+    groups: dict[str, list[str]] = {}
+    for name in place_background_names():
+        m = re.fullmatch(r"(.+?)（(.+)）", name)
+        base, variant = (m.group(1), m.group(2)) if m else (name, "")
+        groups.setdefault(base, [])
+        if variant:
+            groups[base].append(variant)
+    return "、".join(f"{base}（{'／'.join(v)}）" if v else base for base, v in groups.items())
 
 
 def find_illustration(name: str) -> Optional[Path]:
@@ -265,10 +319,11 @@ def list_backgrounds() -> list[Path]:
     if not bg_dir.exists():
         return []
     allowed_exts = BACKGROUND_IMAGE_EXTS | BACKGROUND_VIDEO_EXTS
-    return sorted(
-        p for p in bg_dir.iterdir()
-        if p.is_file() and p.suffix.lower() in allowed_exts
-    )
+    # 直下のファイルに加えて、素材サイトごとのフォルダ（assets/backgrounds/minchirie/ など）の中も探す
+    files = [p for p in bg_dir.iterdir() if p.is_file() and p.suffix.lower() in allowed_exts]
+    for sub in sorted(d for d in bg_dir.iterdir() if d.is_dir() and not d.name.startswith((".", "_"))):
+        files += [p for p in sub.iterdir() if p.is_file() and p.suffix.lower() in allowed_exts]
+    return sorted(files)
 
 
 BGM_EXTS = {".mp3", ".wav", ".m4a", ".ogg"}

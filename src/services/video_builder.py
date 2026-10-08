@@ -71,7 +71,7 @@ from src.services.compositor import (
     blur_background,
     compose_dual_character_overlay,
     compose_dual_scene_frame,
-    cover_resize,
+    fit_background,
     apply_mood,
     load_background_image,
     render_transition_card,
@@ -360,7 +360,7 @@ def _build_dynamic_scene_clip(
             try:
                 bg_frame = bg_clip.get_frame(t)
                 canvas = apply_mood(blur_background(
-                    cover_resize(Image.fromarray(bg_frame).convert("RGBA"), resolution), background_blur
+                    fit_background(Image.fromarray(bg_frame).convert("RGBA"), resolution), background_blur
                 ), scene.mood)
             except Exception:  # noqa: BLE001 - 背景動画の一部フレーム取得に失敗しても動画全体の書き出しは継続する
                 canvas = fallback_bg_rgba.copy()

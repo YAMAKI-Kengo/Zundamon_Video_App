@@ -47,6 +47,7 @@ from src.utils.asset_loader import (
     get_character_display_name,
     get_expression_label,
     is_video_path,
+    background_label,
     list_backgrounds,
     list_characters,
     list_content_media,
@@ -284,7 +285,8 @@ def render_scene_editor() -> None:
             with col_form:
                 bg_index = bg_options.index(scene.background_path) if scene.background_path in bg_options else 0
                 bg_choice = st.selectbox(
-                    "背景画像", options=bg_options, index=bg_index, key=f"bg_{scene.id}"
+                    "背景画像", options=bg_options, index=bg_index, key=f"bg_{scene.id}",
+                    format_func=lambda v: v if v == NO_BACKGROUND_LABEL else f"{background_label(v)}（{Path(v).name}）",
                 )
                 scene.background_path = None if bg_choice == NO_BACKGROUND_LABEL else bg_choice
                 if is_video_path(scene.background_path):

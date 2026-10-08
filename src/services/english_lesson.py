@@ -33,7 +33,7 @@ from src.models import GUEST_CHARACTERS, Scene
 from src.services import book_ai, video_history
 from src.services.book_ai import _STR, _STR_LIST, AIResult, ProgressCallback, _call, _obj
 from src.services.voicevox_client import DEFAULT_SPEECH_SPEED
-from src.utils.asset_loader import get_available_expressions, list_illustrations, list_place_backgrounds, list_se
+from src.utils.asset_loader import get_available_expressions, list_illustrations, list_se, place_background_schema
 
 ROOT = Path(__file__).resolve().parents[2]
 AUDIO_DIR = ROOT / "assets" / "english_audio"       # ネイティブ音声（<ID>.mp3 など）を置くフォルダ
@@ -358,7 +358,7 @@ def _lesson_schema(with_promo: bool = True) -> dict:
     block = _obj({
         "section": {"type": "string", "enum": LESSON_SECTIONS_ENUM},
         "slide": _obj({"title": _STR, "bullets": _STR_LIST, "numbered": {"type": "boolean"}}),
-        "background": {"type": "string", "enum": [""] + [p.stem for p in list_place_backgrounds()]},
+        "background": place_background_schema(),
         "background_request": _STR,
         "background_name": _STR,
         **({"guests": {"type": "array", "items": {"type": "string", "enum": guest_keys}}} if guest_keys else {}),
