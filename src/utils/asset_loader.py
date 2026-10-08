@@ -198,12 +198,23 @@ def find_background(name: str) -> Optional[Path]:
     if not key:
         return None
     candidates = list_backgrounds()
+    loose = _loose_label(key)
     for match in (lambda p: p.stem == key, lambda p: p.stem.lower() == key.lower(), lambda p: p.name == key,
-                  lambda p: background_label(p) == key):
+                  lambda p: background_label(p) == key, lambda p: _loose_label(background_label(p)) == loose):
         for p in candidates:
             if match(p):
                 return p
+    # 時間帯を書かずに場所の名前だけ（例:「学校の廊下」）のときは、その場所の最初の背景（ふつうは日中）を使う
+    for p in list_place_backgrounds():
+        if _loose_label(background_label(p)).split("（")[0] == loose:
+            return p
     return None
+
+
+def _loose_label(name: str) -> str:
+    """名前の表記ゆれ（半角/全角のかっこ・数字・スペース）をそろえる。"""
+    name = re.sub(r"[ 　]", "", name or "").replace("(", "（").replace(")", "）")
+    return name.translate(str.maketrans("0123456789", "０１２３４５６７８９"))
 
 
 @lru_cache(maxsize=None)
@@ -229,10 +240,16 @@ def background_label(path) -> str:
     return _background_index(str(path.parent), mtime).get(path.name) or path.stem
 
 
+def is_background_layer(path) -> bool:
+    """みんちりえの「奥レイヤ」「手前レイヤ」（家具などを前後に分けた部品）か。手前レイヤはほぼ透明で、
+    奥レイヤも同じ場所の完成した背景があるため、背景の候補には出さない。"""
+    return "レイヤ" in background_label(path)
+
+
 def list_place_backgrounds() -> list[Path]:
-    """場所の背景（学校・職場など。いつもの部屋を除く）の一覧。"""
+    """場所の背景（学校・職場など。いつもの部屋・レイヤの部品を除く）の一覧。"""
     return [p for p in list_backgrounds() if p.stem not in DEFAULT_ROOM_BACKGROUNDS
-            and not p.stem.startswith(("uploaded_", "common_"))]
+            and not p.stem.startswith(("uploaded_", "common_")) and not is_background_layer(p)]
 
 
 PLACE_BACKGROUND_ENUM_MAX = 80  # 台本のAIに選択肢（enum）として渡す背景の数の上限（多すぎると指定の形式が重くなる）

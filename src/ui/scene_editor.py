@@ -47,6 +47,7 @@ from src.utils.asset_loader import (
     get_character_display_name,
     get_expression_label,
     is_video_path,
+    is_background_layer,
     background_label,
     list_backgrounds,
     list_characters,
@@ -266,7 +267,7 @@ def render_scene_editor() -> None:
         )
         characters = ["zundamon", "shikoku_metan"]
 
-    bg_options = [NO_BACKGROUND_LABEL] + [str(p) for p in list_backgrounds()]
+    bg_options = [NO_BACKGROUND_LABEL] + [str(p) for p in list_backgrounds() if not is_background_layer(p)]
     content_media_options = [NO_CONTENT_MEDIA_LABEL] + [str(p) for p in list_content_media()]
 
     _render_bulk_script_import(project, characters)

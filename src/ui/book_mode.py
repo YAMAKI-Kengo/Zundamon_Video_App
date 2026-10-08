@@ -634,7 +634,8 @@ def _render_background_requests(project: Project) -> None:
     with st.expander(f"🏞 欲しい背景一覧（{len(requests)}件・まだ用意されていません）", expanded=True):
         st.caption(
             "回想や寸劇で、学校・職場など部屋以外の場所の話をしている場面です。下の「ファイル名」の名前で画像"
-            "（横長 16:9 がおすすめ）を assets/backgrounds/ に置くと、その場面の背景に自動で反映されます。"
+            "（横長 16:9 がおすすめ。みんちりえ https://min-chi.material.jp/ などで探せます）を assets/backgrounds/ に置くと、"
+            "その場面の背景に自動で反映されます。"
             "用意できないものは、いつもの部屋の背景のまま書き出されます。"
         )
         rows = [{"ファイル名": req.name, "欲しい背景": req.description,
