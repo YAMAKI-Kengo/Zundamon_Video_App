@@ -87,7 +87,7 @@ def manual_prompt(project: Project) -> str:
     return "\n\n".join([
         _system(_role(project), project.speech_speed),
         _instruction(project),
-        '出力は {"promo_short": {"title_candidates": [...], "video_title": "...", "description_lead": "...", '
+        '出力は {"promo_short": {"title_candidates": [...], "video_title": "...", "hook": "...", "description_lead": "...", '
         '"hashtags": [...], "tags": [...], "blocks": [{"section": "intro", "slide": {"title": "", "bullets": []}, '
         '"lines": [{"speaker": "zundamon", "expression": "surprised", "text": "...", "hide": ["shikoku_metan"], '
         '"board": false}]}, ...]}} の形式のJSONだけにしてください。',

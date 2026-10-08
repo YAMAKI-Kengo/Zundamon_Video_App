@@ -1,0 +1,10 @@
+# 実行ファイル(exe/app)としてビルドする「販売者側の作業マシン」だけで追加インストールするもの。
+# 購入者側には不要（実行ファイルの中に必要なものは全て含まれる）。
+#
+# 使い方:
+#   pip install -r requirements.txt
+#   pip install -r requirements-build.txt
+# その後 packaging/BUILD.md の手順でビルドする。
+
+pyinstaller>=6.10
+pyinstaller-hooks-contrib>=2024.9   # imageio-ffmpeg等、依存ライブラリの同梱に必要なフック集

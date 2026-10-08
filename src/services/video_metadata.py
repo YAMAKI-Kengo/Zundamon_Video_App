@@ -182,9 +182,10 @@ def _title_candidates(project: Project) -> list[str]:
         theme = lesson.get("theme") or book or "英会話"
         phrase = next((p.get("en", "") for p in lesson.get("phrases", []) if isinstance(p, dict)), "")
         label = "1週間のまとめ" if str(day) == "7" else f"Day{day}"
+        # 企画の中身を先頭に置き、シリーズ名（Day の番号）は最後に付ける（初めて見る人がクリックを避けないように）
         template = [
-            f"【毎日英会話】{label} {phrase}｜{theme}" if phrase else "",
-            f"【毎日英会話】{label}｜{theme}",
+            f"{theme}で使える {phrase}｜毎日英会話 {label}" if phrase else "",
+            f"{theme}で固まらない英語｜毎日英会話 {label}",
         ]
         if is_short(project):
             template = [f"{phrase} って言えますか？ #Shorts" if phrase else "", f"【毎日英会話】{theme} #Shorts"]
@@ -580,7 +581,35 @@ def apply_generated_metadata(project: Project, overwrite: bool = True) -> VideoM
         project.video_tags = meta.tags
     if overwrite or not project.x_post:
         project.x_post = build_x_post(project)
+    if not project.pinned_comment:
+        project.pinned_comment = build_pinned_comment(project)
     return meta
+
+
+def build_pinned_comment(project: Project) -> str:
+    """YouTubeのコメント欄に固定するコメント（AIが書いていないときの型）。コメントしたくなる質問で終える。"""
+    if project.promo_of or is_short(project):
+        return "\n".join([
+            "▶ 詳しい解説（本編）はこちら",
+            "（ここに本編の動画のURLを貼ってください）",
+            "",
+            "💬 気になったところ、コメントで教えてね！",
+        ])
+    if is_english(project):
+        phrases = _lesson_phrases(project)
+        lines = ["📌 今日のフレーズ"] + [f"・{p}" for p in phrases[:3]]
+        first = phrases[0].split(" ― ")[0] if phrases else ""
+        return "\n".join(lines + [
+            "",
+            "💬 このフレーズを使って、コメントに英語を1文書いてみてね！" + (f"（例: {first}）" if first else ""),
+            "明日も一緒に「言えた！」を増やそう。",
+        ])
+    points = _explain_points(project.scenes)[:3]
+    lines = ["📌 今日のポイント"] + [f"・{p}" for p in points] if points else ["📌 見てくれてありがとう！"]
+    return "\n".join(lines + [
+        "",
+        "💬 あなたはどれが一番刺さった？ コメントで教えてね！",
+    ])
 
 
 def export_text(project: Project) -> str:
@@ -589,5 +618,6 @@ def export_text(project: Project) -> str:
         "【タイトル】", project.video_title, "",
         "【説明文】", refresh_credits(project.video_description, project), "",
         "【タグ】", ", ".join(project.video_tags), "",
-        "【X（旧Twitter）の投稿文】", project.x_post or build_x_post(project),
+        "【X（旧Twitter）の投稿文】", project.x_post or build_x_post(project), "",
+        "【固定コメント】", project.pinned_comment or build_pinned_comment(project),
     ])

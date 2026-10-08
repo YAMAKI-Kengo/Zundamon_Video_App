@@ -26,6 +26,35 @@ _SPEED_PRESET_OPTIONS: dict[str, str] = {
 }
 
 
+SPEED_PRESET_OPTIONS = _SPEED_PRESET_OPTIONS
+_JUST_MADE_KEY = "_export_just_made"
+
+
+def render_speed_setting() -> str:
+    """書き出し速度の設定（上部のバーの ⚙ の中に出す）。"""
+    preset_keys = list(_SPEED_PRESET_OPTIONS.keys())
+    st.session_state.setdefault("export_speed_preset", DEFAULT_SPEED_PRESET)
+    return st.selectbox(
+        "書き出し速度", options=preset_keys, format_func=lambda k: _SPEED_PRESET_OPTIONS[k], key="export_speed_preset",
+        help="内容を素早く確認したいときは「高速優先」、公開する最終版は「高画質優先」がおすすめです。",
+    )
+
+
+def run_generation(project, speed_preset: str = DEFAULT_SPEED_PRESET) -> None:
+    """動画を書き出す（上部のバーの「🚀 動画を作る」から呼ぶ）。"""
+    _run_generation(project, speed_preset)
+
+
+def render_last_export(project) -> None:
+    """最後に書き出した動画（このプロジェクトのもの）を、上部のバーのすぐ下に折りたたんで出す。"""
+    last = st.session_state.get(_LAST_EXPORT_KEY)
+    if not last or last.get("name") != project.name or not Path(last["path"]).exists():
+        return
+    just_made = st.session_state.pop(_JUST_MADE_KEY, False)
+    with st.expander(f"🎬 できた動画: {Path(last['path']).name}", expanded=just_made):
+        _render_last_export(project)
+
+
 def render_export_section() -> None:
     project = get_project()
     st.subheader("動画生成")
@@ -57,7 +86,7 @@ def render_export_section() -> None:
 
     kind = "本編紹介ショート" if project.promo_of else ("ショート" if project.video_style == "short" else "本編")
     if st.button(f"🚀 動画を生成する（{kind}・{'縦' if project.resolution[1] > project.resolution[0] else '横'}画面）",
-                 type="primary", use_container_width=True, key="export_generate"):
+                 type="primary", width="stretch", key="export_generate"):
         _run_generation(project, speed_preset)
     _render_last_export(project)
 
@@ -78,8 +107,18 @@ def _render_last_export(project) -> None:
     st.video(str(path))
     st.download_button(
         "⬇️ MP4をダウンロード", data=lambda: path.read_bytes(), file_name=path.name, mime="video/mp4",
-        use_container_width=True, key="export_download",
+        width="stretch", key="export_download",
     )
+
+
+def output_filename_for(project) -> str:
+    """書き出すファイル名（題名_本編/ショート_日時.mp4）。毎回別の名前にして、前の動画や同時に作っている動画を上書きしない。"""
+    import datetime as _dt
+    import re as _re
+
+    title = _re.sub(r'[\\/:*?"<>|\s　【】『』#]+', "_", project.book_title or project.name or "video").strip("_")[:40] or "video"
+    kind = "ショート" if (project.promo_of or project.video_style == "short") else "本編"
+    return f"{title}_{kind}_{_dt.datetime.now():%Y%m%d_%H%M%S}.mp4"
 
 
 def _run_generation(project, speed_preset: str = DEFAULT_SPEED_PRESET) -> None:
@@ -89,7 +128,8 @@ def _run_generation(project, speed_preset: str = DEFAULT_SPEED_PRESET) -> None:
         status_box.write(message)
 
     try:
-        result = build_video(project, progress_callback=on_progress, speed_preset=speed_preset)
+        result = build_video(project, progress_callback=on_progress, speed_preset=speed_preset,
+                             output_filename=output_filename_for(project))
     except VoicevoxConnectionError:
         status_box.update(label="VOICEVOXに接続できませんでした", state="error")
         st.error(
@@ -120,6 +160,7 @@ def _run_generation(project, speed_preset: str = DEFAULT_SPEED_PRESET) -> None:
     st.session_state[_LAST_EXPORT_KEY] = {
         "name": project.name, "path": str(result.output_path), "warnings": list(result.warnings),
     }
+    st.session_state[_JUST_MADE_KEY] = True
     if project.video_title or project.video_description:
         # 投稿用のタイトル・説明文も動画と同じ場所にテキストで保存しておく
         info_path = result.output_path.with_name(result.output_path.stem + "_投稿用.txt")

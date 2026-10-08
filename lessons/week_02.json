@@ -1,0 +1,124 @@
+{
+  "theme": "旅の準備：ホテルや航空会社に英語でメッセージを送る",
+  "theme_en": "Getting Ready: Messaging Hotels and Airlines",
+  "goal": "ホテルや航空会社に、予約・料金・お願い・変更を英語のメッセージで問い合わせて、感じよくやりとりできる",
+  "days": [
+    {
+      "day": 1,
+      "title": "いきなり「Room please!」はNG？返事が来ない問い合わせ",
+      "situation": "旅行先のホテルの問い合わせフォームに、空室があるか初めてメッセージを送る",
+      "zunda_trouble": "あいさつも名前も書かずに「Room! 3 nights! Cheap please!」と送り、迷惑メールだと思われて返事が来ない",
+      "phrases": [
+        {
+          "en": "Hi, I'm interested in booking a room for three nights.",
+          "ja": "こんにちは、3泊で部屋の予約を考えています。",
+          "point": "I'm interested in 〜ing で「〜を考えています」とやわらかく切り出せる。いきなり I want より感じがいい"
+        },
+        {
+          "en": "Do you have any rooms available from June 3rd to 6th?",
+          "ja": "6月3日から6日まで、空いている部屋はありますか？",
+          "point": "available は「空いている・利用できる」。from 〇 to △ で日付の範囲をまとめて伝えられる"
+        }
+      ],
+      "grammar": "I'm interested in の後ろは動詞の ing 形（booking）にする"
+    },
+    {
+      "day": 2,
+      "title": "「Breakfast is free?」は実は失礼？料金の聞き方",
+      "situation": "ホテルから届いた料金の返信を見て、朝食や追加料金について確認する",
+      "zunda_trouble": "「Breakfast is free?」とだけ送り、「無料で朝食を出せ」と要求しているように読まれてしまう",
+      "phrases": [
+        {
+          "en": "Does the price include breakfast?",
+          "ja": "その料金に朝食は含まれていますか？",
+          "point": "include は「含む」。Is breakfast free? より、料金の中身を確認するていねいな聞き方になる"
+        },
+        {
+          "en": "Is there an extra charge for late check-out?",
+          "ja": "レイトチェックアウトには追加料金がかかりますか？",
+          "point": "extra charge は「追加料金」。Is there an extra charge for 〜? で何にでも使える"
+        }
+      ],
+      "grammar": "the price は3人称単数なので、疑問文は Does、動詞は include の原形のまま"
+    },
+    {
+      "day": 3,
+      "title": "「I want 〜」はわがままに聞こえる？断られにくいお願い",
+      "situation": "早朝に着く飛行機なので、ホテルにアーリーチェックインをお願いするメッセージを書く",
+      "zunda_trouble": "「I want early check-in. Give me a room with a view.」と送り、わがままなお客さんだと思われる",
+      "phrases": [
+        {
+          "en": "Would it be possible to check in early?",
+          "ja": "早めにチェックインすることはできますか？",
+          "point": "Would it be possible to 〜? は、断られてもお互い気まずくならない、いちばん感じのいいお願いの形"
+        },
+        {
+          "en": "If possible, I'd love a room with a view.",
+          "ja": "もし可能なら、眺めのいい部屋だとうれしいです。",
+          "point": "If possible を前に付けると「できればでいいので」という気持ちが伝わる。I'd love は I want よりやわらかい"
+        }
+      ],
+      "grammar": "Would it be は「ウッディッビー」とつながり、would の d と it がくっつく"
+    },
+    {
+      "day": 4,
+      "title": "「baggages」は言いがちな間違い！荷物の質問で焦らない",
+      "situation": "航空会社のチャットで、預け荷物と機内に持ち込める物について質問する",
+      "zunda_trouble": "「How many baggages?」と送ったうえ、「Can I bring 100 zunda mochi?」と聞いて、係の人を困らせる",
+      "phrases": [
+        {
+          "en": "How many bags can I check for free?",
+          "ja": "無料で預けられる荷物はいくつですか？",
+          "point": "check には「（荷物を）預ける」という意味がある。for free で「無料で」"
+        },
+        {
+          "en": "Am I allowed to bring a portable charger on the plane?",
+          "ja": "モバイルバッテリーは機内に持ち込めますか？",
+          "point": "Am I allowed to 〜? は「〜してもいいですか？」とルールを確認する言い方。Can I 〜? より規則をたずねる感じが出る"
+        }
+      ],
+      "grammar": "baggage と luggage は数えられない名詞なので s を付けない。数えるときは bags を使う"
+    },
+    {
+      "day": 5,
+      "title": "焦って「cancel」はNG！予約が消えかける変更メール",
+      "situation": "予定が1日ずれたので、ホテルに予約の日付を変更したいとメッセージを送る",
+      "zunda_trouble": "あわてて「I want to cancel!」と書いてしまい、変更したかっただけなのに予約が消えかける",
+      "phrases": [
+        {
+          "en": "I'd like to change my check-in date to June 4th.",
+          "ja": "チェックイン日を6月4日に変更したいです。",
+          "point": "I'd like to 〜 は I want to 〜 のていねい版。change A to B で「A を B に変える」"
+        },
+        {
+          "en": "What's your cancellation policy?",
+          "ja": "キャンセルの規定はどうなっていますか？",
+          "point": "policy は「規定・ルール」。いつまでなら無料でキャンセルできるかを聞くときの決まり文句"
+        }
+      ],
+      "grammar": "I'd は I would の短縮形。I'd like to は「アイドライクトゥ」と一息で言う"
+    },
+    {
+      "day": 6,
+      "title": "最後の「Bye bye!」で台無し？大人っぽく締める一言",
+      "situation": "ホテルからの返信にお礼を言い、やりとりを気持ちよく終える",
+      "zunda_trouble": "最後に「Thank you!!! Bye bye!!! (^o^)/」と顔文字だらけで送り、友達へのメッセージみたいになる",
+      "phrases": [
+        {
+          "en": "Thank you so much for your quick reply.",
+          "ja": "早いお返事、本当にありがとうございます。",
+          "point": "Thank you for 〜 の後ろに感謝する内容を入れる。quick reply で「すぐ返事をくれたこと」へのお礼になる"
+        },
+        {
+          "en": "I'm looking forward to staying at your hotel.",
+          "ja": "そちらのホテルに泊まるのを楽しみにしています。",
+          "point": "メッセージの最後の定番。Bye bye より大人っぽく、やりとりを気持ちよく締められる"
+        }
+      ],
+      "grammar": "looking forward to の to は前置詞なので、後ろは動詞の ing 形（staying）にする"
+    }
+  ],
+  "next_theme_idea": "空港で頭が真っ白にならない：チェックインと保安検査の英語",
+  "week": 2,
+  "level": "b1"
+}

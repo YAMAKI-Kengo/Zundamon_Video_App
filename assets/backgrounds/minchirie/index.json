@@ -1,0 +1,2078 @@
+{
+ "school_hallway_1.jpg": {
+  "name": "学校の廊下（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_hallway/"
+ },
+ "school_hallway_2.jpg": {
+  "name": "学校の廊下（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_hallway/"
+ },
+ "school_hallway_3.jpg": {
+  "name": "学校の廊下（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_hallway/"
+ },
+ "school_hallway_4.jpg": {
+  "name": "学校の廊下（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_hallway/"
+ },
+ "country_road2_1.jpg": {
+  "name": "田舎道２（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/country_road2/"
+ },
+ "country_road2_2.jpg": {
+  "name": "田舎道２（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/country_road2/"
+ },
+ "country_road2_3.jpg": {
+  "name": "田舎道２（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/country_road2/"
+ },
+ "country_road2_4.jpg": {
+  "name": "田舎道２（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/country_road2/"
+ },
+ "cultural_club_room_1.jpg": {
+  "name": "文化系の部室（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cultural_club_room/"
+ },
+ "cultural_club_room_2.jpg": {
+  "name": "文化系の部室（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cultural_club_room/"
+ },
+ "cultural_club_room_3.jpg": {
+  "name": "文化系の部室（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cultural_club_room/"
+ },
+ "cultural_club_room_4.jpg": {
+  "name": "文化系の部室（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cultural_club_room/"
+ },
+ "residential_street2_1.jpg": {
+  "name": "住宅街２（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/residential_street2/"
+ },
+ "residential_street2_2.jpg": {
+  "name": "住宅街２（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/residential_street2/"
+ },
+ "residential_street2_3.jpg": {
+  "name": "住宅街２（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/residential_street2/"
+ },
+ "residential_street2_4.jpg": {
+  "name": "住宅街２（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/residential_street2/"
+ },
+ "building_hallway_1.jpg": {
+  "name": "ビルの廊下（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/building_hallway/"
+ },
+ "building_hallway_2.jpg": {
+  "name": "ビルの廊下（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/building_hallway/"
+ },
+ "building_hallway_3.jpg": {
+  "name": "ビルの廊下（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/building_hallway/"
+ },
+ "building_hallway_4.jpg": {
+  "name": "ビルの廊下（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/building_hallway/"
+ },
+ "single_room3_1.jpg": {
+  "name": "一人部屋３（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room3/"
+ },
+ "single_room3_2.jpg": {
+  "name": "一人部屋３（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room3/"
+ },
+ "single_room3_3.jpg": {
+  "name": "一人部屋３（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room3/"
+ },
+ "single_room3_4.jpg": {
+  "name": "一人部屋３（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room3/"
+ },
+ "hideout_1.jpg": {
+  "name": "アジト（照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/hideout/"
+ },
+ "hideout_2.jpg": {
+  "name": "アジト（照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/hideout/"
+ },
+ "park_gazebo_bench_1.jpg": {
+  "name": "公園の東屋のベンチ（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/park_gazebo_bench/"
+ },
+ "park_gazebo_bench_2.jpg": {
+  "name": "公園の東屋のベンチ（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/park_gazebo_bench/"
+ },
+ "park_gazebo_bench_3.jpg": {
+  "name": "公園の東屋のベンチ（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/park_gazebo_bench/"
+ },
+ "school_courtyard_bench_1.jpg": {
+  "name": "学校のベンチ（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_courtyard_bench/"
+ },
+ "school_courtyard_bench_2.jpg": {
+  "name": "学校のベンチ（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_courtyard_bench/"
+ },
+ "school_courtyard_bench_3.jpg": {
+  "name": "学校のベンチ（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_courtyard_bench/"
+ },
+ "school_courtyard_bench_4.jpg": {
+  "name": "学校のベンチ（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_courtyard_bench/"
+ },
+ "railroad_crossing_1.jpg": {
+  "name": "街中の踏切（日中・開）",
+  "page": "https://min-chi.material.jp/fm/bg_c/railroad_crossing/"
+ },
+ "railroad_crossing_2.jpg": {
+  "name": "街中の踏切（日中・閉・右）",
+  "page": "https://min-chi.material.jp/fm/bg_c/railroad_crossing/"
+ },
+ "railroad_crossing_3.jpg": {
+  "name": "街中の踏切（日中・閉・左）",
+  "page": "https://min-chi.material.jp/fm/bg_c/railroad_crossing/"
+ },
+ "railroad_crossing_4.jpg": {
+  "name": "街中の踏切（夕方・開）",
+  "page": "https://min-chi.material.jp/fm/bg_c/railroad_crossing/"
+ },
+ "railroad_crossing_5.jpg": {
+  "name": "街中の踏切（夕方・閉・右）",
+  "page": "https://min-chi.material.jp/fm/bg_c/railroad_crossing/"
+ },
+ "railroad_crossing_6.jpg": {
+  "name": "街中の踏切（夕方・閉・左）",
+  "page": "https://min-chi.material.jp/fm/bg_c/railroad_crossing/"
+ },
+ "railroad_crossing_7.jpg": {
+  "name": "街中の踏切（夜・開）",
+  "page": "https://min-chi.material.jp/fm/bg_c/railroad_crossing/"
+ },
+ "railroad_crossing_8.jpg": {
+  "name": "街中の踏切（夜・閉・右）",
+  "page": "https://min-chi.material.jp/fm/bg_c/railroad_crossing/"
+ },
+ "railroad_crossing_9.jpg": {
+  "name": "街中の踏切（夜・閉・左）",
+  "page": "https://min-chi.material.jp/fm/bg_c/railroad_crossing/"
+ },
+ "levee_trail_1.jpg": {
+  "name": "川沿いの土手の遊歩道（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/levee_trail/"
+ },
+ "levee_trail_2.jpg": {
+  "name": "川沿いの土手の遊歩道（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/levee_trail/"
+ },
+ "levee_trail_3.jpg": {
+  "name": "川沿いの土手の遊歩道（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/levee_trail/"
+ },
+ "casual_restaurant_1.jpg": {
+  "name": "飲食店の店内（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/casual_restaurant/"
+ },
+ "casual_restaurant_2.jpg": {
+  "name": "飲食店の店内（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/casual_restaurant/"
+ },
+ "casual_restaurant_3.jpg": {
+  "name": "飲食店の店内（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/casual_restaurant/"
+ },
+ "jp_entrance_hall_1.jpg": {
+  "name": "和風の家の玄関ホール（照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/jp_entrance_hall/"
+ },
+ "jp_entrance_hall_2.jpg": {
+  "name": "和風の家の玄関ホール（照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/jp_entrance_hall/"
+ },
+ "seaside_bus_stop_1.jpg": {
+  "name": "海辺のバス停（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/seaside_bus_stop/"
+ },
+ "seaside_bus_stop_2.jpg": {
+  "name": "海辺のバス停（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/seaside_bus_stop/"
+ },
+ "seaside_bus_stop_3.jpg": {
+  "name": "海辺のバス停（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/seaside_bus_stop/"
+ },
+ "small_sandy_beach_1.jpg": {
+  "name": "小さな砂浜（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/small_sandy_beach/"
+ },
+ "small_sandy_beach_2.jpg": {
+  "name": "小さな砂浜（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/small_sandy_beach/"
+ },
+ "small_sandy_beach_3.jpg": {
+  "name": "小さな砂浜（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/small_sandy_beach/"
+ },
+ "shooting_stall_1.jpg": {
+  "name": "射的の屋台（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shooting_stall/"
+ },
+ "shooting_stall_2.jpg": {
+  "name": "射的の屋台（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shooting_stall/"
+ },
+ "shooting_stall_3.jpg": {
+  "name": "射的の屋台（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shooting_stall/"
+ },
+ "school_music_room_1.jpg": {
+  "name": "学校の音楽室（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_music_room/"
+ },
+ "school_music_room_2.jpg": {
+  "name": "学校の音楽室（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_music_room/"
+ },
+ "school_music_room_3.jpg": {
+  "name": "学校の音楽室（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_music_room/"
+ },
+ "school_music_room_4.jpg": {
+  "name": "学校の音楽室（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_music_room/"
+ },
+ "rural_railside_1.jpg": {
+  "name": "田舎の線路沿いの道（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/rural_railside/"
+ },
+ "rural_railside_2.jpg": {
+  "name": "田舎の線路沿いの道（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/rural_railside/"
+ },
+ "rural_railside_3.jpg": {
+  "name": "田舎の線路沿いの道（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/rural_railside/"
+ },
+ "rural_railside_4.jpg": {
+  "name": "田舎の線路沿いの道（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/rural_railside/"
+ },
+ "emergency_staircase_1.jpg": {
+  "name": "学校の非常階段（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/emergency_staircase/"
+ },
+ "emergency_staircase_2.jpg": {
+  "name": "学校の非常階段（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/emergency_staircase/"
+ },
+ "emergency_staircase_3.jpg": {
+  "name": "学校の非常階段（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/emergency_staircase/"
+ },
+ "emergency_staircase_4.jpg": {
+  "name": "学校の非常階段（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/emergency_staircase/"
+ },
+ "school_ground_1.jpg": {
+  "name": "学校のグラウンド（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_ground/"
+ },
+ "school_ground_2.jpg": {
+  "name": "学校のグラウンド（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_ground/"
+ },
+ "school_ground_3.jpg": {
+  "name": "学校のグラウンド（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_ground/"
+ },
+ "school_ground_4.jpg": {
+  "name": "学校のグラウンド（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_ground/"
+ },
+ "shop_in_park_1.jpg": {
+  "name": "公園の売店（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shop_in_park/"
+ },
+ "shop_in_park_2.jpg": {
+  "name": "公園の売店（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shop_in_park/"
+ },
+ "shop_in_park_3.jpg": {
+  "name": "公園の売店（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shop_in_park/"
+ },
+ "country_road_1.jpg": {
+  "name": "田舎道（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/country_road/"
+ },
+ "country_road_2.jpg": {
+  "name": "田舎道（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/country_road/"
+ },
+ "country_road_3.jpg": {
+  "name": "田舎道（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/country_road/"
+ },
+ "country_road_4.jpg": {
+  "name": "田舎道（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/country_road/"
+ },
+ "shrine_1.jpg": {
+  "name": "神社（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shrine/"
+ },
+ "shrine_2.jpg": {
+  "name": "神社（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shrine/"
+ },
+ "shrine_3.jpg": {
+  "name": "神社（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shrine/"
+ },
+ "shrine_4.jpg": {
+  "name": "神社（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shrine/"
+ },
+ "single_room2_1.jpg": {
+  "name": "一人部屋２（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room2/"
+ },
+ "single_room2_2.jpg": {
+  "name": "一人部屋２（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room2/"
+ },
+ "single_room2_3.jpg": {
+  "name": "一人部屋２（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room2/"
+ },
+ "single_room2_4.jpg": {
+  "name": "一人部屋２（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room2/"
+ },
+ "single_room2_5.jpg": {
+  "name": "一人部屋２（夜・ランプON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room2/"
+ },
+ "station_platform_1.jpg": {
+  "name": "駅のホーム（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/station_platform/"
+ },
+ "station_platform_2.jpg": {
+  "name": "駅のホーム（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/station_platform/"
+ },
+ "station_platform_3.jpg": {
+  "name": "駅のホーム（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/station_platform/"
+ },
+ "station_platform_4.jpg": {
+  "name": "駅のホーム（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/station_platform/"
+ },
+ "facility2_1.jpg": {
+  "name": "何かの施設２（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/facility2/"
+ },
+ "facility2_2.jpg": {
+  "name": "何かの施設２（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/facility2/"
+ },
+ "facility2_3.jpg": {
+  "name": "何かの施設２（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/facility2/"
+ },
+ "facility2_4.jpg": {
+  "name": "何かの施設２（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/facility2/"
+ },
+ "school_in_spring_1.jpg": {
+  "name": "春の学校（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_in_spring/"
+ },
+ "school_in_spring_2.jpg": {
+  "name": "春の学校（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_in_spring/"
+ },
+ "school_in_spring_3.jpg": {
+  "name": "春の学校（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_in_spring/"
+ },
+ "school_in_spring_4.jpg": {
+  "name": "春の学校（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_in_spring/"
+ },
+ "park_in_spring_1.jpg": {
+  "name": "春の公園（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/park_in_spring/"
+ },
+ "park_in_spring_2.jpg": {
+  "name": "春の公園（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/park_in_spring/"
+ },
+ "park_in_spring_3.jpg": {
+  "name": "春の公園（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/park_in_spring/"
+ },
+ "small_playground_1.jpg": {
+  "name": "住宅街の公園（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/small_playground/"
+ },
+ "small_playground_2.jpg": {
+  "name": "住宅街の公園（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/small_playground/"
+ },
+ "small_playground_3.jpg": {
+  "name": "住宅街の公園（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/small_playground/"
+ },
+ "front_of_classroom_1.jpg": {
+  "name": "教室の前の方（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/front_of_classroom/"
+ },
+ "front_of_classroom_2.jpg": {
+  "name": "教室の前の方（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/front_of_classroom/"
+ },
+ "front_of_classroom_3.jpg": {
+  "name": "教室の前の方（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/front_of_classroom/"
+ },
+ "front_of_classroom_4.jpg": {
+  "name": "教室の前の方（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/front_of_classroom/"
+ },
+ "building_1.jpg": {
+  "name": "街中のビル（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/building/"
+ },
+ "building_2.jpg": {
+  "name": "街中のビル（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/building/"
+ },
+ "building_3.jpg": {
+  "name": "街中のビル（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/building/"
+ },
+ "building_4.jpg": {
+  "name": "街中のビル（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/building/"
+ },
+ "back_alley_1.jpg": {
+  "name": "街中の裏通り（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/back_alley/"
+ },
+ "back_alley_2.jpg": {
+  "name": "街中の裏通り（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/back_alley/"
+ },
+ "back_alley_3.jpg": {
+  "name": "街中の裏通り（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/back_alley/"
+ },
+ "crossing_in_city_1.jpg": {
+  "name": "街中の横断歩道（日中・青信号）",
+  "page": "https://min-chi.material.jp/fm/bg_c/crossing_in_city/"
+ },
+ "crossing_in_city_2.jpg": {
+  "name": "街中の横断歩道（日中・赤信号）",
+  "page": "https://min-chi.material.jp/fm/bg_c/crossing_in_city/"
+ },
+ "crossing_in_city_3.jpg": {
+  "name": "街中の横断歩道（夕方・青信号）",
+  "page": "https://min-chi.material.jp/fm/bg_c/crossing_in_city/"
+ },
+ "crossing_in_city_4.jpg": {
+  "name": "街中の横断歩道（夕方・赤信号）",
+  "page": "https://min-chi.material.jp/fm/bg_c/crossing_in_city/"
+ },
+ "crossing_in_city_5.jpg": {
+  "name": "街中の横断歩道（夜・青信号）",
+  "page": "https://min-chi.material.jp/fm/bg_c/crossing_in_city/"
+ },
+ "crossing_in_city_6.jpg": {
+  "name": "街中の横断歩道（夜・赤信号）",
+  "page": "https://min-chi.material.jp/fm/bg_c/crossing_in_city/"
+ },
+ "jp_passage_way_1.jpg": {
+  "name": "和風な廊下（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/jp_passage_way/"
+ },
+ "jp_passage_way_2.jpg": {
+  "name": "和風な廊下（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/jp_passage_way/"
+ },
+ "jp_passage_way_3.jpg": {
+  "name": "和風な廊下（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/jp_passage_way/"
+ },
+ "jp_passage_way_4.jpg": {
+  "name": "和風な廊下（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/jp_passage_way/"
+ },
+ "local_bus_station_1.jpg": {
+  "name": "田舎のバス停（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/local_bus_station/"
+ },
+ "local_bus_station_2.jpg": {
+  "name": "田舎のバス停（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/local_bus_station/"
+ },
+ "local_bus_station_3.jpg": {
+  "name": "田舎のバス停（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/local_bus_station/"
+ },
+ "house2_1.jpg": {
+  "name": "家２（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/house2/"
+ },
+ "house2_2.jpg": {
+  "name": "家２（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/house2/"
+ },
+ "house2_3.jpg": {
+  "name": "家２（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/house2/"
+ },
+ "house2_4.jpg": {
+  "name": "家２（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/house2/"
+ },
+ "library_room_1.jpg": {
+  "name": "図書室（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/library_room/"
+ },
+ "library_room_2.jpg": {
+  "name": "図書室（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/library_room/"
+ },
+ "library_room_3.jpg": {
+  "name": "図書室（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/library_room/"
+ },
+ "library_room_4.jpg": {
+  "name": "図書室（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/library_room/"
+ },
+ "park_in_autumn_1.jpg": {
+  "name": "秋の公園（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/park_in_autumn/"
+ },
+ "park_in_autumn_2.jpg": {
+  "name": "秋の公園（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/park_in_autumn/"
+ },
+ "park_in_autumn_3.jpg": {
+  "name": "秋の公園（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/park_in_autumn/"
+ },
+ "park_in_autumn_4.jpg": {
+  "name": "秋の公園（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/park_in_autumn/"
+ },
+ "sea_island_1.jpg": {
+  "name": "海（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/sea_island/"
+ },
+ "sea_island_2.jpg": {
+  "name": "海（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/sea_island/"
+ },
+ "sea_island_3.jpg": {
+  "name": "海（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/sea_island/"
+ },
+ "sea_island_4.jpg": {
+  "name": "無人島（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/sea_island/"
+ },
+ "sea_island_5.jpg": {
+  "name": "無人島（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/sea_island/"
+ },
+ "sea_island_6.jpg": {
+  "name": "無人島（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/sea_island/"
+ },
+ "sea_island_7.jpg": {
+  "name": "有人島（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/sea_island/"
+ },
+ "sea_island_8.jpg": {
+  "name": "有人島（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/sea_island/"
+ },
+ "sea_island_9.jpg": {
+  "name": "有人島（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/sea_island/"
+ },
+ "behind_school_gym_1.jpg": {
+  "name": "学校の体育館裏（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/behind_school_gym/"
+ },
+ "behind_school_gym_2.jpg": {
+  "name": "学校の体育館裏（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/behind_school_gym/"
+ },
+ "behind_school_gym_3.jpg": {
+  "name": "学校の体育館裏（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/behind_school_gym/"
+ },
+ "behind_school_gym_4.jpg": {
+  "name": "学校の体育館裏（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/behind_school_gym/"
+ },
+ "hot_spring_1.jpg": {
+  "name": "旅館の温泉（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/hot_spring/"
+ },
+ "hot_spring_2.jpg": {
+  "name": "旅館の温泉（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/hot_spring/"
+ },
+ "hot_spring_3.jpg": {
+  "name": "旅館の温泉（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/hot_spring/"
+ },
+ "shopping_street_1.jpg": {
+  "name": "商店街（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shopping_street/"
+ },
+ "shopping_street_2.jpg": {
+  "name": "商店街（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shopping_street/"
+ },
+ "shopping_street_3.jpg": {
+  "name": "商店街（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shopping_street/"
+ },
+ "pond_park_1.jpg": {
+  "name": "池のある公園（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/pond_park/"
+ },
+ "pond_park_2.jpg": {
+  "name": "池のある公園（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/pond_park/"
+ },
+ "pond_park_3.jpg": {
+  "name": "池のある公園（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/pond_park/"
+ },
+ "vending_machine_1.jpg": {
+  "name": "街中の自動販売機（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/vending_machine/"
+ },
+ "vending_machine_2.jpg": {
+  "name": "街中の自動販売機（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/vending_machine/"
+ },
+ "vending_machine_3.jpg": {
+  "name": "街中の自動販売機（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/vending_machine/"
+ },
+ "japanese_corridor_1.jpg": {
+  "name": "田舎の家の縁側（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/japanese_corridor/"
+ },
+ "japanese_corridor_2.jpg": {
+  "name": "田舎の家の縁側（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/japanese_corridor/"
+ },
+ "japanese_corridor_3.jpg": {
+  "name": "田舎の家の縁側（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/japanese_corridor/"
+ },
+ "japanese_corridor_4.jpg": {
+  "name": "田舎の家の縁側（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/japanese_corridor/"
+ },
+ "summer_river_1.jpg": {
+  "name": "夏の河原（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/summer_river/"
+ },
+ "summer_river_2.jpg": {
+  "name": "夏の河原（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/summer_river/"
+ },
+ "summer_river_3.jpg": {
+  "name": "夏の河原（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/summer_river/"
+ },
+ "summer_beach_1.jpg": {
+  "name": "夏のビーチ（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/summer_beach/"
+ },
+ "summer_beach_2.jpg": {
+  "name": "夏のビーチ（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/summer_beach/"
+ },
+ "summer_beach_3.jpg": {
+  "name": "夏のビーチ（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/summer_beach/"
+ },
+ "street_in_summer_1.jpg": {
+  "name": "夏の街中（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/street_in_summer/"
+ },
+ "street_in_summer_2.jpg": {
+  "name": "夏の街中（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/street_in_summer/"
+ },
+ "street_in_summer_3.jpg": {
+  "name": "夏の街中（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/street_in_summer/"
+ },
+ "hotel_entrance_1.jpg": {
+  "name": "ホテルの入り口（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/hotel_entrance/"
+ },
+ "hotel_entrance_2.jpg": {
+  "name": "ホテルの入り口（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/hotel_entrance/"
+ },
+ "hotel_entrance_3.jpg": {
+  "name": "ホテルの入り口（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/hotel_entrance/"
+ },
+ "connecting_corridor_1.jpg": {
+  "name": "学校の渡り廊下（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/connecting_corridor/"
+ },
+ "connecting_corridor_2.jpg": {
+  "name": "学校の渡り廊下（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/connecting_corridor/"
+ },
+ "connecting_corridor_3.jpg": {
+  "name": "学校の渡り廊下（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/connecting_corridor/"
+ },
+ "connecting_corridor_4.jpg": {
+  "name": "学校の渡り廊下（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/connecting_corridor/"
+ },
+ "restaurant_1.jpg": {
+  "name": "レストラン（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/restaurant/"
+ },
+ "restaurant_2.jpg": {
+  "name": "レストラン（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/restaurant/"
+ },
+ "restaurant_3.jpg": {
+  "name": "レストラン（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/restaurant/"
+ },
+ "high_rise_building_1.jpg": {
+  "name": "高層ビルの外観（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/high_rise_building/"
+ },
+ "high_rise_building_2.jpg": {
+  "name": "高層ビルの外観（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/high_rise_building/"
+ },
+ "high_rise_building_3.jpg": {
+  "name": "高層ビルの外観（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/high_rise_building/"
+ },
+ "atm_corner_1.jpg": {
+  "name": "ATMコーナー（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/atm_corner/"
+ },
+ "atm_corner_2.jpg": {
+  "name": "ATMコーナー（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/atm_corner/"
+ },
+ "atm_corner_3.jpg": {
+  "name": "ATMコーナー（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/atm_corner/"
+ },
+ "under_bridge_1.jpg": {
+  "name": "河川敷の橋の下（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/under_bridge/"
+ },
+ "under_bridge_2.jpg": {
+  "name": "河川敷の橋の下（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/under_bridge/"
+ },
+ "under_bridge_3.jpg": {
+  "name": "河川敷の橋の下（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/under_bridge/"
+ },
+ "kyudo_hall_1.jpg": {
+  "name": "弓道場（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/kyudo_hall/"
+ },
+ "kyudo_hall_2.jpg": {
+  "name": "弓道場（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/kyudo_hall/"
+ },
+ "kyudo_hall_3.jpg": {
+  "name": "弓道場（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/kyudo_hall/"
+ },
+ "living2_1.jpg": {
+  "name": "リビング２（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/living2/"
+ },
+ "living2_2.jpg": {
+  "name": "リビング２（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/living2/"
+ },
+ "living2_3.jpg": {
+  "name": "リビング２（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/living2/"
+ },
+ "living2_4.jpg": {
+  "name": "リビング２（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/living2/"
+ },
+ "street_in_spring_1.jpg": {
+  "name": "春の街中（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/street_in_spring/"
+ },
+ "street_in_spring_2.jpg": {
+  "name": "春の街中（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/street_in_spring/"
+ },
+ "street_in_spring_3.jpg": {
+  "name": "春の街中（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/street_in_spring/"
+ },
+ "back_of_classroom_1.jpg": {
+  "name": "教室の後ろの方（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/back_of_classroom/"
+ },
+ "back_of_classroom_2.jpg": {
+  "name": "教室の後ろの方（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/back_of_classroom/"
+ },
+ "back_of_classroom_3.jpg": {
+  "name": "教室の後ろの方（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/back_of_classroom/"
+ },
+ "back_of_classroom_4.jpg": {
+  "name": "教室の後ろの方（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/back_of_classroom/"
+ },
+ "small_bathroom_1.jpg": {
+  "name": "アパートの浴室（照明ON・お湯有り）",
+  "page": "https://min-chi.material.jp/fm/bg_c/small_bathroom/"
+ },
+ "small_bathroom_2.jpg": {
+  "name": "アパートの浴室（照明ON・お湯無し）",
+  "page": "https://min-chi.material.jp/fm/bg_c/small_bathroom/"
+ },
+ "small_bathroom_3.jpg": {
+  "name": "アパートの浴室（照明OFF・お湯有り）",
+  "page": "https://min-chi.material.jp/fm/bg_c/small_bathroom/"
+ },
+ "small_bathroom_4.jpg": {
+  "name": "アパートの浴室（照明OFF・お湯無し）",
+  "page": "https://min-chi.material.jp/fm/bg_c/small_bathroom/"
+ },
+ "japanese_bathroom_1.jpg": {
+  "name": "和モダンな浴室（照明ON・お湯有り）",
+  "page": "https://min-chi.material.jp/fm/bg_c/japanese_bathroom/"
+ },
+ "japanese_bathroom_2.jpg": {
+  "name": "和モダンな浴室（照明ON・お湯無し）",
+  "page": "https://min-chi.material.jp/fm/bg_c/japanese_bathroom/"
+ },
+ "japanese_bathroom_3.jpg": {
+  "name": "和モダンな浴室（照明OFF・お湯有り）",
+  "page": "https://min-chi.material.jp/fm/bg_c/japanese_bathroom/"
+ },
+ "japanese_bathroom_4.jpg": {
+  "name": "和モダンな浴室（照明OFF・お湯無し）",
+  "page": "https://min-chi.material.jp/fm/bg_c/japanese_bathroom/"
+ },
+ "cluttered_room_1.jpg": {
+  "name": "散らかった部屋（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cluttered_room/"
+ },
+ "cluttered_room_2.jpg": {
+  "name": "散らかった部屋（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cluttered_room/"
+ },
+ "cluttered_room_3.jpg": {
+  "name": "散らかった部屋（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cluttered_room/"
+ },
+ "cluttered_room_4.jpg": {
+  "name": "散らかった部屋（夜・照明OFF・開き）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cluttered_room/"
+ },
+ "cluttered_room_5.jpg": {
+  "name": "散らかった部屋（夜・照明OFF・閉め）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cluttered_room/"
+ },
+ "cluttered_room_6.jpg": {
+  "name": "少し散らかった部屋（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cluttered_room/"
+ },
+ "cluttered_room_7.jpg": {
+  "name": "少し散らかった部屋（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cluttered_room/"
+ },
+ "cluttered_room_8.jpg": {
+  "name": "少し散らかった部屋（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cluttered_room/"
+ },
+ "cluttered_room_9.jpg": {
+  "name": "少し散らかった部屋（夜・照明OFF・開き）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cluttered_room/"
+ },
+ "cluttered_room_10.jpg": {
+  "name": "少し散らかった部屋（夜・照明OFF・閉め）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cluttered_room/"
+ },
+ "retro_living_1.jpg": {
+  "name": "昭和レトロな茶の間（照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/retro_living/"
+ },
+ "retro_living_2.jpg": {
+  "name": "昭和レトロな茶の間（照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/retro_living/"
+ },
+ "island_kitchen_1.png": {
+  "name": "アイランドキッチン（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/island_kitchen/"
+ },
+ "island_kitchen_2.png": {
+  "name": "アイランドキッチン（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/island_kitchen/"
+ },
+ "island_kitchen_3.png": {
+  "name": "アイランドキッチン（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/island_kitchen/"
+ },
+ "island_kitchen_4.png": {
+  "name": "アイランドキッチン（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/island_kitchen/"
+ },
+ "island_kitchen_5.png": {
+  "name": "アイランドキッチン（日中）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/island_kitchen/"
+ },
+ "island_kitchen_6.png": {
+  "name": "アイランドキッチン（日中）｜手前レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/island_kitchen/"
+ },
+ "island_kitchen_7.png": {
+  "name": "アイランドキッチン（夕方）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/island_kitchen/"
+ },
+ "island_kitchen_8.png": {
+  "name": "アイランドキッチン（夕方）｜手前レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/island_kitchen/"
+ },
+ "island_kitchen_9.png": {
+  "name": "アイランドキッチン（夜・照明ON）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/island_kitchen/"
+ },
+ "island_kitchen_10.png": {
+  "name": "アイランドキッチン（夜・照明ON）｜手前レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/island_kitchen/"
+ },
+ "island_kitchen_11.png": {
+  "name": "アイランドキッチン（夜・照明OFF）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/island_kitchen/"
+ },
+ "island_kitchen_12.png": {
+  "name": "アイランドキッチン（夜・照明OFF）｜手前レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/island_kitchen/"
+ },
+ "blackboard_1.png": {
+  "name": "黒板",
+  "page": "https://min-chi.material.jp/fm/bg_c/blackboard/"
+ },
+ "blackboard_2.png": {
+  "name": "黒板｜奥レイヤ・小黒板あり",
+  "page": "https://min-chi.material.jp/fm/bg_c/blackboard/"
+ },
+ "blackboard_3.png": {
+  "name": "黒板｜奥レイヤ・小黒板なし",
+  "page": "https://min-chi.material.jp/fm/bg_c/blackboard/"
+ },
+ "blackboard_4.png": {
+  "name": "黒板｜手前レイヤ・教卓",
+  "page": "https://min-chi.material.jp/fm/bg_c/blackboard/"
+ },
+ "blackboard_5.png": {
+  "name": "黒板｜手前レイヤ・椅子1",
+  "page": "https://min-chi.material.jp/fm/bg_c/blackboard/"
+ },
+ "blackboard_6.png": {
+  "name": "黒板｜手前レイヤ・椅子2",
+  "page": "https://min-chi.material.jp/fm/bg_c/blackboard/"
+ },
+ "blackboard_7.png": {
+  "name": "黒板｜手前レイヤ・椅子3",
+  "page": "https://min-chi.material.jp/fm/bg_c/blackboard/"
+ },
+ "blackboard_8.png": {
+  "name": "黒板｜手前レイヤ・椅子4",
+  "page": "https://min-chi.material.jp/fm/bg_c/blackboard/"
+ },
+ "blackboard_9.png": {
+  "name": "黒板｜手前レイヤ・机1",
+  "page": "https://min-chi.material.jp/fm/bg_c/blackboard/"
+ },
+ "blackboard_10.png": {
+  "name": "黒板｜手前レイヤ・机2",
+  "page": "https://min-chi.material.jp/fm/bg_c/blackboard/"
+ },
+ "blackboard_11.png": {
+  "name": "黒板｜手前レイヤ・机3",
+  "page": "https://min-chi.material.jp/fm/bg_c/blackboard/"
+ },
+ "blackboard_12.png": {
+  "name": "黒板｜手前レイヤ・机4",
+  "page": "https://min-chi.material.jp/fm/bg_c/blackboard/"
+ },
+ "living_1.jpg": {
+  "name": "リビング（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/living/"
+ },
+ "living_2.jpg": {
+  "name": "リビング（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/living/"
+ },
+ "living_3.jpg": {
+  "name": "リビング（夜・照明ON・カーテン閉）",
+  "page": "https://min-chi.material.jp/fm/bg_c/living/"
+ },
+ "living_4.jpg": {
+  "name": "リビング（夜・照明OFF・カーテン開）",
+  "page": "https://min-chi.material.jp/fm/bg_c/living/"
+ },
+ "living_5.jpg": {
+  "name": "リビング（夜・照明OFF・カーテン閉）",
+  "page": "https://min-chi.material.jp/fm/bg_c/living/"
+ },
+ "karaoke_1.png": {
+  "name": "カラオケ",
+  "page": "https://min-chi.material.jp/fm/bg_c/karaoke/"
+ },
+ "karaoke_2.png": {
+  "name": "カラオケ｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/karaoke/"
+ },
+ "karaoke_3.png": {
+  "name": "カラオケ｜手前レイヤ・左ソファー",
+  "page": "https://min-chi.material.jp/fm/bg_c/karaoke/"
+ },
+ "karaoke_4.png": {
+  "name": "カラオケ｜手前レイヤ・テーブル",
+  "page": "https://min-chi.material.jp/fm/bg_c/karaoke/"
+ },
+ "karaoke_5.png": {
+  "name": "カラオケ｜手前レイヤ・右ソファー",
+  "page": "https://min-chi.material.jp/fm/bg_c/karaoke/"
+ },
+ "apartment_1.jpg": {
+  "name": "アパート（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/apartment/"
+ },
+ "apartment_2.jpg": {
+  "name": "アパート（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/apartment/"
+ },
+ "apartment_3.jpg": {
+  "name": "アパート（夜・灯りあり）",
+  "page": "https://min-chi.material.jp/fm/bg_c/apartment/"
+ },
+ "apartment_4.jpg": {
+  "name": "アパート（夜・灯りなし）",
+  "page": "https://min-chi.material.jp/fm/bg_c/apartment/"
+ },
+ "basement_room_1.jpg": {
+  "name": "地下室（照明ON強め）",
+  "page": "https://min-chi.material.jp/fm/bg_c/basement_room/"
+ },
+ "basement_room_2.jpg": {
+  "name": "地下室（照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/basement_room/"
+ },
+ "basement_room_3.jpg": {
+  "name": "地下室（照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/basement_room/"
+ },
+ "house_1.jpg": {
+  "name": "家（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/house/"
+ },
+ "house_2.jpg": {
+  "name": "家（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/house/"
+ },
+ "house_3.jpg": {
+  "name": "家（夜・灯りあり）",
+  "page": "https://min-chi.material.jp/fm/bg_c/house/"
+ },
+ "house_4.jpg": {
+  "name": "家（夜・灯りなし）",
+  "page": "https://min-chi.material.jp/fm/bg_c/house/"
+ },
+ "tatami_tv_1.jpg": {
+  "name": "和室のテレビ（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/tatami_tv/"
+ },
+ "tatami_tv_2.jpg": {
+  "name": "和室のテレビ（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/tatami_tv/"
+ },
+ "tatami_tv_3.jpg": {
+  "name": "和室のテレビ（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/tatami_tv/"
+ },
+ "tatami_tv_4.jpg": {
+  "name": "和室のテレビ（夜・画面のみ点灯）",
+  "page": "https://min-chi.material.jp/fm/bg_c/tatami_tv/"
+ },
+ "tatami_tv_5.jpg": {
+  "name": "和室のテレビ（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/tatami_tv/"
+ },
+ "attic_room_1.jpg": {
+  "name": "屋根裏部屋（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/attic_room/"
+ },
+ "attic_room_2.jpg": {
+  "name": "屋根裏部屋（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/attic_room/"
+ },
+ "attic_room_3.jpg": {
+  "name": "屋根裏部屋（夜・灯りあり）",
+  "page": "https://min-chi.material.jp/fm/bg_c/attic_room/"
+ },
+ "attic_room_4.jpg": {
+  "name": "屋根裏部屋（夜・灯りなし）",
+  "page": "https://min-chi.material.jp/fm/bg_c/attic_room/"
+ },
+ "veranda_condominium_1.jpg": {
+  "name": "マンションのベランダ（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/veranda_condominium/"
+ },
+ "veranda_condominium_2.jpg": {
+  "name": "マンションのベランダ（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/veranda_condominium/"
+ },
+ "veranda_condominium_3.jpg": {
+  "name": "マンションのベランダ（夜・灯りあり）",
+  "page": "https://min-chi.material.jp/fm/bg_c/veranda_condominium/"
+ },
+ "veranda_condominium_4.jpg": {
+  "name": "マンションのベランダ（夜・灯りなし）",
+  "page": "https://min-chi.material.jp/fm/bg_c/veranda_condominium/"
+ },
+ "facility_1.jpg": {
+  "name": "何かの施設（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/facility/"
+ },
+ "facility_2.jpg": {
+  "name": "何かの施設（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/facility/"
+ },
+ "facility_3.jpg": {
+  "name": "何かの施設（夜・灯りあり）",
+  "page": "https://min-chi.material.jp/fm/bg_c/facility/"
+ },
+ "facility_4.jpg": {
+  "name": "何かの施設（夜・灯りなし）",
+  "page": "https://min-chi.material.jp/fm/bg_c/facility/"
+ },
+ "2nd_floor_hallway_1.jpg": {
+  "name": "家の2階の廊下（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/2nd_floor_hallway/"
+ },
+ "2nd_floor_hallway_2.jpg": {
+  "name": "家の2階の廊下（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/2nd_floor_hallway/"
+ },
+ "2nd_floor_hallway_3.jpg": {
+  "name": "家の2階の廊下（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/2nd_floor_hallway/"
+ },
+ "2nd_floor_hallway_4.jpg": {
+  "name": "家の2階の廊下（夜・月明り）",
+  "page": "https://min-chi.material.jp/fm/bg_c/2nd_floor_hallway/"
+ },
+ "2nd_floor_hallway_5.jpg": {
+  "name": "家の2階の廊下（夜・まっくら）",
+  "page": "https://min-chi.material.jp/fm/bg_c/2nd_floor_hallway/"
+ },
+ "tatami_pc_1.jpg": {
+  "name": "和室のパソコン（照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/tatami_pc/"
+ },
+ "tatami_pc_2.jpg": {
+  "name": "和室のパソコン（照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/tatami_pc/"
+ },
+ "tatami_pc_3.jpg": {
+  "name": "和室のパソコン（画面のみ点灯）",
+  "page": "https://min-chi.material.jp/fm/bg_c/tatami_pc/"
+ },
+ "archive_room_1.jpg": {
+  "name": "資料室（照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/archive_room/"
+ },
+ "archive_room_2.jpg": {
+  "name": "資料室（照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/archive_room/"
+ },
+ "storeroom_1.jpg": {
+  "name": "物置（照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/storeroom/"
+ },
+ "storeroom_2.jpg": {
+  "name": "物置（照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/storeroom/"
+ },
+ "bar_1.jpg": {
+  "name": "バー",
+  "page": "https://min-chi.material.jp/fm/bg_c/bar/"
+ },
+ "ryokan_room_1.jpg": {
+  "name": "旅館の客室っぽい和室（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/ryokan-room/"
+ },
+ "ryokan_room_2.jpg": {
+  "name": "旅館の客室っぽい和室（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/ryokan-room/"
+ },
+ "ryokan_room_3.jpg": {
+  "name": "旅館の客室っぽい和室（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/ryokan-room/"
+ },
+ "ryokan_room_4.jpg": {
+  "name": "旅館の客室っぽい和室（夜・月明り）",
+  "page": "https://min-chi.material.jp/fm/bg_c/ryokan-room/"
+ },
+ "ryokan_room_5.jpg": {
+  "name": "旅館の客室っぽい和室（夜・まっくら）",
+  "page": "https://min-chi.material.jp/fm/bg_c/ryokan-room/"
+ },
+ "double_room_1.jpg": {
+  "name": "二人部屋（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/double_room/"
+ },
+ "double_room_2.jpg": {
+  "name": "二人部屋（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/double_room/"
+ },
+ "double_room_3.jpg": {
+  "name": "二人部屋（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/double_room/"
+ },
+ "double_room_4.jpg": {
+  "name": "二人部屋（夜・月明り）",
+  "page": "https://min-chi.material.jp/fm/bg_c/double_room/"
+ },
+ "double_room_5.jpg": {
+  "name": "二人部屋（夜・ランプON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/double_room/"
+ },
+ "double_room_6.jpg": {
+  "name": "二人部屋（夜・まっくら）",
+  "page": "https://min-chi.material.jp/fm/bg_c/double_room/"
+ },
+ "ryokan_reception_1.jpg": {
+  "name": "旅館のフロント",
+  "page": "https://min-chi.material.jp/fm/bg_c/ryokan-reception/"
+ },
+ "ryokan_reception_2.jpg": {
+  "name": "旅館のフロント（夜・点灯）",
+  "page": "https://min-chi.material.jp/fm/bg_c/ryokan-reception/"
+ },
+ "ryokan_reception_3.jpg": {
+  "name": "旅館のフロント（夜・消灯）",
+  "page": "https://min-chi.material.jp/fm/bg_c/ryokan-reception/"
+ },
+ "stalls_1.jpg": {
+  "name": "縁日の屋台（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/stalls/"
+ },
+ "stalls_2.jpg": {
+  "name": "縁日の屋台（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/stalls/"
+ },
+ "stalls_3.jpg": {
+  "name": "縁日の屋台（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/stalls/"
+ },
+ "campus_1.jpg": {
+  "name": "大学のキャンパス（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/campus/"
+ },
+ "campus_2.jpg": {
+  "name": "大学のキャンパス（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/campus/"
+ },
+ "campus_3.jpg": {
+  "name": "大学のキャンパス（夜・灯りあり）",
+  "page": "https://min-chi.material.jp/fm/bg_c/campus/"
+ },
+ "campus_4.jpg": {
+  "name": "大学のキャンパス（夜・灯りなし）",
+  "page": "https://min-chi.material.jp/fm/bg_c/campus/"
+ },
+ "art_museum_1.jpg": {
+  "name": "美術館",
+  "page": "https://min-chi.material.jp/fm/bg_c/art-museum/"
+ },
+ "art_museum_2.jpg": {
+  "name": "美術館（消灯）",
+  "page": "https://min-chi.material.jp/fm/bg_c/art-museum/"
+ },
+ "counter_1.jpg": {
+  "name": "窓口",
+  "page": "https://min-chi.material.jp/fm/bg_c/counter/"
+ },
+ "office_1.jpg": {
+  "name": "事務所",
+  "page": "https://min-chi.material.jp/fm/bg_c/office/"
+ },
+ "office_2.jpg": {
+  "name": "事務所（消灯）",
+  "page": "https://min-chi.material.jp/fm/bg_c/office/"
+ },
+ "mall_1.jpg": {
+  "name": "ショッピングモール",
+  "page": "https://min-chi.material.jp/fm/bg_c/mall/"
+ },
+ "mall_2.jpg": {
+  "name": "ショッピングモール（シャッター閉）",
+  "page": "https://min-chi.material.jp/fm/bg_c/mall/"
+ },
+ "mall_3.jpg": {
+  "name": "ショッピングモール（消灯）",
+  "page": "https://min-chi.material.jp/fm/bg_c/mall/"
+ },
+ "mall_4.jpg": {
+  "name": "ショッピングモール（消灯・シャッター閉）",
+  "page": "https://min-chi.material.jp/fm/bg_c/mall/"
+ },
+ "station_concourse_1.jpg": {
+  "name": "駅のコンコース",
+  "page": "https://min-chi.material.jp/fm/bg_c/station_concourse/"
+ },
+ "mall2_1.jpg": {
+  "name": "ショッピングモール２",
+  "page": "https://min-chi.material.jp/fm/bg_c/mall2/"
+ },
+ "pc_room2_1.jpg": {
+  "name": "パソコン部屋２（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "pc_room2_2.jpg": {
+  "name": "パソコン部屋２（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "pc_room2_3.jpg": {
+  "name": "パソコン部屋２（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "pc_room2_4.jpg": {
+  "name": "パソコン部屋２（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "pc_room2_5.png": {
+  "name": "パソコン部屋２（日中）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "pc_room2_6.png": {
+  "name": "パソコン部屋２（日中）｜手前レイヤ・椅子",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "pc_room2_7.png": {
+  "name": "パソコン部屋２（日中）｜手前レイヤ・机",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "pc_room2_8.png": {
+  "name": "パソコン部屋２（夕方）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "pc_room2_9.png": {
+  "name": "パソコン部屋２（夕方）｜手前レイヤ・椅子",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "pc_room2_10.png": {
+  "name": "パソコン部屋２（夕方）｜手前レイヤ・机",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "pc_room2_11.png": {
+  "name": "パソコン部屋２（夜・照明ON）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "pc_room2_12.png": {
+  "name": "パソコン部屋２（夜・照明ON）｜手前レイヤ・椅子",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "pc_room2_13.png": {
+  "name": "パソコン部屋２（夜・照明ON）｜手前レイヤ・机",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "pc_room2_14.png": {
+  "name": "パソコン部屋２（夜・照明OFF）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "pc_room2_15.png": {
+  "name": "パソコン部屋２（夜・照明OFF）｜手前レイヤ・椅子",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "pc_room2_16.png": {
+  "name": "パソコン部屋２（夜・照明OFF）｜手前レイヤ・机",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room2/"
+ },
+ "in_car_1.jpg": {
+  "name": "自動車の車内（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_car/"
+ },
+ "in_car_2.jpg": {
+  "name": "自動車の車内（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_car/"
+ },
+ "in_car_3.jpg": {
+  "name": "自動車の車内（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_car/"
+ },
+ "in_car_4.png": {
+  "name": "自動車の車内（日中）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_car/"
+ },
+ "in_car_5.png": {
+  "name": "自動車の車内（日中）｜手前レイヤ１",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_car/"
+ },
+ "in_car_6.png": {
+  "name": "自動車の車内（日中）｜手前レイヤ２",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_car/"
+ },
+ "in_car_7.png": {
+  "name": "自動車の車内（日中）｜手前レイヤ３",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_car/"
+ },
+ "in_car_8.png": {
+  "name": "自動車の車内（夕方）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_car/"
+ },
+ "in_car_9.png": {
+  "name": "自動車の車内（夕方）｜手前レイヤ１",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_car/"
+ },
+ "in_car_10.png": {
+  "name": "自動車の車内（夕方）｜手前レイヤ２",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_car/"
+ },
+ "in_car_11.png": {
+  "name": "自動車の車内（夕方）｜手前レイヤ３",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_car/"
+ },
+ "in_car_12.png": {
+  "name": "自動車の車内（夜）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_car/"
+ },
+ "in_car_13.png": {
+  "name": "自動車の車内（夜）｜手前レイヤ１",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_car/"
+ },
+ "in_car_14.png": {
+  "name": "自動車の車内（夜）｜手前レイヤ２",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_car/"
+ },
+ "in_car_15.png": {
+  "name": "自動車の車内（夜）｜手前レイヤ３",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_car/"
+ },
+ "supermarket_1.jpg": {
+  "name": "スーパーマーケット",
+  "page": "https://min-chi.material.jp/fm/bg_c/supermarket/"
+ },
+ "used_bookstore_1.jpg": {
+  "name": "古本屋",
+  "page": "https://min-chi.material.jp/fm/bg_c/used_bookstore/"
+ },
+ "pedestrian_bridge_1.jpg": {
+  "name": "歩道橋（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/pedestrian_bridge/"
+ },
+ "pedestrian_bridge_2.jpg": {
+  "name": "歩道橋（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/pedestrian_bridge/"
+ },
+ "pedestrian_bridge_3.jpg": {
+  "name": "歩道橋（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/pedestrian_bridge/"
+ },
+ "school_store_1.jpg": {
+  "name": "学校の購買部（昼食販売中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_store/"
+ },
+ "school_store_2.jpg": {
+  "name": "学校の購買部（昼食売り切れ）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_store/"
+ },
+ "stairs_facility_1.jpg": {
+  "name": "何かの施設の階段（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/stairs_facility/"
+ },
+ "stairs_facility_2.jpg": {
+  "name": "何かの施設の階段（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/stairs_facility/"
+ },
+ "stairs_facility_3.jpg": {
+  "name": "何かの施設の階段（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/stairs_facility/"
+ },
+ "stairs_facility_4.jpg": {
+  "name": "何かの施設の階段（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/stairs_facility/"
+ },
+ "library_1.jpg": {
+  "name": "市立図書館",
+  "page": "https://min-chi.material.jp/fm/bg_c/library/"
+ },
+ "school_entrance_1.jpg": {
+  "name": "学校の昇降口（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_entrance/"
+ },
+ "school_entrance_2.jpg": {
+  "name": "学校の昇降口（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_entrance/"
+ },
+ "school_entrance_3.jpg": {
+  "name": "学校の昇降口（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_entrance/"
+ },
+ "school_entrance_4.jpg": {
+  "name": "学校の昇降口（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_entrance/"
+ },
+ "city_station_1.jpg": {
+  "name": "繁華街の駅前（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/city_station/"
+ },
+ "city_station_2.jpg": {
+  "name": "繁華街の駅前（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/city_station/"
+ },
+ "city_station_3.jpg": {
+  "name": "繁華街の駅前（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/city_station/"
+ },
+ "japanese_style_house_1.jpg": {
+  "name": "和風の家（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/japanese_style_house/"
+ },
+ "japanese_style_house_2.jpg": {
+  "name": "和風の家（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/japanese_style_house/"
+ },
+ "japanese_style_house_3.jpg": {
+  "name": "和風の家（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/japanese_style_house/"
+ },
+ "japanese_style_house_4.jpg": {
+  "name": "和風の家（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/japanese_style_house/"
+ },
+ "in_convenience_store_1.jpg": {
+  "name": "コンビニの店内",
+  "page": "https://min-chi.material.jp/fm/bg_c/in_convenience_store/"
+ },
+ "local_station_1.jpg": {
+  "name": "田舎の駅前（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/local_station/"
+ },
+ "local_station_2.jpg": {
+  "name": "田舎の駅前（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/local_station/"
+ },
+ "local_station_3.jpg": {
+  "name": "田舎の駅前（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/local_station/"
+ },
+ "street_in_winter_1.jpg": {
+  "name": "冬の街中（晴れ・日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/street_in_winter/"
+ },
+ "street_in_winter_2.jpg": {
+  "name": "冬の街中（晴れ・夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/street_in_winter/"
+ },
+ "street_in_winter_3.jpg": {
+  "name": "冬の街中（晴れ・夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/street_in_winter/"
+ },
+ "street_in_winter_4.jpg": {
+  "name": "冬の街中（降雪・日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/street_in_winter/"
+ },
+ "street_in_winter_5.jpg": {
+  "name": "冬の街中（降雪・夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/street_in_winter/"
+ },
+ "izakaya_table_1.jpg": {
+  "name": "居酒屋のテーブル席",
+  "page": "https://min-chi.material.jp/fm/bg_c/izakaya_table/"
+ },
+ "izakaya_table_2.png": {
+  "name": "居酒屋のテーブル席｜手前レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/izakaya_table/"
+ },
+ "izakaya_table_3.jpg": {
+  "name": "居酒屋のテーブル席｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/izakaya_table/"
+ },
+ "inside_train_1.jpg": {
+  "name": "電車の車内（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/inside_train/"
+ },
+ "inside_train_2.jpg": {
+  "name": "電車の車内（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/inside_train/"
+ },
+ "inside_train_3.jpg": {
+  "name": "電車の車内（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/inside_train/"
+ },
+ "hospital_1.jpg": {
+  "name": "病院（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/hospital/"
+ },
+ "hospital_2.jpg": {
+  "name": "病院（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/hospital/"
+ },
+ "hospital_3.jpg": {
+  "name": "病院（夜・点灯）",
+  "page": "https://min-chi.material.jp/fm/bg_c/hospital/"
+ },
+ "hospital_4.jpg": {
+  "name": "病院（夜・消灯）",
+  "page": "https://min-chi.material.jp/fm/bg_c/hospital/"
+ },
+ "intersection_1.jpg": {
+  "name": "街中の交差点（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/intersection/"
+ },
+ "intersection_2.jpg": {
+  "name": "街中の交差点（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/intersection/"
+ },
+ "intersection_3.jpg": {
+  "name": "街中の交差点（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/intersection/"
+ },
+ "police_station_1.jpg": {
+  "name": "警察署（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/police_station/"
+ },
+ "police_station_2.jpg": {
+  "name": "警察署（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/police_station/"
+ },
+ "police_station_3.jpg": {
+  "name": "警察署（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/police_station/"
+ },
+ "ruined_room_1.jpg": {
+  "name": "廃墟ビルの部屋（明）",
+  "page": "https://min-chi.material.jp/fm/bg_c/ruined_room/"
+ },
+ "ruined_room_2.jpg": {
+  "name": "廃墟ビルの部屋（暗）",
+  "page": "https://min-chi.material.jp/fm/bg_c/ruined_room/"
+ },
+ "school_rooftop_1.jpg": {
+  "name": "学校の屋上（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_rooftop/"
+ },
+ "school_rooftop_2.jpg": {
+  "name": "学校の屋上（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_rooftop/"
+ },
+ "school_rooftop_3.jpg": {
+  "name": "学校の屋上（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/school_rooftop/"
+ },
+ "condominium_corridor_1.jpg": {
+  "name": "マンションの外廊下（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/condominium_corridor/"
+ },
+ "condominium_corridor_2.jpg": {
+  "name": "マンションの外廊下（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/condominium_corridor/"
+ },
+ "condominium_corridor_3.jpg": {
+  "name": "マンションの外廊下（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/condominium_corridor/"
+ },
+ "ruined_hallway_1f_1.jpg": {
+  "name": "廃墟ビルの1階通路（明）",
+  "page": "https://min-chi.material.jp/fm/bg_c/ruined_hallway_1f/"
+ },
+ "ruined_hallway_1f_2.jpg": {
+  "name": "廃墟ビルの1階通路（暗）",
+  "page": "https://min-chi.material.jp/fm/bg_c/ruined_hallway_1f/"
+ },
+ "staff_room_1.jpg": {
+  "name": "学校の職員室（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/staff_room/"
+ },
+ "staff_room_2.jpg": {
+  "name": "学校の職員室（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/staff_room/"
+ },
+ "staff_room_3.jpg": {
+  "name": "学校の職員室（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/staff_room/"
+ },
+ "staff_room_4.jpg": {
+  "name": "学校の職員室（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/staff_room/"
+ },
+ "street_in_autumn_1.jpg": {
+  "name": "秋の街中（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/street_in_autumn/"
+ },
+ "street_in_autumn_2.jpg": {
+  "name": "秋の街中（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/street_in_autumn/"
+ },
+ "street_in_autumn_3.jpg": {
+  "name": "秋の街中（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/street_in_autumn/"
+ },
+ "playground_1.jpg": {
+  "name": "広い公園（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/playground/"
+ },
+ "playground_2.jpg": {
+  "name": "広い公園（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/playground/"
+ },
+ "playground_3.jpg": {
+  "name": "広い公園（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/playground/"
+ },
+ "hospital_lobby_1.jpg": {
+  "name": "病院のロビー・受付（照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/hospital_lobby/"
+ },
+ "hospital_lobby_2.jpg": {
+  "name": "病院のロビー・受付（照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/hospital_lobby/"
+ },
+ "hospital_lobby_3.jpg": {
+  "name": "病院のロビー・受付（停電）",
+  "page": "https://min-chi.material.jp/fm/bg_c/hospital_lobby/"
+ },
+ "shopping_arcade_1.jpg": {
+  "name": "アーケード商店街（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shopping_arcade/"
+ },
+ "shopping_arcade_2.jpg": {
+  "name": "アーケード商店街（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shopping_arcade/"
+ },
+ "shopping_arcade_3.jpg": {
+  "name": "アーケード商店街（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/shopping_arcade/"
+ },
+ "machine_room_1.jpg": {
+  "name": "機械室（照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/machine_room/"
+ },
+ "machine_room_2.jpg": {
+  "name": "機械室（照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/machine_room/"
+ },
+ "urban_street_1.jpg": {
+  "name": "都会の街中（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/urban_street/"
+ },
+ "urban_street_2.jpg": {
+  "name": "都会の街中（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/urban_street/"
+ },
+ "urban_street_3.jpg": {
+  "name": "都会の街中（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/urban_street/"
+ },
+ "condominium_1.jpg": {
+  "name": "マンション（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/condominium/"
+ },
+ "condominium_2.jpg": {
+  "name": "マンション（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/condominium/"
+ },
+ "condominium_3.jpg": {
+  "name": "マンション（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/condominium/"
+ },
+ "house_hallway_1.jpg": {
+  "name": "家の玄関ホール（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/house_hallway/"
+ },
+ "house_hallway_2.jpg": {
+  "name": "家の玄関ホール（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/house_hallway/"
+ },
+ "house_hallway_3.jpg": {
+  "name": "家の玄関ホール（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/house_hallway/"
+ },
+ "house_hallway_4.jpg": {
+  "name": "家の玄関ホール（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/house_hallway/"
+ },
+ "house_hallway_5.jpg": {
+  "name": "家の玄関ホール（夜・奥の部屋の照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/house_hallway/"
+ },
+ "convenience_store_1.jpg": {
+  "name": "コンビニ（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/convenience_store/"
+ },
+ "convenience_store_2.jpg": {
+  "name": "コンビニ（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/convenience_store/"
+ },
+ "convenience_store_3.jpg": {
+  "name": "コンビニ（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/convenience_store/"
+ },
+ "elevator_hall_facility_1.jpg": {
+  "name": "何かの施設のエレベーターホール（照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/elevator_hall_facility/"
+ },
+ "elevator_hall_facility_2.jpg": {
+  "name": "何かの施設のエレベーターホール（照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/elevator_hall_facility/"
+ },
+ "elevator_hall_facility_3.jpg": {
+  "name": "何かの施設のエレベーターホール（怪しげ）",
+  "page": "https://min-chi.material.jp/fm/bg_c/elevator_hall_facility/"
+ },
+ "cafe_1.jpg": {
+  "name": "喫茶店（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cafe/"
+ },
+ "cafe_2.jpg": {
+  "name": "喫茶店（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cafe/"
+ },
+ "cafe_3.jpg": {
+  "name": "喫茶店（夜）",
+  "page": "https://min-chi.material.jp/fm/bg_c/cafe/"
+ },
+ "bookstore_1.jpg": {
+  "name": "書店",
+  "page": "https://min-chi.material.jp/fm/bg_c/bookstore/"
+ },
+ "pc_room_1.jpg": {
+  "name": "パソコン部屋（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room/"
+ },
+ "pc_room_2.jpg": {
+  "name": "パソコン部屋（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room/"
+ },
+ "pc_room_3.jpg": {
+  "name": "パソコン部屋（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room/"
+ },
+ "pc_room_4.jpg": {
+  "name": "パソコン部屋（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room/"
+ },
+ "pc_room_5.jpg": {
+  "name": "パソコン部屋（夜・画面のみON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/pc_room/"
+ },
+ "bedroom_1.jpg": {
+  "name": "寝室の窓際のベッド（日中・青）",
+  "page": "https://min-chi.material.jp/fm/bg_c/bedroom/"
+ },
+ "bedroom_2.jpg": {
+  "name": "寝室の窓際のベッド（日中・赤）",
+  "page": "https://min-chi.material.jp/fm/bg_c/bedroom/"
+ },
+ "bedroom_3.jpg": {
+  "name": "寝室の窓際のベッド（夕方・青）",
+  "page": "https://min-chi.material.jp/fm/bg_c/bedroom/"
+ },
+ "bedroom_4.jpg": {
+  "name": "寝室の窓際のベッド（夕方・赤）",
+  "page": "https://min-chi.material.jp/fm/bg_c/bedroom/"
+ },
+ "bedroom_5.jpg": {
+  "name": "寝室の窓際のベッド（夜・照明ON・青）",
+  "page": "https://min-chi.material.jp/fm/bg_c/bedroom/"
+ },
+ "bedroom_6.jpg": {
+  "name": "寝室の窓際のベッド（夜・照明ON・赤）",
+  "page": "https://min-chi.material.jp/fm/bg_c/bedroom/"
+ },
+ "bedroom_7.jpg": {
+  "name": "寝室の窓際のベッド（夜・まっくら・青）",
+  "page": "https://min-chi.material.jp/fm/bg_c/bedroom/"
+ },
+ "bedroom_8.jpg": {
+  "name": "寝室の窓際のベッド（夜・まっくら・赤）",
+  "page": "https://min-chi.material.jp/fm/bg_c/bedroom/"
+ },
+ "bedroom_9.jpg": {
+  "name": "寝室の窓際のベッド（夜・月明り・青）",
+  "page": "https://min-chi.material.jp/fm/bg_c/bedroom/"
+ },
+ "bedroom_10.jpg": {
+  "name": "寝室の窓際のベッド（夜・月明り・赤）",
+  "page": "https://min-chi.material.jp/fm/bg_c/bedroom/"
+ },
+ "bedroom_11.jpg": {
+  "name": "寝室の窓際のベッド（夜・ランプ・青）",
+  "page": "https://min-chi.material.jp/fm/bg_c/bedroom/"
+ },
+ "bedroom_12.jpg": {
+  "name": "寝室の窓際のベッド（夜・ランプ・赤）",
+  "page": "https://min-chi.material.jp/fm/bg_c/bedroom/"
+ },
+ "residential_street_1.jpg": {
+  "name": "住宅街（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/residential_street/"
+ },
+ "residential_street_2.jpg": {
+  "name": "住宅街（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/residential_street/"
+ },
+ "residential_street_3.jpg": {
+  "name": "住宅街（夜・灯り有り）",
+  "page": "https://min-chi.material.jp/fm/bg_c/residential_street/"
+ },
+ "residential_street_4.jpg": {
+  "name": "住宅街（夜・灯り無し）",
+  "page": "https://min-chi.material.jp/fm/bg_c/residential_street/"
+ },
+ "medium_office_1.jpg": {
+  "name": "会社のオフィス（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/medium_office/"
+ },
+ "medium_office_2.jpg": {
+  "name": "会社のオフィス（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/medium_office/"
+ },
+ "medium_office_3.jpg": {
+  "name": "会社のオフィス（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/medium_office/"
+ },
+ "medium_office_4.jpg": {
+  "name": "会社のオフィス（夜・照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/medium_office/"
+ },
+ "apartment_hallway_1.jpg": {
+  "name": "アパートの玄関ホール（照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/apartment_hallway/"
+ },
+ "apartment_hallway_2.jpg": {
+  "name": "アパートの玄関ホール（照明OFF）",
+  "page": "https://min-chi.material.jp/fm/bg_c/apartment_hallway/"
+ },
+ "apartment_hallway_3.jpg": {
+  "name": "アパートの玄関ホール（奥の部屋の照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/apartment_hallway/"
+ },
+ "conveyor_belt_sushi_1.jpg": {
+  "name": "回転寿司",
+  "page": "https://min-chi.material.jp/fm/bg_c/conveyor_belt_sushi/"
+ },
+ "conveyor_belt_sushi_2.jpg": {
+  "name": "回転寿司（皿無し）",
+  "page": "https://min-chi.material.jp/fm/bg_c/conveyor_belt_sushi/"
+ },
+ "conveyor_belt_sushi_3.jpg": {
+  "name": "回転寿司｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/conveyor_belt_sushi/"
+ },
+ "conveyor_belt_sushi_4.png": {
+  "name": "回転寿司｜手前レイヤ・テーブル",
+  "page": "https://min-chi.material.jp/fm/bg_c/conveyor_belt_sushi/"
+ },
+ "conveyor_belt_sushi_5.png": {
+  "name": "回転寿司｜手前レイヤ・テーブル（皿無し）",
+  "page": "https://min-chi.material.jp/fm/bg_c/conveyor_belt_sushi/"
+ },
+ "single_room_1.jpg": {
+  "name": "一人部屋（日中）",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room/"
+ },
+ "single_room_2.jpg": {
+  "name": "一人部屋（夕方）",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room/"
+ },
+ "single_room_3.jpg": {
+  "name": "一人部屋（夜・照明ON）",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room/"
+ },
+ "single_room_4.jpg": {
+  "name": "一人部屋（夜・月明り）",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room/"
+ },
+ "single_room_5.jpg": {
+  "name": "一人部屋（夜・まっくら）",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room/"
+ },
+ "single_room_6.jpg": {
+  "name": "一人部屋（日中）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room/"
+ },
+ "single_room_7.png": {
+  "name": "一人部屋（日中）｜手前レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room/"
+ },
+ "single_room_8.jpg": {
+  "name": "一人部屋（夕方）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room/"
+ },
+ "single_room_9.png": {
+  "name": "一人部屋（夕方）｜手前レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room/"
+ },
+ "single_room_10.jpg": {
+  "name": "一人部屋（夜・照明ON）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room/"
+ },
+ "single_room_11.png": {
+  "name": "一人部屋（夜・照明ON）｜手前レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room/"
+ },
+ "single_room_12.jpg": {
+  "name": "一人部屋（夜・月明り）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room/"
+ },
+ "single_room_13.png": {
+  "name": "一人部屋（夜・月明り）｜手前レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room/"
+ },
+ "single_room_14.jpg": {
+  "name": "一人部屋（夜・まっくら）｜奥レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room/"
+ },
+ "single_room_15.png": {
+  "name": "一人部屋（夜・まっくら）｜手前レイヤ",
+  "page": "https://min-chi.material.jp/fm/bg_c/single_room/"
+ }
+}

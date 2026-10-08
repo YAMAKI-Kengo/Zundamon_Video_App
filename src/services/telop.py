@@ -153,7 +153,34 @@ def _wrap_paragraph(paragraph: str, font: ImageFont.FreeTypeFont, max_width: int
     return lines
 
 
-def wrap_telop_text(text: str, font_path: Optional[str], font_size: int, max_width: int) -> str:
+def _wrap_english(paragraph: str, font: ImageFont.FreeTypeFont, max_width: int) -> list[str]:
+    """英文を単語の切れ目で折り返す。2行になるときは、文の終わり（. ? !）・カンマのあとを優先し、
+    2行の長さがそろう位置で分ける（「…didn't catch that. Could／you speak…」のような切れ方をしない）。"""
+    if _text_width(font, paragraph) <= max_width:
+        return [paragraph]
+    greedy = _wrap_paragraph(paragraph, font, max_width)
+    if len(greedy) != 2:
+        return greedy  # 3行以上になる長い文は、幅いっぱいで折り返す
+    best, best_score = None, float("inf")
+    for i, ch in enumerate(paragraph):
+        if ch != " ":
+            continue
+        head, tail = paragraph[:i].rstrip(), paragraph[i + 1:].lstrip()
+        if not head or not tail:
+            continue
+        wh, wt = _text_width(font, head), _text_width(font, tail)
+        if wh > max_width or wt > max_width:
+            continue
+        last = head[-1]
+        penalty = 0.0 if last in ".?!" else 0.6 if last in ",;:" else 2.0
+        score = penalty + abs(wh - wt) / max_width * 3  # 文の切れ目を優先しつつ、2行の長さをそろえる
+        if score < best_score:
+            best, best_score = [head, tail], score
+    return best or greedy
+
+
+def wrap_telop_text(text: str, font_path: Optional[str], font_size: int, max_width: int,
+                    english: bool = False) -> str:
     """読み上げテキストを、ユーザー入力の改行を尊重しつつmax_widthに収まるよう折り返す。
 
     戻り値は改行(\\n)入り文字列。空文字列やNoneを渡しても例外を出さない。
@@ -164,7 +191,8 @@ def wrap_telop_text(text: str, font_path: Optional[str], font_size: int, max_wid
     normalized = text.replace("\r\n", "\n").replace("\r", "\n")
     wrapped_lines: list[str] = []
     for paragraph in normalized.split("\n"):
-        wrapped_lines.extend(_wrap_paragraph(paragraph, font, max_width))
+        wrapped_lines.extend(_wrap_english(paragraph, font, max_width) if english
+                             else _wrap_paragraph(paragraph, font, max_width))
     return "\n".join(wrapped_lines)
 
 
@@ -223,6 +251,10 @@ def _break_penalty(text: str, i: int) -> float:
     head = text[:i]
     if head.count("『") > head.count("』") or head.count("「") > head.count("」"):
         return 40  # 『本のタイトル』「引用」の途中では切らない
+    if before in "円人%％倍日分回個件秒枚本冊歳割" and any(ch.isdigit() for ch in text[max(0, i - 4):i]):
+        return 3  # 「年10万円｜浮いた」「3倍｜速い」のような、数字＋単位のあと
+    if kb == "kanji" and ka == "hira":
+        return 12  # 「浮｜いた」「円｜は」のような、漢字のすぐあとの送りがな・助詞の前（言葉の途中）
     if kb == "hira" and before in _PARTICLES and ka in ("kanji", "kata", "alpha", "digit", "other"):
         return 2  # 「眠りの｜質は」のような、助詞の後で次が漢字・カタカナの位置
     if kb == "hira" and ka in ("kanji", "kata", "alpha", "digit"):
@@ -454,7 +486,7 @@ def render_telop_image(
     font = _load_font(font_path, font_size)
     if word_wrap:
         # 英語などスペースで単語を区切る言語は、単語の途中で切らないよう幅で折り返す
-        wrapped = wrap_telop_text(text, font_path, font_size, max_text_width)
+        wrapped = wrap_telop_text(text, font_path, font_size, max_text_width, english=True)
     else:
         wrapped = wrap_by_chars(text, limit)
         # 半角文字が多いなどで文字数の割に幅が広い行は、念のため幅でも折り返す
@@ -475,7 +507,12 @@ def render_telop_image(
     if sub_text and sub_text.strip():
         sub_size = max(8, round(font_size * TELOP_SUB_SIZE_RATIO))
         sub_font = _load_font(font_path, sub_size)
-        for line in wrap_telop_text(sub_text.strip(), font_path, sub_size, max_text_width).split("\n"):
+        # 訳（日本語）は、文字数で機械的に切らず、字幕と同じ自然な位置で折り返す（「ゆっく／り」のように切らない）
+        sub_limit = max(4, int(max_text_width / (sub_size * 1.02)))
+        sub_wrapped = wrap_by_chars(sub_text.strip(), sub_limit)
+        if any(_text_width(sub_font, line) > max_text_width for line in sub_wrapped.split("\n")):
+            sub_wrapped = wrap_telop_text(sub_wrapped, font_path, sub_size, max_text_width)
+        for line in sub_wrapped.split("\n"):
             bbox = draw.textbbox((0, 0), line, font=sub_font, stroke_width=stroke_width)
             line_metrics.append((line, bbox, bbox[2] - bbox[0], bbox[3] - bbox[1], sub_font, TELOP_SUB_COLOR))
 

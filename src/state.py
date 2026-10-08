@@ -63,8 +63,8 @@ def set_project(project: Project) -> None:
 
 # --- 画面上部のタブ（開いているタブだけを描いて軽くする。どのタブを開いているかは覚えておく） ---
 TAB_KEY = "main_tab"
-TABS = {"book": "📚 書籍解説モード", "english": "🗣 英会話モード", "edit": "🎬 シーン編集・書き出し",
-        "analytics": "📈 振り返り"}
+TABS = {"book": "📚 解説の台本", "english": "🗣 英会話の台本", "review": "✅ 仕上げ・投稿",
+        "analytics": "📈 振り返り", "edit": "🛠 シーン編集"}
 _GOTO_TAB_KEY = "_goto_tab"
 
 
@@ -78,11 +78,14 @@ def apply_pending_tab() -> None:
     target = st.session_state.pop(_GOTO_TAB_KEY, None)
     if target:
         st.session_state[TAB_KEY] = target
+    elif st.session_state.get(TAB_KEY) not in (None, *TABS.values()):
+        del st.session_state[TAB_KEY]  # 前のバージョンのタブ名が残っていたら、先頭のタブに戻す
 
 
 # 開いていないタブの入力欄は描かれないため、そのままだとStreamlitが入力内容を捨ててしまう。
 # 台本の設定・貼り付けた台本・分析結果などの入力内容は、タブを行き来しても残す
-_KEEP_PREFIXES = ("ai_", "book_script_", "en_", "promo_", "meta_", "thumb_", "export_", "scene_editor_", "analytics_")
+_KEEP_PREFIXES = ("ai_", "book_script_", "en_", "promo_", "meta_", "thumb_", "export_", "scene_editor_", "analytics_",
+                  "overview_")
 _KEEP_VALUE_TYPES = {
     "bool_value", "int_value", "double_value", "string_value",
     "string_array_value", "int_array_value", "double_array_value",

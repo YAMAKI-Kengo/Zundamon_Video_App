@@ -1,124 +1,124 @@
 {
-  "theme": "誘う・断る・日程調整の英語",
-  "theme_en": "Making Plans",
-  "goal": "友達や同僚を気軽に誘い、角を立てずに断り、日程を調整・変更・確認できる",
+  "theme": "英語で固まらない！聞き返し＆つなぎの一言",
+  "theme_en": "Don't Freeze! Asking Again & Buying Time",
+  "goal": "聞き取れない・言葉が出てこないときも、一言で会話を続けられる",
   "days": [
     {
       "day": 1,
-      "title": "気軽に誘う Do you want to 〜?",
-      "situation": "同僚をランチや週末の予定に気軽に誘う",
-      "zunda_trouble": "Would you please go to lunch with me? と丁寧すぎる誘い方をして、デートの申し込みだと勘違いされて相手が固まる",
+      "title": "聞き取れなかったら Sorry, I didn't catch that.",
+      "situation": "3か月後の旅行に向けて始めたオンライン英会話の初日。先生の質問が聞き取れない",
+      "zunda_trouble": "聞き取れなくて大声で「What!?」と言ってしまい、先生を怒らせたと思って固まる",
       "phrases": [
         {
-          "en": "Do you want to grab lunch sometime this week?",
-          "ja": "今週どこかでランチでもどう？",
-          "point": "grab は「さっと〜する」の気軽な言い方で、grab a coffee / grab a drink のように飲食の誘いによく使う"
+          "en": "Sorry, I didn't catch that.",
+          "ja": "すみません、聞き取れませんでした。",
+          "point": "「聞き逃した」というニュアンスで、相手の英語ではなく自分のせいにするので角が立たない"
         },
         {
-          "en": "Are you free this Saturday?",
-          "ja": "今週の土曜って空いてる？",
-          "point": "予定を聞くいちばん自然な言い方で、free は「ひま」ではなく「予定が空いている」の意味、Are you busy? より前向きに聞こえる"
+          "en": "Could you say that again?",
+          "ja": "もう一度言ってもらえますか？",
+          "point": "「What?」だけだと強く聞こえるので、聞き返すときはこの形にする。Pardon? より日常的"
         }
       ],
-      "grammar": "Do you want to は会話では「ドゥユワナ」「ヤワナ」のように弱く速く読まれ、want to は wanna になる"
+      "grammar": "Could you は「クッジュ」とつながる（d と y がくっついて「ジュ」になる）"
     },
     {
       "day": 2,
-      "title": "誘いに乗る I'd love to!",
-      "situation": "誘われて喜んでOKし、時間を相手に合わせる",
-      "zunda_trouble": "誘われて Yes. OK. とだけ返事し、そっけなさすぎて相手に「本当は行きたくないのかな」と思われる",
+      "title": "ゆっくり話してほしい Could you slow down a little?",
+      "situation": "オンライン英会話の2回目。先生が興奮して早口になる",
+      "zunda_trouble": "「Speak slowly!」と命令口調で言ってしまい、先生が気まずそうに黙る",
       "phrases": [
         {
-          "en": "I'd love to! What time works for you?",
-          "ja": "ぜひ！何時がいい？",
-          "point": "What time works for you? は相手の都合を優先して聞く定番で、What time is good? より気づかいが伝わる"
+          "en": "Could you slow down a little?",
+          "ja": "少しゆっくり話してもらえますか？",
+          "point": "a little を付けると控えめで感じがいい。speak more slowly より自然でよく使う"
         },
         {
-          "en": "Sounds good. Count me in!",
-          "ja": "いいね、私も入れて！",
-          "point": "Count me in は「参加する」のくだけた言い方で、反対に参加しないときは Count me out と言う"
+          "en": "What does that mean?",
+          "ja": "それってどういう意味ですか？",
+          "point": "知らない単語が出たら、分からないまま流さずにこれで聞く。What does 〇〇 mean? で単語も入れられる"
         }
       ],
-      "grammar": "I'd love to の to の後ろは、くり返しを避けて動詞を省略する（I'd love to (go).）。to は最後まで弱めずにはっきり言う"
+      "grammar": "slow down は「スロウダウン」と w の音でなめらかにつながる"
     },
     {
       "day": 3,
-      "title": "角を立てずに断る I'd love to, but 〜",
-      "situation": "誘いを断りつつ、また誘ってほしい気持ちを伝える",
-      "zunda_trouble": "断るつもりで No, I can't. とだけ言い放ち、冷たく聞こえて相手ががっかりする",
+      "title": "考える時間がほしい Let me think.",
+      "situation": "オンライン英会話で「旅行で何をしたい？」と聞かれ、答えがすぐに出てこない",
+      "zunda_trouble": "黙っていられず「えーと、えーと…」と日本語で言い続け、先生に「えーと？」とまねされる",
       "phrases": [
         {
-          "en": "I'd love to, but I already have plans.",
-          "ja": "行きたいんだけど、もう予定が入ってて。",
-          "point": "2日目の I'd love to に but をつけるだけで、気持ちは前向きなまま上手に断れる"
+          "en": "Hmm, let me think.",
+          "ja": "うーん、ちょっと考えさせて。",
+          "point": "黙り込むと話が止まるので、これで「考え中だよ」と伝えて時間をかせぐ"
         },
         {
-          "en": "Can I take a rain check?",
-          "ja": "また今度にしてもいい？",
-          "point": "rain check は「次の機会にまた誘ってほしい」という意味で、ただの No より関係を大切にしている印象になる"
+          "en": "That's a good question.",
+          "ja": "いい質問ですね。",
+          "point": "すぐ答えられない質問をされたときの定番のつなぎ。考える数秒をかせげる"
         }
       ],
-      "grammar": "決まっている予定は現在進行形で言う（I'm meeting my parents on Saturday.）。will や be going to より確定した予定に聞こえる"
+      "grammar": "let me は「レミ」と t が消えるように短く読む"
     },
     {
       "day": 4,
-      "title": "別の日を提案する How about 〜 instead?",
-      "situation": "都合が合わないので、別の日時を提案して調整する",
-      "zunda_trouble": "「Friday is OK?」と上げ調子だけで聞き、相手が質問か断定か分からず混乱する",
+      "title": "意味を確かめる You mean 〜?",
+      "situation": "友達のつむぎの紹介で、日本に遊びに来ている海外の学生と話す。相手の話が合っているか自信がない",
+      "zunda_trouble": "分からないのに「Yes, yes!」とうなずき続け、なぜか次の日に一緒に早朝ジョギングする約束をしてしまう",
       "phrases": [
         {
-          "en": "How about Thursday instead?",
-          "ja": "代わりに木曜はどう？",
-          "point": "How about 〜? の後ろは名詞か -ing（How about meeting at six?）で、instead をつけると「その代わりに」の気持ちが伝わる"
+          "en": "You mean tomorrow morning?",
+          "ja": "それって明日の朝ってこと？",
+          "point": "聞き取れた部分を You mean 〜? に入れて返すだけで確認になる。Yes と言う前の安全確認"
         },
         {
-          "en": "Does Friday evening work for you?",
-          "ja": "金曜の夜は都合どう？",
-          "point": "2日目の work for you を使った聞き方で、主語を日時にすると Are you OK on Friday? より自然"
+          "en": "Just to make sure, you're free on Saturday?",
+          "ja": "念のため確認だけど、土曜日は空いてるってこと？",
+          "point": "Just to make sure で「念のため」と前置きすると、ていねいに確認できる"
         }
       ],
-      "grammar": "work は「働く」だけでなく「（予定が）うまくいく・都合がいい」の意味でよく使う（That works for me. = それで大丈夫）"
+      "grammar": "確認の You mean 〜? は、文末を上げて読む（上げ調子で疑問にする）"
     },
     {
       "day": 5,
-      "title": "予定を変更する Can we push it back?",
-      "situation": "急な用事ができて、約束の日時を後ろにずらしてもらう",
-      "zunda_trouble": "予定を変えたくて Let's change the schedule! と勢いよく言い、何が起きたか説明しないまま相手を置き去りにする",
+      "title": "単語が出てこない What's the word...?",
+      "situation": "留学生に日本のおすすめを聞かれ、「ずんだ餅」を英語で説明しようとして言葉に詰まる",
+      "zunda_trouble": "カタカナ英語の「ハイテンション」をそのまま high tension と言い、相手に「緊張してるの？」と心配される",
       "phrases": [
         {
-          "en": "Something came up. Can we push it back to next week?",
-          "ja": "急な用事ができちゃって。来週にずらせる？",
-          "point": "Something came up は理由を細かく言わずに済む便利な一言で、push back は「予定を後ろにずらす」、前にずらすなら move up"
+          "en": "What's the word... it's like a sweet rice cake.",
+          "ja": "なんて言うんだっけ…甘いおもちみたいなものなんだ。",
+          "point": "単語を思い出せないときは What's the word... で時間をかせぎ、it's like 〜 で近いものにたとえて説明する"
         },
         {
-          "en": "Sorry for the short notice.",
-          "ja": "急な連絡でごめんね。",
-          "point": "short notice は「直前の連絡」の意味で、変更やキャンセルを伝えるときに添えると印象がやわらぐ"
+          "en": "How do I put it?",
+          "ja": "なんて言えばいいかな？",
+          "point": "言い方を探しているときのつなぎ。独り言のように言っても自然"
         }
       ],
-      "grammar": "句動詞の目的語が it や them などの代名詞のときは、必ず間にはさむ（push it back ○ / push back it ×）"
+      "grammar": "What's the は「ワッツァ」のように the が弱く短くなる"
     },
     {
       "day": 6,
-      "title": "約束を確認する Are we still on for 〜?",
-      "situation": "前日にメッセージで、決めた約束の時間と場所を確認する",
-      "zunda_trouble": "確認のつもりで Don't forget our promise! と送り、promise の重さに相手がびっくりする",
+      "title": "英語が苦手と伝える I'm still learning English.",
+      "situation": "駅で外国人観光客に道を聞かれる。今週のフレーズを総動員して乗り切る",
+      "zunda_trouble": "とっさに「I can't speak English!」と言って逃げようとし、相手に「今、英語を話してるよ」と笑われる",
       "phrases": [
         {
-          "en": "Just to confirm, are we still on for Friday at seven?",
-          "ja": "念のため確認だけど、金曜の7時で変わりない？",
-          "point": "be still on for 〜 は「予定どおり〜の約束は生きている？」の定番で、4日目・5日目で決めた日時の確認にそのまま使える"
+          "en": "Sorry, I'm still learning English.",
+          "ja": "ごめんなさい、英語はまだ勉強中なんです。",
+          "point": "I can't speak English. よりも前向きで、相手もゆっくり話そうとしてくれる"
         },
         {
-          "en": "Let me know if anything changes.",
-          "ja": "何か変わったら教えてね。",
-          "point": "Let me know は「教えて」の気軽な言い方で、Please tell me より自然、if 以下を変えれば何にでも応用できる"
+          "en": "Got it. Let me check the map.",
+          "ja": "わかりました。地図を確認させてください。",
+          "point": "Got it は「了解」のカジュアルな一言。Let me 〜 は3日目の let me think と同じ形で応用できる"
         }
       ],
-      "grammar": "約束は英語で promise ではなく plans（make plans / have plans）。promise は「誓い」に近く、日常の予定には使わない"
+      "grammar": "Got it は t が軽いラ行の音になり「ガリッ」のように聞こえる（アメリカ英語の t の音）"
     }
   ],
-  "next_theme_idea": "お店で買い物・返品をする英語",
+  "next_theme_idea": "旅の準備：ホテルや航空会社に英語でメッセージを送って問い合わせる",
   "week": 1,
   "level": "b1"
 }

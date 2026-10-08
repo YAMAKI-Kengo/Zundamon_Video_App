@@ -1,0 +1,183 @@
+189 INFO: PyInstaller: 6.22.2, contrib hooks: 2026.7
+189 INFO: Python: 3.11.0
+222 INFO: Platform: Windows-10-10.0.26200-SP0
+224 INFO: Python environment: C:\Users\ryoma\Documents\Dev\Editor\Zundamon-Video-App\.venv
+229 INFO: Removing temporary files and cleaning cache in C:\Users\ryoma\AppData\Local\pyinstaller
+1683 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App',
+ 'C:\\Users\\ryoma\\AppData\\Local\\Programs\\Python\\Python311\\python311.zip',
+ 'C:\\Users\\ryoma\\AppData\\Local\\Programs\\Python\\Python311\\DLLs',
+ 'C:\\Users\\ryoma\\AppData\\Local\\Programs\\Python\\Python311\\Lib',
+ 'C:\\Users\\ryoma\\AppData\\Local\\Programs\\Python\\Python311',
+ 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv',
+ 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages',
+ 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\packaging']
+2015 INFO: Appending 'datas' from .spec
+2034 INFO: checking Analysis
+2034 INFO: Building Analysis because Analysis-00.toc is non existent
+2034 INFO: Looking for Python shared library...
+2034 INFO: Using Python shared library: C:\Users\ryoma\AppData\Local\Programs\Python\Python311\python311.dll
+2034 INFO: Running Analysis Analysis-00.toc
+2034 INFO: Target bytecode optimization level: 0
+2034 INFO: Initializing module dependency graph...
+2034 INFO: Initializing module graph hook caches...
+2091 INFO: Analyzing modules for base_library.zip ...
+2816 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2870 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+3835 INFO: Processing standard module hook 'hook-math.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+3934 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+4860 INFO: Caching module dependency graph...
+4884 INFO: Analyzing C:\Users\ryoma\Documents\Dev\Editor\Zundamon-Video-App\packaging\launcher.py
+5136 INFO: Processing standard module hook 'hook-webbrowser.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+5149 INFO: Processing standard module hook 'hook-streamlit.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\packaging\\hooks'
+6551 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+6828 INFO: Processing standard module hook 'hook-numpy.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+7093 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+7098 INFO: SetuptoolsInfo: initializing cached setuptools info...
+7948 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+8017 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+8232 INFO: Processing standard module hook 'hook-_ctypes.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+8722 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+9239 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+10703 INFO: Processing standard module hook 'hook-charset_normalizer.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+11601 INFO: Processing standard module hook 'hook-jinja2.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+12000 INFO: Processing standard module hook 'hook-altair.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+12113 INFO: Processing standard module hook 'hook-jsonschema.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+12511 INFO: Processing standard module hook 'hook-jsonschema_specifications.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+12546 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+12584 INFO: Processing standard module hook 'hook-urllib3.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+12662 INFO: Processing pre-safe-import-module hook 'hook-backports.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+12931 INFO: Processing standard module hook 'hook-certifi.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+13000 INFO: Processing standard module hook 'hook-cryptography.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+14473 INFO: hook-cryptography: cryptography does not seem to be using dynamically linked OpenSSL.
+14718 INFO: Processing standard module hook 'hook-narwhals.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+14844 INFO: Processing standard module hook 'hook-pandas.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+16543 INFO: Processing standard module hook 'hook-zoneinfo.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+17580 INFO: Processing standard module hook 'hook-pandas.io.formats.style.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+18857 INFO: Processing standard module hook 'hook-pyarrow.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+20573 INFO: Processing standard module hook 'hook-pandas.plotting.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+20940 INFO: Processing standard module hook 'hook-dateutil.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+21043 INFO: Processing pre-safe-import-module hook 'hook-six.moves.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+22044 INFO: Processing standard module hook 'hook-sqlite3.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+22333 INFO: Processing standard module hook 'hook-pandas.io.clipboard.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+22596 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+22607 INFO: Processing standard module hook 'hook-xml.dom.domreg.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+24175 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+25973 INFO: Processing standard module hook 'hook-PIL.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+26036 INFO: Processing standard module hook 'hook-PIL.Image.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+26420 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+27380 INFO: Processing pre-safe-import-module hook 'hook-tensorflow.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\pre_safe_import_module'
+27501 INFO: Processing standard module hook 'hook-anyio.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+28254 INFO: Processing standard module hook 'hook-uvicorn.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+28898 INFO: Processing standard module hook 'hook-websockets.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+29560 INFO: Processing standard module hook 'hook-webview.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\packaging\\hooks'
+109 WARNING: Failed to collect submodules for 'webview.platforms.android' because importing 'webview.platforms.android' raised: ModuleNotFoundError: No module named 'android'
+30236 INFO: Processing pre-safe-import-module hook 'hook-gi.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+30349 INFO: Processing standard module hook 'hook-clr.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\pythonnet\\_pyinstaller'
+30408 INFO: Processing standard module hook 'hook-clr_loader.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+30484 INFO: Processing standard module hook 'hook-pycparser.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+30609 INFO: Processing standard module hook 'hook-setuptools.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+30621 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+30621 INFO: Processing pre-find-module-path hook 'hook-distutils.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_find_module_path'
+31087 INFO: Processing standard module hook 'hook-distutils.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+31141 INFO: Processing standard module hook 'hook-distutils.util.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+31163 INFO: Processing standard module hook 'hook-_osx_support.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+31322 INFO: Processing standard module hook 'hook-pkg_resources.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+32176 INFO: Processing pre-safe-import-module hook 'hook-importlib_metadata.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+33006 INFO: Analyzing hidden import 'imageio_ffmpeg'
+33006 INFO: Processing standard module hook 'hook-imageio_ffmpeg.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+33034 INFO: Analyzing hidden import 'imageio_ffmpeg.binaries'
+33035 INFO: Analyzing hidden import 'imageio'
+33035 INFO: Processing standard module hook 'hook-imageio.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+33652 INFO: Analyzing hidden import 'imageio.__main__'
+33656 INFO: Analyzing hidden import 'imageio.freeze'
+33658 INFO: Analyzing hidden import 'imageio.plugins._bsdf'
+33675 INFO: Analyzing hidden import 'imageio.plugins._dicom'
+33690 INFO: Analyzing hidden import 'imageio.plugins._freeimage'
+33714 INFO: Analyzing hidden import 'imageio.plugins._swf'
+33729 INFO: Analyzing hidden import 'imageio.plugins._tifffile'
+33953 INFO: Processing pre-find-module-path hook 'hook-tkinter.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_find_module_path'
+33953 INFO: TclTkInfo: initializing cached Tcl/Tk info...
+34638 INFO: Processing standard module hook 'hook-_tkinter.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+34706 INFO: Analyzing hidden import 'imageio.plugins.bsdf'
+34713 INFO: Analyzing hidden import 'imageio.plugins.dicom'
+34720 INFO: Analyzing hidden import 'imageio.plugins.example'
+34723 INFO: Analyzing hidden import 'imageio.plugins.feisem'
+34730 INFO: Analyzing hidden import 'imageio.plugins.ffmpeg'
+34741 INFO: Analyzing hidden import 'imageio.plugins.fits'
+34743 INFO: Analyzing hidden import 'imageio.plugins.freeimage'
+34752 INFO: Analyzing hidden import 'imageio.plugins.freeimagemulti'
+34758 INFO: Analyzing hidden import 'imageio.plugins.gdal'
+34760 INFO: Analyzing hidden import 'imageio.plugins.grab'
+34768 INFO: Analyzing hidden import 'imageio.plugins.lytro'
+34780 INFO: Analyzing hidden import 'imageio.plugins.npz'
+34783 INFO: Analyzing hidden import 'imageio.plugins.opencv'
+34789 INFO: Analyzing hidden import 'imageio.plugins.pillow'
+34797 INFO: Analyzing hidden import 'imageio.plugins.pillow_info'
+34801 INFO: Analyzing hidden import 'imageio.plugins.pillow_legacy'
+34857 INFO: Analyzing hidden import 'imageio.plugins.pyav'
+34874 INFO: Analyzing hidden import 'imageio.plugins.rawpy'
+34878 INFO: Analyzing hidden import 'imageio.plugins.simpleitk'
+34883 INFO: Analyzing hidden import 'imageio.plugins.spe'
+34890 INFO: Analyzing hidden import 'imageio.plugins.swf'
+34902 INFO: Analyzing hidden import 'imageio.plugins.tifffile_v3'
+34904 INFO: Analyzing hidden import 'imageio.testing'
+34904 INFO: Analyzing hidden import 'moviepy'
+35294 INFO: Analyzing hidden import 'moviepy.audio.tools'
+35294 INFO: Analyzing hidden import 'moviepy.audio.tools.cuts'
+35297 INFO: Analyzing hidden import 'moviepy.video.tools.credits'
+35299 INFO: Analyzing hidden import 'moviepy.video.tools.cuts'
+35308 INFO: Analyzing hidden import 'moviepy.video.tools.drawing'
+35313 INFO: Analyzing hidden import 'moviepy.video.tools.interpolators'
+35315 INFO: Analyzing hidden import 'moviepy.video.tools.subtitles'
+35320 INFO: Processing module hooks (post-graph stage)...
+35513 INFO: Processing standard module hook 'hook-win32ctypes.core.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+36747 WARNING: Hidden import "pycparser.lextab" not found!
+36747 WARNING: Hidden import "pycparser.yacctab" not found!
+37083 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+37130 INFO: Processing pre-safe-import-module hook 'hook-win32com.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\pre_safe_import_module'
+37713 INFO: Processing standard module hook 'hook-setuptools._vendor.importlib_metadata.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+37811 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+38487 INFO: Processing standard module hook 'hook-_tkinter.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+38487 INFO: Processing standard module hook 'hook-tzdata.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+39056 INFO: Performing binary vs. data reclassification (3161 entries)
+40079 INFO: Looking for ctypes DLLs
+40284 INFO: Analyzing run-time hooks ...
+40295 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+40300 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+40302 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+40307 INFO: Including run-time hook 'pyi_rth_setuptools.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+40307 INFO: Including run-time hook 'pyi_rth_pkgres.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+40312 INFO: Including run-time hook 'pyi_rth_cryptography_openssl.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\rthooks'
+40316 INFO: Including run-time hook 'pyi_rth__tkinter.py' from 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+40427 INFO: Creating base_library.zip...
+40446 INFO: Looking for dynamic libraries
+42918 INFO: Extra DLL search directories (AddDllDirectory): ['C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\numpy.libs', 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\pandas.libs', 'C:\\Users\\ryoma\\Documents\\Dev\\Editor\\Zundamon-Video-App\\.venv\\Lib\\site-packages\\pyarrow.libs']
+42918 INFO: Extra DLL search directories (PATH): []
+44660 INFO: Warnings written to C:\Users\ryoma\Documents\Dev\Editor\Zundamon-Video-App\build\LocalAI\ZundaVideoApp\warn-ZundaVideoApp.txt
+44856 INFO: Graph cross-reference written to C:\Users\ryoma\Documents\Dev\Editor\Zundamon-Video-App\build\LocalAI\ZundaVideoApp\xref-ZundaVideoApp.html
+44968 INFO: checking PYZ
+44968 INFO: Building PYZ because PYZ-00.toc is non existent
+44968 INFO: Building PYZ (ZlibArchive) C:\Users\ryoma\Documents\Dev\Editor\Zundamon-Video-App\build\LocalAI\ZundaVideoApp\PYZ-00.pyz
+46540 INFO: Building PYZ (ZlibArchive) C:\Users\ryoma\Documents\Dev\Editor\Zundamon-Video-App\build\LocalAI\ZundaVideoApp\PYZ-00.pyz completed successfully.
+46588 INFO: checking PKG
+46588 INFO: Building PKG because PKG-00.toc is non existent
+46589 INFO: Building PKG (CArchive) ZundaVideoApp.pkg
+46621 INFO: Building PKG (CArchive) ZundaVideoApp.pkg completed successfully.
+46628 INFO: Bootloader C:\Users\ryoma\Documents\Dev\Editor\Zundamon-Video-App\.venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\run.exe
+46630 INFO: checking EXE
+46630 INFO: Building EXE because EXE-00.toc is non existent
+46630 INFO: Building EXE from EXE-00.toc
+46630 INFO: Copying bootloader EXE to C:\Users\ryoma\Documents\Dev\Editor\Zundamon-Video-App\build\LocalAI\ZundaVideoApp\ZundaVideoApp.exe
+46654 INFO: Copying icon to EXE
+46690 INFO: Copying 0 resources to EXE
+46690 INFO: Embedding manifest in EXE
+46708 INFO: Appending PKG archive to EXE
+46726 INFO: Fixing EXE headers
+47093 INFO: Building EXE from EXE-00.toc completed successfully.
+47111 INFO: checking COLLECT
+47111 INFO: Building COLLECT because COLLECT-00.toc is non existent
+47111 INFO: Removing dir C:\Users\ryoma\Documents\Dev\Editor\Zundamon-Video-App\dist\LocalAI\ZundaVideoApp
+47694 INFO: Building COLLECT COLLECT-00.toc
+50907 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+50963 INFO: Build complete! The results are available in: C:\Users\ryoma\Documents\Dev\Editor\Zundamon-Video-App\dist\LocalAI

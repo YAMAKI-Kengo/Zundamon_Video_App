@@ -3,6 +3,8 @@
   "entries": [
     { "word": "他人事", "reading": "ひとごと" },
     { "word": "目一杯", "reading": "めいっぱい" },
+    { "word": "珍し", "reading": "めずらし" },
+    { "word": "比べ", "reading": "くらべ" },
     { "word": "TODO", "reading": "トゥードゥー" },
     { "word": "ToDo", "reading": "トゥードゥー" },
     { "word": "To Do", "reading": "トゥードゥー" },
@@ -12,6 +14,7 @@
     { "word": "ずんだ餅", "reading": "ずんだもち" },
     { "word": "四国めたん", "reading": "しこくめたん" },
     { "word": "・", "reading": " " },
+    { "word": "十分", "reading": "じゅうぶん" },
     { "word": "まずは", "reading": "まずわ" },
     { "word": "誘い", "reading": "さそい" },
     { "word": "何て", "reading": "なんて" },

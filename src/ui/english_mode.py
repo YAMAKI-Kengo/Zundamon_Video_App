@@ -14,8 +14,9 @@ from pathlib import Path
 
 import streamlit as st
 
+from src.ui.prompt_box import prompt_box
 from src.services import book_ai, english_lesson, english_tts
-from src.state import forget_scene_widgets, get_project
+from src.state import forget_scene_widgets, get_project, go_to_tab
 from src.ui import book_mode
 
 _EN_FLASH_KEY = "_en_import_flash"
@@ -33,7 +34,7 @@ def _render_week_plan(week: int, level: str, use_api: bool) -> dict | None:
         if previous:
             st.caption("これまでのテーマ: " + "、".join(previous))
         if use_api:
-            if st.button("🗓 1週間の計画を作る（Claude）", type="primary", key="en_plan_btn", use_container_width=True):
+            if st.button("🗓 1週間の計画を作る（Claude）", type="primary", key="en_plan_btn", width="stretch"):
                 with st.status("1週間の計画を作っています…", expanded=True) as status:
                     try:
                         result = english_lesson.plan_week(week, theme_hint, level, previous, progress=status.write)
@@ -48,7 +49,7 @@ def _render_week_plan(week: int, level: str, use_api: bool) -> dict | None:
                 st.rerun()
         else:
             st.caption("Claude（claude.ai）のチャットに次のプロンプトを貼り付け、返ってきたJSONを下の欄に貼って保存してください。")
-            st.code(english_lesson.week_plan_manual_prompt(week, theme_hint, level, previous), language="markdown")
+            prompt_box(english_lesson.week_plan_manual_prompt(week, theme_hint, level, previous), "1週間の計画づくりのプロンプト")
         if st.session_state.get("_en_plan_cost"):
             st.caption(f"💰 {st.session_state['_en_plan_cost']}")
 
@@ -103,12 +104,10 @@ def _import_lesson(project, data: dict) -> None:
         replace_existing=True, add_ending=st.session_state.get("en_ending", True), reveal_bullets=True,
     )
     if ok:
-        english_lesson.link_native_audio(project.scenes)
+        english_lesson.link_native_audio(project.scenes, english_lesson.native_gap(project))
         if st.session_state.get("en_auto_tts", True) and english_tts.is_available():
             _generate_missing_audio(project)  # 足りないお手本の音声を、読み上げAIで自動で作る
         _check_readings_after_import(project)
-        # 取り込み結果のメッセージは、書籍解説モードのタブではなくこのタブで表示する
-        st.session_state[_EN_FLASH_KEY] = st.session_state.pop(book_mode._BOOK_IMPORT_FLASH_KEY, None)
         st.rerun()
 
 
@@ -128,7 +127,7 @@ def _render_daily_script(project, plan: dict, week: int, level: str, use_api: bo
                             "読み方辞書に追加します（VOICEVOXの起動とAPIキーが必要。1回数円程度）。")
         if use_api:
             if st.button(f"✍ {DAY_LABELS[day]}の台本を作る（Claude）", type="primary", key="en_lesson_btn",
-                         use_container_width=True):
+                         width="stretch"):
                 with st.status("台本を書いています…", expanded=True) as status:
                     try:
                         result = english_lesson.generate_lesson(plan, day, level, project.speech_speed,
@@ -150,7 +149,7 @@ def _render_daily_script(project, plan: dict, week: int, level: str, use_api: bo
                 )
         else:
             st.caption("Claude（claude.ai）のチャットに次のプロンプトを貼り付け、返ってきたJSONを下の欄に貼って読み込んでください。")
-            st.code(english_lesson.lesson_manual_prompt(plan, day, level, project.speech_speed), language="markdown")
+            prompt_box(english_lesson.lesson_manual_prompt(plan, day, level, project.speech_speed), "台本づくりのプロンプト")
         pasted = st.text_area("台本JSONを貼り付けて読み込む", key="en_lesson_paste", height=120)
         if st.button("📥 貼り付けた台本を読み込む", key="en_lesson_import", disabled=not pasted.strip()):
             try:
@@ -195,7 +194,7 @@ def _generate_missing_audio(project, overwrite: bool = False) -> None:
         status.update(label=f"音声を{len(result.created)}件作りました", state="error" if result.failed else "complete")
     for message in result.failed:
         st.error(message)
-    forget_scene_widgets(english_lesson.link_native_audio(project.scenes))
+    forget_scene_widgets(english_lesson.link_native_audio(project.scenes, english_lesson.native_gap(project)))
 
 
 def _render_tts_controls(project, items: list[dict]) -> None:
@@ -222,14 +221,14 @@ def _render_tts_controls(project, items: list[dict]) -> None:
     missing = sum(1 for i in items if not i["ready"])
     col_make, col_redo, col_try = st.columns([2, 2, 1])
     if col_make.button(f"🤖 足りない音声をAIで作る（{missing}件）", type="primary", key="en_tts_make",
-                       disabled=missing == 0, use_container_width=True):
+                       disabled=missing == 0, width="stretch"):
         _generate_missing_audio(project)
         st.rerun()
-    if col_redo.button("♻️ この動画の音声をすべて作り直す", key="en_tts_redo", use_container_width=True,
+    if col_redo.button("♻️ この動画の音声をすべて作り直す", key="en_tts_redo", width="stretch",
                        help="声や速さを変えたときに使います（手作業で置いた音声も、AIの音声で置き換えます）。"):
         _generate_missing_audio(project, overwrite=True)
         st.rerun()
-    if col_try.button("▶ 試し聞き", key="en_tts_try", use_container_width=True):
+    if col_try.button("▶ 試し聞き", key="en_tts_try", width="stretch"):
         with st.spinner("試し聞きの音声を作っています…"):
             try:
                 st.audio(english_tts.sample_audio(voice_a, speed), format="audio/wav")
@@ -257,17 +256,17 @@ def _render_native_audio(project) -> None:
             [{"": "✅" if i["ready"] else "⬜", "ファイル名": Path(i["path"]).name if i["ready"] else f"{i['id']}.mp3",
               "声": i["voice"], "英文": i["text"]}
              for i in items],
-            hide_index=True, use_container_width=True,
+            hide_index=True, width="stretch",
         )
         missing = english_lesson.audio_script_text(items, only_missing=True)
         col_dl, col_link = st.columns(2)
         if missing:
             col_dl.download_button(
                 "⬇️ まだ無い音声の一覧（ファイル名・声・英文）", data=missing, key="en_audio_list",
-                file_name="native_audio_list.txt", mime="text/plain", use_container_width=True,
+                file_name="native_audio_list.txt", mime="text/plain", width="stretch",
             )
-        if col_link.button("🔄 置いた音声を読み込む", key="en_audio_link", use_container_width=True):
-            linked = english_lesson.link_native_audio(project.scenes)
+        if col_link.button("🔄 置いた音声を読み込む", key="en_audio_link", width="stretch"):
+            linked = english_lesson.link_native_audio(project.scenes, english_lesson.native_gap(project))
             forget_scene_widgets(linked)
             st.toast(f"{len(linked)}シーンに音声を紐付けました。" if linked else "新しく置かれた音声はありませんでした。")
             st.rerun()
@@ -310,5 +309,5 @@ def render_english_mode() -> None:
 
     if project.source_kind == "english" and project.scenes:
         _render_native_audio(project)
-        st.divider()
-        book_mode.render_project_review(project)
+        st.button("✅ 仕上げ・投稿へ（構成の確認・タイトル・サムネイル）", key="en_go_review", on_click=go_to_tab,
+                  args=("review",))
