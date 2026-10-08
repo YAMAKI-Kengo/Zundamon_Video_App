@@ -32,6 +32,8 @@
 from __future__ import annotations
 
 import hashlib
+import uuid
+import os
 import json
 import random
 import re
@@ -51,7 +53,7 @@ FONTS_DIR = PROJECT_ROOT / "assets" / "fonts"
 SLIDE_CACHE_DIR = PROJECT_ROOT / "tmp" / "slides"
 
 # 見た目を変更したらこの値を上げる（古いキャッシュ画像が使われ続けないように）
-STYLE_VERSION = 15
+STYLE_VERSION = 16
 
 # --- 色 ---
 BOARD_COLOR = (36, 66, 52)
@@ -912,6 +914,19 @@ def slide_size_for(resolution: tuple[int, int]) -> tuple[int, int]:
     return max(64, max_w), max(64, max_h)
 
 
+def _tmp_path(path: Path) -> Path:
+    """書き出し途中の一時ファイル（同じ画像を複数の書き出しが同時に作っても、途中の画像を読まないように）。"""
+    return path.with_name(f"{path.stem}.{uuid.uuid4().hex[:8]}.tmp{path.suffix}")
+
+
+def _commit(tmp: Path, path: Path) -> None:
+    """一時ファイルを本来の名前に置き換える（置き換えは一瞬で終わるので、読む側は完成した画像だけを見る）。"""
+    try:
+        os.replace(tmp, path)
+    except OSError:
+        tmp.unlink(missing_ok=True)
+
+
 def get_slide_path(
     title: str, bullets: list[str], resolution: tuple[int, int], visible_bullets: Optional[int] = None,
     numbered: bool = False,
@@ -938,7 +953,7 @@ def get_slide_path(
         render_slide(
             title, bullets, size, font_path=font_path, seed=int(digest[:8], 16), style=style,
             visible_bullets=visible_bullets, numbered=numbered,
-        ).save(path)
+        ).save(tmp := _tmp_path(path)); _commit(tmp, path)
     return path
 
 
@@ -1031,7 +1046,7 @@ def get_illustration_image_path(image_path: str, resolution: tuple[int, int]) ->
         if box:
             img = img.crop(box)
         img = img.resize(_fit_size(img.size, max_w, max_h), Image.LANCZOS)
-        img.save(path)
+        img.save(tmp := _tmp_path(path)); _commit(tmp, path)
     return path
 
 
@@ -1047,7 +1062,7 @@ def get_illustration_card_path(image_path: str, caption: str, resolution: tuple[
     path = SLIDE_CACHE_DIR / f"card_{digest}.png"
     if not path.exists():
         SLIDE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        render_illustration_card(image_path, caption, size).save(path)
+        render_illustration_card(image_path, caption, size).save(tmp := _tmp_path(path)); _commit(tmp, path)
     return path
 
 
@@ -1166,7 +1181,7 @@ def get_note_path(sentence: str, focus: str, meaning: str, resolution: tuple[int
     path = SLIDE_CACHE_DIR / f"note_{digest}.png"
     if not path.exists():
         SLIDE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        render_phrase_note(sentence, focus, meaning, size, style, font_path, seed=int(digest[:8], 16)).save(path)
+        render_phrase_note(sentence, focus, meaning, size, style, font_path, seed=int(digest[:8], 16)).save(tmp := _tmp_path(path)); _commit(tmp, path)
     return path
 
 

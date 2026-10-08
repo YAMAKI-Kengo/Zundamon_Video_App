@@ -33,7 +33,7 @@ from src.models import GUEST_CHARACTERS, Scene
 from src.services import book_ai, video_history
 from src.services.book_ai import _STR, _STR_LIST, AIResult, ProgressCallback, _call, _obj
 from src.services.voicevox_client import DEFAULT_SPEECH_SPEED
-from src.utils.asset_loader import get_available_expressions, list_illustrations, list_place_backgrounds, list_se
+from src.utils.asset_loader import get_available_expressions, list_illustrations, list_se, place_background_schema
 
 ROOT = Path(__file__).resolve().parents[2]
 AUDIO_DIR = ROOT / "assets" / "english_audio"       # ネイティブ音声（<ID>.mp3 など）を置くフォルダ
@@ -56,6 +56,12 @@ LEVEL_RULES = {
 }
 VOICE_LABELS = {"A": "声A（めたん役・女性）", "B": "声B（会話の相手役）"}
 LINE_GAP_SECONDS = 0.35  # ネイティブ音声のあとに置く間（学習用に日本語のセリフより少し長め）
+SHORT_LINE_GAP_SECONDS = 0.1  # ショートでは間を詰める（最初の数秒でスワイプされないように）
+
+
+def native_gap(project) -> float:
+    """ネイティブ音声のあとに置く間（ショートは短く）。"""
+    return SHORT_LINE_GAP_SECONDS if (project.promo_of or project.video_style == "short") else LINE_GAP_SECONDS
 
 
 # ---------------------------------------------------------------------------
@@ -142,7 +148,7 @@ def audio_duration(path: Path) -> float:
     return _duration_cache[key]
 
 
-def link_native_audio(scenes: list[Scene]) -> list[Scene]:
+def link_native_audio(scenes: list[Scene], gap: float = LINE_GAP_SECONDS) -> list[Scene]:
     """音声IDのあるシーンに、assets/english_audio/ に置かれたネイティブ音声を紐付け、表示秒数を音声の長さに合わせる。
 
     新しく紐付けた（または音声ファイルが差し替えられた）シーンのリストを返す。すでに紐付いていて変わっていない
@@ -162,7 +168,7 @@ def link_native_audio(scenes: list[Scene]) -> list[Scene]:
         scene.voice_path = str(path)
         _linked_stamps[scene.id] = stamp
         try:
-            scene.duration = round(scene.lead_in + audio_duration(path) + LINE_GAP_SECONDS + scene.board_hold, 2)
+            scene.duration = round(scene.lead_in + audio_duration(path) + gap + scene.board_hold, 2)
         except Exception:  # noqa: BLE001 - 長さを測れない音声は、秒数を変えずに使う
             pass
         linked.append(scene)
@@ -229,6 +235,7 @@ def _week_plan_system(level: str) -> str:
 - 1週間で1つのテーマにする。テーマは文法（現在完了など）ではなく、英語の外側の悩み・欲求から入る「場面と感情」で決める（例: 海外の推しに一言コメントする、空港で固まらない、海外旅行のホテルで困らない、子どもに聞かれた英語に答える、洋画のよくあるセリフを聞き取る、カフェで注文する）。週ごとに、推し活・旅行・親子・日常・仕事などの入口を変えて、いろいろな人が「自分のことだ」と思えるようにする。1〜6日目が毎日のレッスン、7日目は1週間のまとめ（days には1〜6日目だけを書く）。
 - 1〜6日目は、同じテーマの中で場面を少しずつ変え、易しいものから順に並べる。前の日のフレーズを後の日の会話でも使えるようにつなげる（くり返し出会うことで定着する）。
 - 各日の phrases は2つ。実際の会話でよく使う、短くて応用のきく決まり文句にする（en は英語、ja は自然な日本語訳、point は使い方・言い換え・似た表現との違いを1文で）。
+- 各日の title は、その日の動画のタイトル・ショートのフックの元になる。「正しい表現」を名前にするのではなく、損失回避（「〜はNG」「実は失礼」「言いがちな間違い」「知らないと損」）か、具体的な感情と場面（「聞き取れない」「焦る」「固まる」「逃げたくなる」「沈黙が怖い」）の言葉で書く（例:「What?で聞き返すのは実は失礼」「沈黙が怖くて"えーと"連発してない？」「駅で道を聞かれて固まらない一言」）。
 - 教科書的すぎる表現や古い表現は避け、今のネイティブが日常で使う自然なアメリカ英語にする。
 - zunda_trouble には、その日の場面で日本人がやりがちな失敗（直訳・カタカナ発音・丁寧すぎる/失礼な言い方など）を、ずんだもんがやらかす小さなエピソードとして1文で書く。
 - grammar には、その日に触れる文法か発音（音のつながり・弱く読む音など）のポイントを1つ書く。
@@ -351,7 +358,7 @@ def _lesson_schema(with_promo: bool = True) -> dict:
     block = _obj({
         "section": {"type": "string", "enum": LESSON_SECTIONS_ENUM},
         "slide": _obj({"title": _STR, "bullets": _STR_LIST, "numbered": {"type": "boolean"}}),
-        "background": {"type": "string", "enum": [""] + [p.stem for p in list_place_backgrounds()]},
+        "background": place_background_schema(),
         "background_request": _STR,
         "background_name": _STR,
         **({"guests": {"type": "array", "items": {"type": "string", "enum": guest_keys}}} if guest_keys else {}),
@@ -362,11 +369,12 @@ def _lesson_schema(with_promo: bool = True) -> dict:
         "title_candidates": _STR_LIST,
         "video_title": _STR,
         "description_lead": _STR,
+        "pinned_comment": _STR,
         "hashtags": _STR_LIST,
         "tags": _STR_LIST,
         "readings": {"type": "array", "items": _obj({"word": _STR, "reading": _STR})},
         "phrases": {"type": "array", "items": _obj({"en": _STR, "ja": _STR})},
-        "thumbnail": _obj({"text": _STR, "sub": _STR, "shout": _STR, "layout": {"type": "string", "enum": ["before_after", "scene", "reaction", "duo", "big_text"]}, "zundamon": {"type": "string", "enum": expressions}, "metan": {"type": "string", "enum": expressions}, "before": _STR, "after": _STR, "before_face": {"type": "string", "enum": expressions}, "after_face": {"type": "string", "enum": expressions}, "scene": _STR, "phrase": _STR}),
+        "thumbnail": _obj({"text": _STR, "sub": _STR, "shout": _STR, "layout": {"type": "string", "enum": ["before_after", "scene", "reaction", "duo", "big_text"]}, "zundamon": {"type": "string", "enum": expressions}, "metan": {"type": "string", "enum": expressions}, "before": _STR, "after": _STR, "before_face": {"type": "string", "enum": expressions}, "after_face": {"type": "string", "enum": expressions}, "before_shout": _STR, "after_shout": _STR, "scene": _STR, "phrase": _STR, "accent": {"type": "string", "enum": ["auto", "trouble", "town", "cafe", "solution"]}}),
         "blocks": {"type": "array", "items": block},
         **({"promo_short": book_ai.promo_short_schema(block)} if with_promo else {}),
     })
@@ -456,19 +464,21 @@ def _lesson_system(plan: dict, day: int, level: str, speech_speed: float = DEFAU
 
 ## 投稿用のタイトル・説明文
 - book_title には「{plan.get('theme', '')}」のような今週のテーマ名を書く。
-- title_candidates: 3つ。各32字以内。「【毎日英会話】Day{day}」を先頭に付け、文法用語ではなく「場面と感情」が伝わるようにする（例:「【毎日英会話】Day{day} 海外の推しに一言コメントする英語」「【毎日英会話】Day{day} 空港で固まらない3フレーズ」）。
+- title_candidates: 3つ。各40字以内。企画の中身（場面と、見たら何ができるようになるか）をタイトルの一番前に置き、シリーズ名は最後に「｜毎日英会話 Day{day}」と付ける（Day の番号が先頭にあると、初めて見る人が「Day1から見ていないから後回しにしよう」と感じてクリックを避けるため）。文法用語ではなく「場面と感情」が伝わるようにする（例:「駅で道を聞かれても逃げない英語｜毎日英会話 Day{day}」「空港で固まらない3フレーズ｜毎日英会話 Day{day}」）。内容と合っていれば「やってはいけない系・損している系」も強い（例:「Whatで聞き返すのはNG？ 失礼にならない聞き返し方｜毎日英会話 Day{day}」）。
 - video_title: その中で一番クリックされそうな1つ。
 - description_lead: 説明欄の冒頭2行（改行区切り、各40字以内）。今日できるようになること。
+- pinned_comment: YouTubeのコメント欄に固定するコメント（4〜7行・全体で200字以内。改行区切り）。今日のフレーズ（英語と意味）→「このフレーズを使って、コメントに英語を1文書いてみてね」と、答えやすいお題と例文を1つ → 明日の予告。絵文字は1〜3個まで。URLは書かない。
 - hashtags: 4つ（# は付けない。「ずんだもん解説」はアプリが必ず先頭に付けるので書かない）。書名・人名などの固有名詞ではなく、多くの人が検索・フォローしていて、この動画の内容に関係する一般的な言葉にする（例: 英会話、英語学習、リスニング、TOEIC、英語、スピーキング、海外旅行）。
 - tags: 15〜25個。YouTubeのタグは、視聴者が検索したときに表記ゆれ・変換ミス・打ち間違いがあっても、この動画が見つかるようにするためのもの。動画の大事なキーワード（テーマ・悩み・書名・著者名・フレーズなど）それぞれについて、ひらがな・カタカナ・英語（ローマ字）の書き方、よくある変換ミスや打ち間違い、略称・言い換え、スペースの有無の違いを入れる（例: 英会話 → えいかいわ、English conversation／TOEIC → トーイック、toeic／睡眠 → すいみん、眠れない、寝れない／書名の略称やひらがな表記）。動画と関係のない人気ワードは入れない（スパム扱いされるため）。1つ20字以内、全部で400字以内。
 - phrases: この動画で教えたフレーズ（en・ja）。
-- thumbnail（サムネイルの文言と見せ方）。一覧で一番に目に入るのは、上部いっぱいに出る特大の一言（text）。その下に「〇〇で使える！」の札と場面のイラスト、ずんだもんの吹き出しに今日の英語のフレーズが大きく出て、どんな場面で使えるかが一目で想像できるようにする:
-  text は2行まで（改行は \\n）、1行9字以内・全体で10〜16字。そのフレーズを使うと何ができるかが一目で分かる、インパクトのある一言にする（例:「この一言で\\n注文が**通じる**」「ネイティブは\\n**これ**で頼む」）。文字は白で、一番大事な1語だけを **語** で囲む（赤く大きく目立つ）。==語== で囲むと黄色（多用しない）。
-  scene は、このフレーズを使える場面（2〜8字。例: カフェ、空港、友だちを誘うとき）。サムネイルに「〇〇で使える！」と出る。
-  phrase は、今日のフレーズのうち一番使える英語を1つ（25字以内）。吹き出しに大きく出る。
-  sub は左上の帯の短いラベル（6〜10字。例: 毎日英会話 Day{day}（7日目は 毎日英会話 まとめ））。
+- thumbnail（サムネイルの文言と見せ方）。一覧で一番に目に入るのは、上部いっぱいに出る特大の一言（text）。左に胸から上の大きなずんだもん（感情の伝わる顔。画面の30〜40%）、右に特大の一言（画面の35〜45%）、その下に答えを伏せた英語の吹き出し（例: Let me 〇〇…？）が出て、場面のイラストは背景にぼかして薄く敷かれる。スマホの一覧ではサムネイルは切手ほどの大きさなので、文字の要素は「大きな一言」と「吹き出しの英語」の2つだけにする（右下は再生時間が重なるので、アプリが何も置かない）:
+  text は2行まで（改行は \\n）、1行9字以内・全体で10〜16字。見たら何ができるようになるか（得られるメリット）が、スマホの小さな画面でも一目で分かる一言にする（例:「もう聞き返されても\\n**焦らない**！」「一言で伝わる\\n**神フレーズ**」「この一言で\\n注文が**通じる**」）。文字は白で、一番大事な1語だけを **語** で囲む（赤く大きく目立つ）。==語== で囲むと黄色（多用しない）。
+  scene は空文字でよい（場面は、背景の絵と大きな一言で伝える）。
+  accent は企画の種類の色（強調する文字・吹き出しの枠・外枠の色になる。一覧に並んだとき1本ずつ違う企画に見えるように）: トラブル・NG系（聞き返せない・失礼）は "trouble"（赤）、街中・移動系（道を聞かれた・駅・空港）は "town"（黄・オレンジ）、日常会話・カフェ系（えーと・注文）は "cafe"（カフェラテ色）、解決・神フレーズ系（これでOK）は "solution"（青）。
+  phrase は、今日のフレーズのうち一番使える英語を1つ（25字以内）。答えが見えるとその場で満足してクリックされないので、アプリが吹き出しでは後半を伏せて出す（例: Let me check the map. → Let me 〇〇…？）。
+  sub は空文字にする（英会話のサムネイルには左上の帯を出さない。文字の要素が増えて視線が迷うため。シリーズ名や Day の番号も入れない）。
   layout は基本 "scene"（使える場面）。感情が強い内容なら "reaction"、結論が強い一言なら "big_text"。"before_after" は使わない。
-  zundamon は、場面のフレーズが言えてうれしい表情など、内容の感情が一目で伝わる表情を一覧から選ぶ。shout は吹き出しのひと言（reaction・big_text で使う。3〜8字）。before・after は空文字、before_face・after_face は zundamon と同じ表情でよい。{book_ai.promo_short_rules("english", speech_speed)}"""
+  zundamon の表情は企画の種類で選ぶ（いつも笑顔にしない。視聴者が一番感情移入するのは「焦り・困惑・気まずさ」の共感）: 困り系（逃げない・聞き返せない・Yes連発・固まる・聞き取れない など）は焦り・パニック・ショック・困り顔、解決系（これ一言でOK・神フレーズ など）はドヤ顔・ひらめき顔。shout は吹き出しのひと言（reaction・big_text で使う。3〜8字）。before・after は空文字、before_face・after_face は zundamon と同じ表情でよい。{book_ai.promo_short_rules("english", speech_speed)}"""
 
 
 def generate_lesson(plan: dict, day: int, level: str = "", speech_speed: float = DEFAULT_SPEECH_SPEED,
@@ -557,7 +567,7 @@ def lesson_manual_prompt(plan: dict, day: int, level: str = "", speech_speed: fl
         f"第{plan.get('week', 1)}週の{day}日目の台本を、次の形式のJSONだけで出力してください"
         "（各セリフには speaker・expression・text・lang・ja・reading・voice・pause・pause_text・se・board を書く。"
         "トップレベルには、本編紹介ショートの promo_short "
-        '（{"title_candidates": [...], "video_title": "...", "description_lead": "...", "hashtags": [...], "tags": [...], '
+        '（{"title_candidates": [...], "video_title": "...", "hook": "...", "description_lead": "...", "hashtags": [...], "tags": [...], '
         '"blocks": [本編と同じ形のブロック]}）も必ず書く。'
         "形式の例なので、中身と分量は上のルールに従う）:",
         "```json\n" + json.dumps(LESSON_SAMPLE, ensure_ascii=False, indent=2) + "\n```",

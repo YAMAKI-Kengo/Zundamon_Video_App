@@ -1,42 +1,33 @@
 {
   "w01d1_01": {
-    "text": "Hey, do you want to grab lunch sometime this week?",
-    "voice": "A",
+    "text": "So, what are you most excited to do on your trip abroad?",
+    "voice": "B",
     "tts": {
       "engine": "kokoro",
-      "voice": "af_heart",
+      "voice": "am_michael",
       "speed": 0.9
     }
   },
   "w01d1_02": {
-    "text": "Sure! How about Wednesday?",
-    "voice": "B",
+    "text": "Sorry, I didn't catch that. Could you say that again?",
+    "voice": "A",
     "tts": {
       "engine": "kokoro",
-      "voice": "am_michael",
+      "voice": "af_heart",
       "speed": 0.9
     }
   },
   "w01d1_03": {
-    "text": "Wednesday is perfect. Are you free this Saturday?",
-    "voice": "A",
+    "text": "Sure! What do you want to do most on your trip?",
+    "voice": "B",
     "tts": {
       "engine": "kokoro",
-      "voice": "af_heart",
+      "voice": "am_michael",
       "speed": 0.9
     }
   },
   "w01d1_04": {
-    "text": "I think so. What's up?",
-    "voice": "B",
-    "tts": {
-      "engine": "kokoro",
-      "voice": "am_michael",
-      "speed": 0.9
-    }
-  },
-  "w01d1_05": {
-    "text": "A few of us are going hiking. Want to come?",
+    "text": "Oh, I see. I really want to try the local food.",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -44,8 +35,8 @@
       "speed": 0.9
     }
   },
-  "w01d1_06": {
-    "text": "Sounds fun! I'm in.",
+  "w01d1_05": {
+    "text": "Nice! Trying street food is the best part of traveling.",
     "voice": "B",
     "tts": {
       "engine": "kokoro",
@@ -53,8 +44,17 @@
       "speed": 0.9
     }
   },
+  "w01d1_06": {
+    "text": "Sorry, I didn't catch that.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
   "w01d1_07": {
-    "text": "Do you want to grab lunch sometime this week?",
+    "text": "Sorry, I didn't catch your name.",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -63,7 +63,7 @@
     }
   },
   "w01d1_08": {
-    "text": "Do you want to grab a coffee?",
+    "text": "Could you say that again?",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -72,7 +72,7 @@
     }
   },
   "w01d1_09": {
-    "text": "Are you free this Saturday?",
+    "text": "Could you say the last part again?",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -81,7 +81,7 @@
     }
   },
   "w01d1_10": {
-    "text": "Are you free tonight?",
+    "text": "Could you say the question again?",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -90,7 +90,7 @@
     }
   },
   "w01d1_11": {
-    "text": "Do you want to grab a drink sometime this week?",
+    "text": "Sorry, I didn't catch the address.",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -98,8 +98,8 @@
       "speed": 0.9
     }
   },
-  "w01d2_01": {
-    "text": "Hey, do you want to grab lunch this week?",
+  "w01d1_12": {
+    "text": "Oh, you like mochi? I used to eat zunda mochi every weekend in Sendai!",
     "voice": "B",
     "tts": {
       "engine": "kokoro",
@@ -107,8 +107,8 @@
       "speed": 0.9
     }
   },
-  "w01d2_02": {
-    "text": "I'd love to! What time works for you?",
+  "w01d1_13": {
+    "text": "Sorry, could you slow down a little?",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -116,8 +116,8 @@
       "speed": 0.9
     }
   },
-  "w01d2_03": {
-    "text": "How about Thursday at noon? Some friends are coming, too.",
+  "w01d1_14": {
+    "text": "Of course! I ate zunda mochi a lot. It's a local specialty there.",
     "voice": "B",
     "tts": {
       "engine": "kokoro",
@@ -125,8 +125,8 @@
       "speed": 0.9
     }
   },
-  "w01d2_04": {
-    "text": "Sounds good. Count me in!",
+  "w01d1_15": {
+    "text": "A local specialty? What does that mean?",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -134,8 +134,8 @@
       "speed": 0.9
     }
   },
-  "w01d2_05": {
-    "text": "Great! Let's try the new taco place.",
+  "w01d1_16": {
+    "text": "It means a food that a certain area is famous for.",
     "voice": "B",
     "tts": {
       "engine": "kokoro",
@@ -143,8 +143,8 @@
       "speed": 0.9
     }
   },
-  "w01d2_06": {
-    "text": "I'd love to! What day works for you?",
+  "w01d1_17": {
+    "text": "Oh, I see. Thanks for explaining that so clearly!",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -152,8 +152,8 @@
       "speed": 0.9
     }
   },
-  "w01d2_07": {
-    "text": "Sorry, count me out this time.",
+  "w01d1_18": {
+    "text": "Could you slow down a little?",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -161,8 +161,8 @@
       "speed": 0.9
     }
   },
-  "w01d2_08": {
-    "text": "How about Thursday at noon?",
+  "w01d1_19": {
+    "text": "Could you slow down a little? I want to catch every word.",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -170,8 +170,8 @@
       "speed": 0.9
     }
   },
-  "w01d2_09": {
-    "text": "Sounds good. Count me in for the party!",
+  "w01d1_20": {
+    "text": "What does that mean?",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -179,8 +179,8 @@
       "speed": 0.9
     }
   },
-  "w01d2_10": {
-    "text": "I'd love to!",
+  "w01d1_21": {
+    "text": "What does 'local specialty' mean?",
     "voice": "A",
     "tts": {
       "engine": "kokoro",
@@ -188,8 +188,1064 @@
       "speed": 0.9
     }
   },
-  "w01d2_11": {
-    "text": "Count me in!",
+  "w01d1_22": {
+    "text": "What does 'spicy' mean?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_01": {
+    "text": "So, what do you want to do on your trip?",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d3_02": {
+    "text": "Hmm, let me think... I want to try the local food.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_03": {
+    "text": "Nice! And why do you want to travel abroad?",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d3_04": {
+    "text": "That's a good question. I want to see a new world.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_05": {
+    "text": "I love that answer!",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d3_06": {
+    "text": "Hmm, let me think.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_07": {
+    "text": "Hmm, let me think. Maybe next Sunday?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_08": {
+    "text": "That's a good question.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_09": {
+    "text": "That's a good question. Let me think.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d3_10": {
+    "text": "Hmm, let me see.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_01": {
+    "text": "Let's go running together! How about tomorrow at six?",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d4_02": {
+    "text": "You mean tomorrow morning? That's a little early for me.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_03": {
+    "text": "Okay! Then let's go on Saturday instead.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d4_04": {
+    "text": "Just to make sure, you're free on Saturday?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_05": {
+    "text": "Yes! Saturday at nine is perfect.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d4_06": {
+    "text": "You mean tomorrow morning?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_07": {
+    "text": "You mean the big station near the park?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_08": {
+    "text": "Just to make sure, it's at nine?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_09": {
+    "text": "You mean tonight?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d4_10": {
+    "text": "Just to make sure, you're free on Sunday?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d6_01": {
+    "text": "Excuse me, how do I get to the art museum?",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d6_02": {
+    "text": "Sorry, I'm still learning English. Could you slow down a little?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d6_03": {
+    "text": "Sure. The art museum. Is it far from here?",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d6_04": {
+    "text": "Got it. Let me check the map.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d6_05": {
+    "text": "Thank you so much. Take your time!",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d6_06": {
+    "text": "It's about ten minutes on foot. Go straight this way.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d6_07": {
+    "text": "Sorry, I'm still learning English.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d6_08": {
+    "text": "Sorry, I'm still learning English. Could you say that again?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d6_09": {
+    "text": "Got it. Let me check my phone.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d6_10": {
+    "text": "It's about ten minutes on foot.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d6_11": {
+    "text": "Sorry, I'm still learning Japanese.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d6_12": {
+    "text": "How do I put it?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_01": {
+    "text": "What Japanese food should I try in Sendai?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_02": {
+    "text": "You should try zunda mochi! What's the word... it's like a sweet rice cake.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_03": {
+    "text": "A sweet rice cake? What color is it?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_04": {
+    "text": "It's bright green. How do I put it? It's made from edamame.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_05": {
+    "text": "Oh, I love edamame! I really want to try it.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_06": {
+    "text": "What's the word... it's like a sweet rice cake.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_07": {
+    "text": "What's the word... it's like a small pancake.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_08": {
+    "text": "How do I put it?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_09": {
+    "text": "How do I put it? It's sweet, but not too sweet.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_10": {
+    "text": "It's bright green. It's made from edamame.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_11": {
+    "text": "How do I put it? It's made from edamame.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d5_12": {
+    "text": "You mean Saturday morning?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_01": {
+    "text": "What's the word... it's like a sweet rice cake.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_02": {
+    "text": "Hi! Do you know a good place to eat around here?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_03": {
+    "text": "Sorry, I didn't catch that. Could you slow down a little?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_04": {
+    "text": "Sure. A good place to eat. Any ideas?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_05": {
+    "text": "Hmm, let me think. There's a zunda mochi shop near here.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_06": {
+    "text": "Zunda mochi? What does that mean?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_07": {
+    "text": "How do I put it? It's like a sweet green rice cake.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_08": {
+    "text": "Sounds fun! Is the shop open tonight?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d7_09": {
+    "text": "You mean tonight? Got it. Let me check the map.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d1_01": {
+    "text": "Hi, my name is Zunda. I'm interested in booking a room for three nights.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d1_02": {
+    "text": "Do you have any rooms available from June 3rd to 6th?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d1_03": {
+    "text": "Thank you for contacting us! Yes, we have a twin room available for those dates.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w02d1_04": {
+    "text": "That sounds great. How much is it per night?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d1_05": {
+    "text": "It's 120 dollars per night, including tax. Would you like to book it?",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w02d1_06": {
+    "text": "Hi, I'm interested in booking a room for three nights.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d1_07": {
+    "text": "Hi, I'm interested in booking a table for two.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d1_08": {
+    "text": "Do you have any tables available tonight?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d1_09": {
+    "text": "Do you have any rooms available tonight?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d1_10": {
+    "text": "Just to make sure, it's from June 3rd to 6th?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d1_23": {
+    "text": "Thank you for your message! The room is 120 dollars per night.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d1_24": {
+    "text": "Thank you! Does the price include breakfast?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d1_25": {
+    "text": "Yes, breakfast is included. It's served from 7 to 10.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d1_26": {
+    "text": "Great. Is there an extra charge for late check-out?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d1_27": {
+    "text": "Yes, it's 20 dollars until 2 p.m.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w01d1_28": {
+    "text": "Got it. That's very helpful. Thank you!",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d1_29": {
+    "text": "Does the price include breakfast?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d1_30": {
+    "text": "Does the price include tax?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d1_31": {
+    "text": "Is there an extra charge for late check-out?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d1_32": {
+    "text": "Is there an extra charge for parking?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w01d1_33": {
+    "text": "Yes, breakfast is included.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d3_01": {
+    "text": "Hi, my flight arrives at 6 a.m. Would it be possible to check in early?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d3_02": {
+    "text": "Let me check. We can't promise, but we'll do our best.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w02d3_03": {
+    "text": "Thank you. If possible, I'd love a room with a view.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d3_04": {
+    "text": "Of course! I'll add a note to your booking.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w02d3_05": {
+    "text": "That's very kind of you. Thanks so much!",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d3_06": {
+    "text": "Our pleasure. See you in June!",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w02d3_07": {
+    "text": "Would it be possible to check in early?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d3_08": {
+    "text": "Would it be possible to leave my bags at the front desk?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d3_09": {
+    "text": "If possible, I'd love a room with a view.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d3_10": {
+    "text": "If possible, I'd love a quiet room.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d4_01": {
+    "text": "Hi, how many bags can I check for free?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d4_02": {
+    "text": "With your ticket, you can check one bag for free.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w02d4_03": {
+    "text": "Great. Am I allowed to bring a portable charger on the plane?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d4_04": {
+    "text": "Yes, but please keep it in your carry-on bag.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w02d4_05": {
+    "text": "Got it. Thank you so much!",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d4_06": {
+    "text": "You're welcome. Have a nice flight!",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w02d4_07": {
+    "text": "How many bags can I check for free?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d4_08": {
+    "text": "How many bags can I check on this ticket?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d4_09": {
+    "text": "Am I allowed to bring a portable charger on the plane?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d4_10": {
+    "text": "Am I allowed to bring a water bottle?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d4_11": {
+    "text": "Please keep it in your carry-on bag.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d4_12": {
+    "text": "How many suitcases can I check for free?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d4_13": {
+    "text": "Am I allowed to bring a laptop on the plane?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d4_14": {
+    "text": "How many bags can I check on this flight?",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d5_01": {
+    "text": "Hi, I have a booking from June 3rd to 6th.",
+    "voice": "A"
+  },
+  "w02d5_02": {
+    "text": "Hello! Thanks for your message. How can we help?",
+    "voice": "B"
+  },
+  "w02d5_03": {
+    "text": "I'd like to change my check-in date to June 4th.",
+    "voice": "A"
+  },
+  "w02d5_04": {
+    "text": "No problem. Your new dates are June 4th to 6th.",
+    "voice": "B"
+  },
+  "w02d5_05": {
+    "text": "Thank you! Also, what's your cancellation policy?",
+    "voice": "A"
+  },
+  "w02d5_06": {
+    "text": "You can cancel for free until two days before.",
+    "voice": "B"
+  },
+  "w02d5_07": {
+    "text": "I'd like to change my flight to Friday.",
+    "voice": "A"
+  },
+  "w02d5_08": {
+    "text": "What's your cancellation policy?",
+    "voice": "A"
+  },
+  "w02d5_09": {
+    "text": "What's your refund policy?",
+    "voice": "A"
+  },
+  "w02d5_10": {
+    "text": "I'd like to change my check-in date to June 5th.",
+    "voice": "A"
+  },
+  "w02d5_11": {
+    "text": "I'd like to change my flight to Monday.",
+    "voice": "A"
+  },
+  "w02d5_12": {
+    "text": "What's your pet policy?",
+    "voice": "A"
+  },
+  "w02d7_01": {
+    "text": "Thank you so much for your quick reply.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d7_02": {
+    "text": "I'm looking forward to staying at your hotel.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d7_03": {
+    "text": "Yes, we do. It's 150 dollars a night.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w02d7_04": {
+    "text": "Yes, it does. Breakfast starts at seven.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w02d7_05": {
+    "text": "Sure, if the room is ready.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w02d7_06": {
+    "text": "You're welcome. See you in June!",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w02d6_01": {
+    "text": "Hi, Zundamon. We've changed your check-in date to June 4th.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w02d6_02": {
+    "text": "You're welcome. Is there anything else we can do?",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w02d6_03": {
+    "text": "No, that's all. I'm looking forward to staying at your hotel.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d6_04": {
+    "text": "We're looking forward to seeing you, too.",
+    "voice": "B",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "am_michael",
+      "speed": 0.9
+    }
+  },
+  "w02d6_05": {
+    "text": "Thank you so much for your help.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d6_06": {
+    "text": "I'm looking forward to seeing you.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d6_07": {
+    "text": "Thank you so much for your kind message.",
+    "voice": "A",
+    "tts": {
+      "engine": "kokoro",
+      "voice": "af_heart",
+      "speed": 0.9
+    }
+  },
+  "w02d6_08": {
+    "text": "I'm looking forward to visiting New York.",
     "voice": "A",
     "tts": {
       "engine": "kokoro",

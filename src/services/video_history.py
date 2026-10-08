@@ -131,11 +131,20 @@ def _series_text(kind: str, same: list[dict]) -> str:
         )
         previous = next((e for e in reversed(same) if e.get("style") != "short"), None)
         if previous:
-            parts.append(
-                f"- 前回は「{previous.get('title', '')}」で、最後は「{previous.get('ending', '')}」だった。"
-                "導入の約束と予告のあと（または rescue の中）で、前回の続きに一言触れる"
-                "（例: めたん「前回の自動積立、続いてるの？」ずんだもん「実は3日でやめたのだ…」）。"
-            )
+            if kind == "english":
+                parts.append(
+                    f"- 前回は「{previous.get('title', '')}」で、最後は「{previous.get('ending', '')}」だった。"
+                    "導入の約束と予告のあとで、前回の続きに一言触れる（毎日見ている人のための、いつものつながり）。"
+                )
+            else:
+                parts.append(
+                    f"- 前回は「{previous.get('title', '')}」で、最後は「{previous.get('ending', '')}」だった。"
+                    "前回の続きに触れるのは、まとめ（summary）の中で一言だけにする"
+                    "（例: めたん「前回の自動積立、続いてる？」ずんだもん「実は3日でやめたのだ…でも今日の方法なら続けられそうなのだ！」）。"
+                    "導入（intro）には、過去の動画やシリーズ・計画の話を入れない。検索や関連動画から初めて来た人は"
+                    "「自分の悩みを早く解決してほしい」と思っているので、内輪の話から始まると30秒以内に離れてしまう。"
+                    "シリーズの軸は裏の設定として使い、1本で完結する動画にする。"
+                )
         if kind != "english" and episode % METAN_MISTAKE_EVERY == 0:
             parts.append(
                 "- 今回は「めたんも間違っていた回」にする: 解説の途中で、いつも正しいめたんも同じ思い込みをしていて、"

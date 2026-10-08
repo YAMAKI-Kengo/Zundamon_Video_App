@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from src.ui.prompt_box import prompt_box
 from src.services import book_ai, video_history
 from src.services.book_ai import _STR, _obj
 
@@ -55,7 +56,7 @@ def render_analytics() -> None:
         "メモ": entries[i].get("note") or "",
     } for i in indexes]
     edited = st.data_editor(
-        rows, key=f"analytics_table_{group}", use_container_width=True, hide_index=True,
+        rows, key=f"analytics_table_{group}", width="stretch", hide_index=True,
         column_config={
             "公開日": st.column_config.TextColumn(width="small"),
             "タイトル": st.column_config.TextColumn(width="large"),
@@ -110,7 +111,7 @@ def render_analytics() -> None:
         if data.get("from_comments"):
             st.markdown("**コメントから作れるテーマ**\n" + "\n".join(f"- {c}" for c in data["from_comments"]))
     with st.expander("APIを使わない場合（Claudeのチャット画面に貼るプロンプト）"):
-        st.code(prompt, language="markdown")
+        prompt_box(prompt, "次の動画を考えるプロンプト")
 
     _render_channel_settings(group, kind)
 
@@ -136,4 +137,4 @@ def _render_channel_settings(group: str, kind: str) -> None:
         video_history.save_channel(channel)
         st.success("保存しました。次の台本から反映されます。")
     with st.expander("離脱のメモから、ルールを考えてもらう（Claudeのチャット画面に貼るプロンプト）"):
-        st.code(video_history.rules_prompt(kind), language="markdown")
+        prompt_box(video_history.rules_prompt(kind), "ルールを考えるプロンプト")

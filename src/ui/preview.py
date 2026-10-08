@@ -16,7 +16,6 @@ from src.services import video_metadata
 from src.services.video_builder import DEFAULT_SPEED_PRESET, VideoBuildError, build_video
 from src.services.voicevox_client import VoicevoxConnectionError, VoicevoxSynthesisError
 from src.state import get_project
-from src.ui.book_mode import export_targets, promo_for_export
 
 _LAST_EXPORT_KEY = "_last_export"  # 最後に書き出した動画 {"names": [本編・ショートの名前], "items": [{"label", "path", "warnings", "notes"}]}
 
@@ -25,6 +24,41 @@ _SPEED_PRESET_OPTIONS: dict[str, str] = {
     "balanced": "⚖️ バランス（既定）",
     "quality": "🎬 高画質優先（時間がかかります）",
 }
+
+
+SPEED_PRESET_OPTIONS = _SPEED_PRESET_OPTIONS
+_JUST_MADE_KEY = "_export_just_made"
+
+
+def render_speed_setting() -> str:
+    """書き出し速度の設定（上部のバーの ⚙ の中に出す）。"""
+    preset_keys = list(_SPEED_PRESET_OPTIONS.keys())
+    st.session_state.setdefault("export_speed_preset", DEFAULT_SPEED_PRESET)
+    return st.selectbox(
+        "書き出し速度", options=preset_keys, format_func=lambda k: _SPEED_PRESET_OPTIONS[k], key="export_speed_preset",
+        help="内容を素早く確認したいときは「高速優先」、公開する最終版は「高画質優先」がおすすめです。",
+    )
+
+
+def run_generation(project, speed_preset: str = DEFAULT_SPEED_PRESET) -> None:
+    """動画を書き出す（上部のバーの「🚀 動画を作る」から呼ぶ）。本編と紹介ショートの両方を書き出す。"""
+    from src.ui.book_mode import export_targets  # book_mode がこのモジュールを読み込むため、ここで読み込む
+
+    main, with_short = export_targets(project)
+    _run_generation(main, with_short, speed_preset)
+
+
+def render_last_export(project) -> None:
+    """最後に書き出した動画（このプロジェクトのもの）を、上部のバーのすぐ下に折りたたんで出す。"""
+    last = st.session_state.get(_LAST_EXPORT_KEY)
+    if not last or project.name not in last.get("names", []):
+        return
+    paths = [Path(item["path"]) for item in last["items"] if Path(item["path"]).exists()]
+    if not paths:
+        return
+    just_made = st.session_state.pop(_JUST_MADE_KEY, False)
+    with st.expander(f"🎬 できた動画: {'、'.join(p.name for p in paths)}", expanded=just_made):
+        _render_last_export(project)
 
 
 def render_export_section() -> None:
@@ -56,9 +90,11 @@ def render_export_section() -> None:
         ),
     )
 
+    from src.ui.book_mode import export_targets  # book_mode がこのモジュールを読み込むため、ここで読み込む
+
     main, with_short = export_targets(project)
     kind = "本編＋紹介ショート" if with_short else ("ショート" if video_metadata.is_short(main) else "本編")
-    if st.button(f"🚀 動画を生成する（{kind}）", type="primary", use_container_width=True, key="export_generate"):
+    if st.button(f"🚀 動画を生成する（{kind}）", type="primary", width="stretch", key="export_generate"):
         _run_generation(main, with_short, speed_preset)
     _render_last_export(project)
 
@@ -86,7 +122,7 @@ def _render_last_export(project) -> None:
         st.video(str(path))
         st.download_button(
             f"⬇️ MP4をダウンロード（{item['label']}）", data=lambda p=path: p.read_bytes(), file_name=path.name,
-            mime="video/mp4", use_container_width=True, key=f"export_download_{i}",
+            mime="video/mp4", width="stretch", key=f"export_download_{i}",
         )
 
 
@@ -111,6 +147,8 @@ def _run_generation(main, with_short: bool, speed_preset: str = DEFAULT_SPEED_PR
                       "notes": _save_post_texts(project, result.output_path)})
         if with_short and project is main:
             try:
+                from src.ui.book_mode import promo_for_export
+
                 short, warnings = promo_for_export(main)
             except Exception as e:  # noqa: BLE001 - ショートが作れなくても、書き出した本編はそのまま残す
                 st.warning(f"本編紹介ショートを作れなかったため、本編だけを書き出しました（{e}）")
@@ -121,6 +159,7 @@ def _run_generation(main, with_short: bool, speed_preset: str = DEFAULT_SPEED_PR
     if items:
         names = [main.name] + ([short.name] if short is not None else [])
         st.session_state[_LAST_EXPORT_KEY] = {"names": names, "items": items}
+        st.session_state[_JUST_MADE_KEY] = True
 
 
 def _build_one(project, label: str, status_box, speed_preset: str, used: list[str]):

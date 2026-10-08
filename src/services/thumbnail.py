@@ -19,7 +19,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 
 from src.models import Project
 from src.services import telop
@@ -27,6 +27,10 @@ from src.services.compositor import compose_character_frame, cover_resize
 from src.utils.asset_loader import DEFAULT_ROOM_BACKGROUNDS, has_expression_assets, is_video_path
 
 THUMB_SIZE = (1280, 720)
+# 右下は、YouTubeの一覧で再生時間（例: 03:15）の黒いバッジが必ず重なる。幅25%×高さ20%には、文字・吹き出し・
+# キャラクターなど大事なものを置かない（SAFE_RIGHT より右にキャラクターをはみ出させない）
+TIME_BADGE_ZONE = (int(THUMB_SIZE[0] * 0.75), int(THUMB_SIZE[1] * 0.80))  # 右下の幅25%×高さ20%
+SAFE_RIGHT = TIME_BADGE_ZONE[0] - 10
 LAYOUTS: dict[str, str] = {
     "before_after": "見る前→見た後（上に特大の一言・下にビフォーアフター）",
     "scene": "使える場面（英会話: 場面の絵＋英語のフレーズ）",
@@ -102,15 +106,82 @@ def _paste(canvas: Image.Image, sprite: Optional[Image.Image], x: int, y: int) -
 
 BASE_TOP, BASE_BOTTOM = (70, 88, 160), (28, 30, 70)  # 下地のグラデーション（上 → 下）
 
+# 背景の色のテーマ。base = 下地のグラデーション（上, 下）、rays = 明るい集中線、dark = 暗い集中線（文字どーん）、frame = 外枠。
+# "auto" はレイアウトごとの既定の色（リアクションは黄色、2人は赤オレンジ、使える場面は水色 など）。
+THEMES: dict[str, dict] = {
+    "auto": {"label": "おまかせ（レイアウトごとの色）"},
+    # --- 勝てる配色（3色ルール）: 背景は暗めでシンプル、文字は白か黄色、強調は赤・ピンク・蛍光グリーン ---
+    "win_navy": {"label": "🏆 濃紺 × 白 × 赤（定番）", "base": ((40, 54, 115), (12, 14, 38)),
+                 "rays": ((255, 205, 60), (220, 120, 30)), "dark": ((52, 66, 130), (22, 26, 62)),
+                 "frame": (255, 214, 0), "text": (255, 255, 255), "accent": (235, 30, 45)},
+    "win_gray_yellow": {"label": "🏆 濃いグレー × 黄 × 赤", "base": ((72, 72, 80), (20, 20, 24)),
+                        "rays": ((255, 225, 70), (215, 160, 20)), "dark": ((82, 82, 92), (34, 34, 40)),
+                        "frame": (255, 226, 40), "text": (255, 226, 40), "accent": (235, 30, 45)},
+    "win_gray_pink": {"label": "🏆 濃いグレー × 白 × ショッキングピンク", "base": ((72, 72, 80), (20, 20, 24)),
+                      "rays": ((255, 120, 190), (215, 40, 130)), "dark": ((82, 82, 92), (34, 34, 40)),
+                      "frame": (255, 40, 145), "text": (255, 255, 255), "accent": (255, 40, 145)},
+    "win_navy_green": {"label": "🏆 濃紺 × 黄 × 蛍光グリーン", "base": ((40, 54, 115), (12, 14, 38)),
+                       "rays": ((120, 255, 140), (40, 190, 80)), "dark": ((52, 66, 130), (22, 26, 62)),
+                       "frame": (60, 255, 100), "text": (255, 226, 40), "accent": (60, 255, 100)},
+    "win_wood": {"label": "🏆 暗い木目 × 白 × 赤", "base": ((115, 74, 42), (42, 24, 12)),
+                 "rays": ((255, 200, 90), (205, 120, 40)), "dark": ((128, 84, 50), (62, 36, 18)),
+                 "frame": (255, 214, 0), "text": (255, 255, 255), "accent": (235, 30, 45)},
+    # --- そのほかの背景の色 ---
+    "navy": {"label": "🌃 ネイビー（落ち着き）", "base": ((70, 88, 160), (28, 30, 70)),
+             "rays": ((255, 205, 0), (255, 150, 0)), "dark": ((70, 60, 150), (30, 25, 80)), "frame": (255, 214, 0)},
+    "red": {"label": "🔥 レッド（インパクト）", "base": ((205, 45, 55), (95, 12, 22)),
+            "rays": ((255, 222, 70), (255, 125, 40)), "dark": ((160, 25, 35), (75, 8, 16)), "frame": (255, 214, 0)},
+    "yellow": {"label": "⚡ イエロー（元気）", "base": ((255, 212, 50), (228, 138, 0)),
+               "rays": ((255, 246, 160), (255, 200, 40)), "dark": ((228, 150, 0), (150, 80, 0)), "frame": (235, 40, 50)},
+    "green": {"label": "🫛 ずんだグリーン", "base": ((110, 185, 70), (32, 85, 32)),
+              "rays": ((215, 250, 140), (130, 205, 75)), "dark": ((55, 125, 55), (22, 62, 26)), "frame": (255, 255, 255)},
+    "blue": {"label": "🌊 スカイブルー（さわやか）", "base": ((115, 195, 250), (30, 100, 190)),
+             "rays": ((205, 242, 255), (120, 200, 250)), "dark": ((40, 110, 200), (15, 50, 120)), "frame": (255, 255, 255)},
+    "pink": {"label": "🌸 ピンク（やさしい）", "base": ((248, 150, 195), (175, 62, 125)),
+             "rays": ((255, 225, 238), (255, 165, 205)), "dark": ((195, 85, 145), (112, 32, 82)), "frame": (255, 255, 255)},
+    "black": {"label": "🖤 ブラック（シック）", "base": ((55, 55, 66), (10, 10, 16)),
+              "rays": ((255, 214, 0), (205, 150, 0)), "dark": ((64, 64, 76), (22, 22, 28)), "frame": (255, 214, 0)},
+}
 
-def _background(darken_side: Optional[str] = None, darkness: float = 0.6) -> Image.Image:
-    """下地（背景画像は使わず、上から下へのグラデーション。文字を置く側を暗くしてコントラストを付ける）。"""
+
+def _theme(spec: dict) -> Optional[dict]:
+    """選ばれた色のテーマ（おまかせなら None = レイアウトごとの既定の色）。"""
+    theme = THEMES.get(str(spec.get("theme") or "auto"))
+    return None if theme is None or "base" not in theme else theme
+
+
+def _text_colors(spec: dict) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
+    """（メインの文字の色, 強調の色）。配色プリセットなら、その3色ルールの色。"""
+    theme = _theme(spec) or {}
+    return tuple(theme.get("text") or TEXT_FILL), tuple(theme.get("accent") or (235, 30, 45))
+
+
+def _rays(spec: dict, default: tuple[tuple, tuple], dark: bool = False) -> tuple[tuple, tuple]:
+    theme = _theme(spec)
+    return default if theme is None else theme["dark" if dark else "rays"]
+
+
+def _photo(spec: Optional[dict]) -> Optional[Image.Image]:
+    """全レイアウト共通の背景の写真（spec の bg_image）。選ばれていなければ None。"""
+    return _panel_image((spec or {}).get("bg_image"), THUMB_SIZE)
+
+
+def _background(darken_side: Optional[str] = None, darkness: float = 0.6, spec: Optional[dict] = None) -> Image.Image:
+    """下地。背景の写真があれば、写真を明るさ・色そのままで敷く（文字を置く側だけ少し暗くする）。
+    写真がなければ、上から下へのグラデーション。"""
     w, h = THUMB_SIZE
-    column = Image.new("RGB", (1, h))
-    for y in range(h):
-        p = y / (h - 1)
-        column.putpixel((0, y), tuple(round(a + (b - a) * p) for a, b in zip(BASE_TOP, BASE_BOTTOM)))
-    bg = column.resize(THUMB_SIZE).convert("RGBA")
+    photo = _photo(spec)
+    if photo is not None:
+        bg = photo.convert("RGBA")
+        darkness *= 0.6  # 写真が見えるように、暗くするのは控えめに
+    else:
+        theme = _theme(spec or {})
+        top, bottom = theme["base"] if theme else (BASE_TOP, BASE_BOTTOM)
+        column = Image.new("RGB", (1, h))
+        for y in range(h):
+            p = y / (h - 1)
+            column.putpixel((0, y), tuple(round(a + (b - a) * p) for a, b in zip(top, bottom)))
+        bg = column.resize(THUMB_SIZE).convert("RGBA")
     if darken_side:
         w, h = THUMB_SIZE
         grad = Image.new("L", (w, 1))
@@ -169,8 +240,15 @@ def _frame(canvas: Image.Image, color: tuple[int, int, int] = (255, 214, 0), wid
     draw.rectangle([width, width, w - 1 - width, h - 1 - width], outline=(20, 20, 30, 255), width=4)
 
 
-def _pop_text(lines: list[str], max_w: int, max_h: int, max_size: int, align: str = "left") -> Image.Image:
-    """目立つ文字の画像: 黒の太い縁取り。文字は白、==語== は黄色、**語** は特大の赤＋白の内側の縁取り。"""
+def _pop_text(lines: list[str], max_w: int, max_h: int, max_size: int, align: str = "left",
+              accent: tuple[int, int, int] = (235, 30, 45), shadow_blur: Optional[int] = None,
+              fill_color: tuple[int, int, int] = TEXT_FILL, outline_scale: float = 1.0,
+              fill_bold: float = 1.0) -> Image.Image:
+    """目立つ文字の画像（文字の大きさは枠に収まる最大に自動で決める）。
+
+    縁取りは二重（内側が黒・外側が白。合わせて文字の大きさの約14%）＋影で、どんな背景の上でも読める。
+    文字は fill_color（白か黄色）、==語== は黄色、**語** は特大の強調色（accent）＋白の内側の縁取り。
+    """
     font_path = telop.resolve_font_path()
     parsed = [_runs(line) for line in lines if _runs(line)]
     if not parsed:
@@ -191,23 +269,29 @@ def _pop_text(lines: list[str], max_w: int, max_h: int, max_size: int, align: st
     y = pad
     for n, (runs, font, width, lh, sc) in enumerate(zip(parsed, fonts, widths, heights, scales)):
         s = round(size * sc)
-        outer, inner = max(5, round(s * 0.17)), max(2, round(s * 0.07))
+        # outline_scale < 1 で縁取りを細くする（画数の多い漢字でも、中の線がつぶれずに読めるように）
+        outer = max(3, round(s * 0.10 * outline_scale))
+        inner = max(2, round(s * 0.06 * outline_scale))
+        ring = max(2, round(s * 0.04 * outline_scale))
+        bold = round(s / 30 * fill_bold)  # 中の文字を太く見せる量（0 なら元の字の太さのまま。画数の多い字の線がつぶれない）
         x = pad + ((max_w - width) / 2 if align == "center" else 0)
         for chunk, kind in runs:
-            sdraw.text((x + s * 0.07, y + s * 0.09), chunk, font=font, fill=(0, 0, 0, 190), stroke_width=outer,
+            sdraw.text((x + s * 0.07, y + s * 0.09), chunk, font=font, fill=(0, 0, 0, 190), stroke_width=outer + ring,
                        stroke_fill=(0, 0, 0, 190))
+            # 二重の縁取り: いちばん外側に白、その内側に黒
+            draw.text((x, y), chunk, font=font, fill=(255, 255, 255), stroke_width=outer + ring, stroke_fill=(255, 255, 255))
             draw.text((x, y), chunk, font=font, fill=(15, 15, 25), stroke_width=outer, stroke_fill=(15, 15, 25))
             if kind == "red":
-                draw.text((x, y), chunk, font=font, fill=(235, 30, 45), stroke_width=inner, stroke_fill=(255, 255, 255))
-                draw.text((x, y), chunk, font=font, fill=(235, 30, 45), stroke_width=max(1, s // 30),
-                          stroke_fill=(235, 30, 45))
+                draw.text((x, y), chunk, font=font, fill=accent, stroke_width=inner, stroke_fill=(255, 255, 255))
+                draw.text((x, y), chunk, font=font, fill=accent, stroke_width=bold,
+                          stroke_fill=accent)
             else:
-                fill = TEXT_FILL_ALT if kind == "yellow" else TEXT_FILL
-                draw.text((x, y), chunk, font=font, fill=fill, stroke_width=max(1, s // 30), stroke_fill=fill)
+                fill = TEXT_FILL_ALT if kind == "yellow" else fill_color
+                draw.text((x, y), chunk, font=font, fill=fill, stroke_width=bold, stroke_fill=fill)
             x += font.getlength(chunk)
         y += lh
     out = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    out.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(max(2, size // 16))))
+    out.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(shadow_blur or max(2, size // 16))))
     out.alpha_composite(img)
     return out
 
@@ -264,14 +348,16 @@ def _drop_shadow(sprite: Image.Image, offset: int = 12, blur: int = 10) -> Image
 HEADLINE_BAND = (95, 330)  # 画面上部の見出しの帯（上端・下端）。一番に目に入る大きな文字を置く
 
 
-def _headline(canvas: Image.Image, lines: list[str]) -> None:
+def _headline(canvas: Image.Image, lines: list[str], band_y: tuple[int, int] = HEADLINE_BAND,
+              colors: Optional[tuple[tuple, tuple]] = None) -> None:
     """画面上部いっぱいに、黒い帯と特大の文字（インパクトのある一言）を置く。"""
     w, _ = THUMB_SIZE
-    top, bottom = HEADLINE_BAND
+    top, bottom = band_y
     band = Image.new("RGBA", THUMB_SIZE, (0, 0, 0, 0))
     ImageDraw.Draw(band).polygon([(0, top + 18), (w, top), (w, bottom - 18), (0, bottom)], fill=(12, 12, 28, 228))
     canvas.alpha_composite(band)
-    text = _pop_text(lines[:2], w - 90, bottom - top - 16, 190, align="center")
+    fill_color, accent = colors or (TEXT_FILL, (235, 30, 45))
+    text = _pop_text(lines[:2], w - 90, bottom - top - 16, 190, align="center", accent=accent, fill_color=fill_color)
     _paste_rotated(canvas, text, (w // 2, (top + bottom) // 2 + 4), 1.0)
 
 
@@ -323,30 +409,42 @@ def _wrap_words(text: str, font, max_w: float) -> list[str]:
     return lines + ([current] if current else [])
 
 
-def _phrase_bubble(canvas: Image.Image, text: str, box: tuple[int, int, int, int], tail: tuple[int, int]) -> None:
+def _phrase_bubble(canvas: Image.Image, text: str, box: tuple[int, int, int, int], tail: tuple[int, int],
+                   border: tuple[int, int, int] = (20, 20, 30), border_width: int = 6) -> None:
     """英語のフレーズを大きく書く、角の丸い吹き出し（2行まで）。"""
     text = telop.strip_emoji(text or "").strip()
     if not text:
         return
     x0, y0, x1, y1 = box
     font_path = telop.resolve_font_path()
+    # 1行に収まるなら1行で（ある程度の大きさまで縮めても1行に入るなら、2行に折り返さない）
     size = 84
-    while size > 26:
+    while size >= 46:
         font = telop.load_font(font_path, size)
-        lines = _wrap_words(text, font, (x1 - x0) * 0.86)
-        if len(lines) <= 2 and len(lines) * size * 1.2 <= (y1 - y0) * 0.8:
+        if font.getlength(text) <= (x1 - x0) * 0.86 and size * 1.2 <= (y1 - y0) * 0.8:
             break
         size -= 3
+    else:
+        size = 84
+        while size > 26:
+            font = telop.load_font(font_path, size)
+            if len(_wrap_words(text, font, (x1 - x0) * 0.86)) <= 2 and 2 * size * 1.2 <= (y1 - y0) * 0.8:
+                break
+            size -= 3
+    lines = _wrap_words(text, font, (x1 - x0) * 0.86)
     height = round(len(lines) * size * 1.2 + size * 0.9)
     cy = (y0 + y1) // 2
     y0, y1 = cy - height // 2, cy + height // 2
     layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
-    mid = (x0 + x1) / 2
-    d.polygon([(mid + (x1 - x0) * 0.18, y1 - 10), (mid + (x1 - x0) * 0.34, y1 - 10), tail], fill=(20, 20, 30, 255))
-    d.rounded_rectangle([x0 - 6, y0 - 6, x1 + 6, y1 + 6], radius=40, fill=(20, 20, 30, 255))
-    d.polygon([(mid + (x1 - x0) * 0.2, y1 - 14), (mid + (x1 - x0) * 0.32, y1 - 14),
-               (tail[0] - (tail[0] - mid) * 0.08, tail[1] - 14)], fill=(255, 255, 255, 255))
+    # しっぽの付け根は、しっぽが向かう側に寄せる（短く自然に見えるように）
+    bw = (x1 - x0) * 0.12
+    bx = min(max(tail[0] - bw * 0.3, x0 + 34), x1 - 34 - bw)
+    d.polygon([(bx - border_width + 6, y1 - 10), (bx + bw + border_width - 6, y1 - 10), tail], fill=border + (255,))
+    d.rounded_rectangle([x0 - border_width, y0 - border_width, x1 + border_width, y1 + border_width],
+                        radius=34 + border_width, fill=border + (255,))
+    d.polygon([(bx + 4, y1 - 14), (bx + bw - 4, y1 - 14),
+               (tail[0] + (bx + bw / 2 - tail[0]) * 0.12, tail[1] - 12)], fill=(255, 255, 255, 255))
     d.rounded_rectangle([x0, y0, x1, y1], radius=36, fill=(255, 255, 255, 255))
     y = y0 + (height - len(lines) * size * 1.2) / 2 - size * 0.08
     for line in lines:
@@ -367,89 +465,196 @@ def _panel_image(path: Optional[str], size: tuple[int, int]) -> Optional[Image.I
         return None
 
 
-def _render_before_after(spec: dict, lines: list[str]) -> Image.Image:
-    """上に特大の一言、下の左に「見る前」（暗い・しょんぼり）、右に「見た後」（明るい・笑顔）。
+BA_DARK = (44, 62, 80)            # 見る前（左）の背景: 彩度を落とした暗い紺（#2C3E50）
+BA_BRIGHT = ((255, 214, 40), (255, 150, 20))  # 見た後（右）の背景: 明るい黄の集中線
+BA_BEFORE_SHOUT, BA_AFTER_SHOUT = "やばいのだ…", "超かんたんなのだ！"
+# 見る前→見た後の表情のペア（左の顔, 右の顔）
+EXPRESSION_PAIRS: dict[str, tuple[str, str, str]] = {
+    "despair_smile": ("絶望 → 笑顔", "gloomy", "happy"),
+    "confused_confident": ("困り顔 → ドヤ顔", "troubled", "smug"),
+    "shock_excited": ("ショック → 大喜び", "shock", "excited"),
+    "cry_idea": ("泣き顔 → ひらめき", "cry", "idea"),
+}
 
-    before_image / after_image（動画で使ったイラスト・背景）があれば、左右それぞれの画面に敷く。
+
+def _render_before_after(spec: dict, lines: list[str]) -> Image.Image:
+    """左右2分割の対比: 左は「見る前」（暗い紺・絶望の顔・悩み）、右は「見た後」（明るい黄・笑顔・得られる結果）。
+
+    面積の目安: ずんだもん左右合わせて35〜40%、左右のひと言30〜35%、吹き出し10〜15%、中央の矢印5%。
+    「見た後」のひと言は1.25倍大きく黄色にして、視線を「共感・不安」→「強いメリット」へ流す。
+    上には、動画の大きな一言を細い帯で出す。before_image / after_image（動画で使った画像）があれば左右に敷く。
+    右下（再生時間のバッジ）には、文字も顔も置かない。
     """
     w, h = THUMB_SIZE
-    canvas = _background()
-    split = [(0, 0), (int(w * 0.53), 0), (int(w * 0.47), h), (0, h)]
+    # --- 背景: 斜めの境界で、左を暗く・右を明るく ---
+    split = [(0, 0), (int(w * 0.54), 0), (int(w * 0.46), h), (0, h)]
     mask = Image.new("L", THUMB_SIZE, 0)
     ImageDraw.Draw(mask).polygon(split, fill=255)
-    panel_top = HEADLINE_BAND[0] + 110  # 画像の大事なところが見出しの帯に隠れないよう、帯の下寄りに敷く
-    half = (int(w * 0.53), h - panel_top)
-    before_img = _panel_image(spec.get("before_image"), half)
-    after_img = _panel_image(spec.get("after_image"), half)
-    left = canvas.copy()
+    left = Image.new("RGBA", THUMB_SIZE, BA_DARK + (255,))
+    shade = Image.new("L", (1, h))
+    for y in range(h):
+        shade.putpixel((0, y), int(110 * y / (h - 1)))
+    dark = Image.new("RGBA", THUMB_SIZE, (8, 10, 20, 255))
+    dark.putalpha(shade.resize(THUMB_SIZE))
+    left.alpha_composite(dark)
+    before_img = _panel_image(spec.get("before_image"), THUMB_SIZE) or _photo(spec)
     if before_img is not None:
-        left.alpha_composite(before_img, (0, panel_top))
-    # 画像を敷くときは、何の画像か分かる程度に少しだけ暗く・色を抑える（画像が無いときは暗い画面にする）
-    gloomy = ImageEnhance.Brightness(ImageEnhance.Color(left.convert("RGB")).enhance(
-        0.7 if before_img is not None else 0.1)).enhance(0.88 if before_img is not None else 0.55).convert("RGBA")
-    gloomy = Image.alpha_composite(gloomy, Image.new("RGBA", THUMB_SIZE, (30, 45, 110, 30 if before_img is not None else 90)))
-    bright = canvas.copy()
+        # 写真が見えるように、色を少し抑えてやや暗くするだけ（何の写真か分かる程度に）
+        gloomy = ImageEnhance.Brightness(ImageEnhance.Color(before_img.convert("RGB")).enhance(0.5)).enhance(0.82)
+        left = Image.alpha_composite(gloomy.convert("RGBA"), Image.new("RGBA", THUMB_SIZE, BA_DARK + (45,)))
+    theme = _theme(spec)
+    rays = theme["rays"] if theme else BA_BRIGHT
+    right = Image.new("RGBA", THUMB_SIZE, rays[1] + (255,))
+    after_img = _panel_image(spec.get("after_image"), THUMB_SIZE) or _photo(spec)
     if after_img is not None:
-        bright.alpha_composite(ImageEnhance.Color(after_img).enhance(1.15), (w - half[0], panel_top))
+        right = ImageEnhance.Brightness(ImageEnhance.Color(after_img.convert("RGB")).enhance(1.2)).enhance(1.05).convert("RGBA")
+        burst = _sunburst(THUMB_SIZE, (w * 0.76, h * 0.55), rays, fade=0.95)
+        burst.putalpha(burst.getchannel("A").point(lambda a: a * 16 // 100))
+        right.alpha_composite(burst)
     else:
-        bright.alpha_composite(_sunburst(THUMB_SIZE, (w * 0.8, h * 0.66), ((255, 210, 40), (255, 150, 30)), fade=0.95))
-    canvas = Image.composite(gloomy, bright, mask)
+        right.alpha_composite(_sunburst(THUMB_SIZE, (w * 0.76, h * 0.55), rays, fade=0.95))
+    canvas = Image.composite(left, right, mask)
     divider = Image.new("RGBA", THUMB_SIZE, (0, 0, 0, 0))
-    ImageDraw.Draw(divider).line([split[1], split[2]], fill=(255, 255, 255, 255), width=10)
+    ImageDraw.Draw(divider).line([(split[1][0] + 8, 0), (split[2][0] + 8, h)], fill=(0, 0, 0, 120), width=14)
+    divider = divider.filter(ImageFilter.GaussianBlur(4))
+    ImageDraw.Draw(divider).line([split[1], split[2]], fill=(255, 255, 255, 255), width=12)
     canvas.alpha_composite(divider)
 
-    before_face = spec.get("before_face") or "gloomy"
-    after_face = spec.get("after_face") or "happy"
-    before_char = _character("zundamon", before_face if has_expression_assets("zundamon", before_face) else "sad", 370, 0.62)
-    after_char = _character("zundamon", after_face if has_expression_assets("zundamon", after_face) else "happy", 390, 0.62)
-    if before_char is not None:
-        before_char = ImageEnhance.Color(before_char).enhance(0.55)
-        _paste(canvas, _drop_shadow(_outline_sprite(before_char, 10)), -45, h - before_char.height + 30)
-    if after_char is not None:
-        _paste(canvas, _drop_shadow(_outline_sprite(after_char, 12)), w - after_char.width + 45, h - after_char.height + 30)
+    # --- ずんだもん: 左は外側（左下）、右は再生時間のバッジを避けて内側寄り ---
+    def face(key: str, fallback: str) -> str:
+        value = spec.get(key) or fallback
+        return value if has_expression_assets("zundamon", value) else fallback
 
-    # 見る前・見た後のひと言（長ければ2行にして、大きく見せる）
-    left_x = (before_char.width - 65) if before_char is not None else 40
-    right_x = w - (after_char.width - 45 if after_char is not None else 40)
-    areas = ((max(20, left_x - 150), int(w * 0.47) - 55), (int(w * 0.53) + 55, min(w - 20, right_x + 150)))
-    for (x0, x1), key, angle in zip(areas, ("before", "after"), (-3.0, 3.0)):
+    # 左右対称に、画面の両端へ大きく置く。左は反転して中央（右）を向かせ、右はそのまま中央（左）を向く。
+    # 右下の再生時間のバッジには胴体がかかるが、顔や文字はかからないので問題ない
+    before_char = _character("zundamon", face("before_face", "gloomy"), 520, 0.62)
+    after_char = _character("zundamon", face("after_face", "happy"), 520, 0.62)
+    b_top = a_top = h
+    # 頭の中心（立ち絵はしっぽの分だけ横に広いので、幅の真ん中ではない。反転した左は右寄り、右は左寄り）
+    b_head = a_head = w // 2
+    b_w = a_w = 0
+    if before_char is not None:
+        before_char = ImageOps.mirror(ImageEnhance.Color(before_char).enhance(0.6))
+        b_w = before_char.width
+        b_top = h - before_char.height + 105
+        _paste(canvas, _drop_shadow(_outline_sprite(before_char, 10)), -30, b_top)
+        b_head = -30 + int(b_w * 0.58)
+    if after_char is not None:
+        a_w = after_char.width
+        a_top = h - after_char.height + 105
+        a_left = w - a_w + 30
+        _paste(canvas, _drop_shadow(_outline_sprite(after_char, 12)), a_left, a_top)
+        a_head = a_left + int(a_w * 0.42)
+
+    # --- 左右のひと言（見た後は1.25倍・黄色） ---
+    def words(key: str) -> list[str]:
         raw = str(spec.get(key) or "").strip()
         if "\n" in raw or len(raw) <= 7:
-            words = raw.split("\n")[:2]
-        else:
-            words = telop.split_natural(raw, max(4, -(-len(raw) // 2)))[:2]
-        text = _pop_text(words, max(120, x1 - x0), 230, 130, align="center")
-        _paste_rotated(canvas, text, ((x0 + x1) // 2, 560), angle)
-    _arrow(canvas, (w // 2, 555), 130, 120)
-    _headline(canvas, lines)
+            return raw.split("\n")[:2]
+        from src.services.slide_renderer import split_point  # 黒板と同じ、自然な改行位置（例: 年10万円／浮いた！）
+
+        i = split_point(raw)
+        return [raw[:i].strip(), raw[i:].strip()] if i else [raw]
+
+    _, accent = _text_colors(spec)
+    before_text = _pop_text(words("before"), int(w * 0.39), 160, 96, align="center", accent=accent,
+                            fill_color=(255, 255, 255))
+    after_text = _pop_text(words("after"), int(w * 0.41), 200, 120, align="center", accent=accent,
+                           fill_color=TEXT_FILL_ALT)
+    _paste_rotated(canvas, before_text, (int(w * 0.24), 222), -3.0)
+    _paste_rotated(canvas, after_text, (int(w * 0.76), 226), 3.0)
+
+    # --- 吹き出し（小さめ） ---
+    # 吹き出しは、それぞれのずんだもんの頭の内側（画面の中央寄り）に、左右対称に（顔にはかけない）
+    if before_char is not None:
+        bx = b_head + int(b_w * 0.34)
+        _speech_bubble(canvas, str(spec.get("before_shout") or BA_BEFORE_SHOUT),
+                       (bx, b_top + 110, bx + 220, b_top + 184), (bx - 5, b_top + 200))
+    if after_char is not None:
+        ax = a_head - int(a_w * 0.34)
+        _speech_bubble(canvas, str(spec.get("after_shout") or BA_AFTER_SHOUT),
+                       (ax - 220, a_top + 110, ax, a_top + 184), (ax + 5, a_top + 200))
+
+    # --- 中央の矢印: 左右のひと言のあいだ（「見る前 ➔ 見た後」と読めるように） ---
+    _arrow(canvas, (w // 2, 245), 130, 120)
+    # --- 上の細い帯に、動画の大きな一言 ---
+    if lines:
+        _headline(canvas, lines, band_y=(6, 150), colors=_text_colors(spec))
     return canvas
 
 
-def _render_scene(spec: dict, lines: list[str]) -> Image.Image:
-    """英会話: 上に特大の一言、左下に場面の絵と「〇〇で使える！」、右下にずんだもんと英語のフレーズ。"""
-    w, h = THUMB_SIZE
-    canvas = _background()
-    canvas.alpha_composite(_sunburst(THUMB_SIZE, (w * 0.3, h * 0.7), ((120, 210, 255), (60, 150, 240)), fade=0.95))
-    z_expr = spec.get("zundamon") or "happy"
-    zunda = _character("zundamon", z_expr, 440, bust=0.62)
-    if zunda is not None:
-        _paste(canvas, _drop_shadow(_outline_sprite(zunda, 12)), w - zunda.width + 10, h - zunda.height + 30)
-    zunda_left = w - (zunda.width if zunda is not None else 0)
-    pic = _picture(spec.get("image"), 500, 330)
-    if pic is not None:
-        pic = _drop_shadow(pic, 14, 12)
-        _paste(canvas, pic, 30, h - pic.height + 10)
-        bubble_left = 30 + pic.width - 40
-    else:
-        bubble_left = 60
-    scene = str(spec.get("scene") or "").strip()
-    if scene:
-        label = scene if scene.endswith(("使える！", "使える", "！")) else f"{scene}で使える！"
-        _tag(canvas, label, (40, 356), (235, 40, 50), 44)
+# 場面ごとのアクセントカラー（強調する文字・吹き出しの枠・外枠）。一覧に並んだとき「毎回同じ」に見えないように変える
+ACCENTS: dict[str, dict] = {
+    "auto": {"label": "おまかせ（ずんだもんの表情から）"},
+    "trouble": {"label": "🚨 トラブル・NG系（赤）", "color": (235, 30, 60)},
+    "town": {"label": "🚉 街中・移動系（黄・オレンジ）", "color": (255, 165, 0)},
+    "cafe": {"label": "☕ 日常会話・カフェ系（カフェラテ色）", "color": (196, 132, 78)},
+    "solution": {"label": "✨ 解決・神フレーズ系（青）", "color": (25, 150, 255)},
+}
+_SOLUTION_FACES = {"smug", "idea", "happy", "excited", "laugh"}
+
+
+def accent_color(spec: dict) -> tuple[int, int, int]:
+    """場面ごとのアクセントカラー。おまかせなら、困り顔は赤、ドヤ顔・ひらめき顔は青。"""
+    key = str(spec.get("accent") or "auto")
+    if key not in ACCENTS or key == "auto":
+        key = "solution" if str(spec.get("zundamon") or "") in _SOLUTION_FACES else "trouble"
+    return ACCENTS[key]["color"]
+
+
+def masked_phrase(spec: dict) -> str:
+    """吹き出しに出す英語。答えが見えるとその場で満足してクリックされないので、後半を伏せる（例: Let me 〇〇…？）。"""
     phrase = str(spec.get("phrase") or "").strip()
-    right = max(bubble_left + 300, zunda_left + 40)
-    _phrase_bubble(canvas, phrase, (bubble_left, 400, right, 610), (zunda_left + 90, 560))
-    _headline(canvas, lines)
+    if not phrase or spec.get("hide_answer") is False:
+        return phrase
+    if str(spec.get("phrase_hint") or "").strip():
+        return str(spec["phrase_hint"]).strip()
+    words = phrase.rstrip(".!?。！？ ").split()
+    if len(words) == 1:  # 1語だけなら、最初の1文字だけ見せる（例: Pardon? → P〇〇〇〇？）
+        word = words[0]
+        return word[0] + "〇" * min(max(len(word) - 1, 2), 5) + "？"
+    keep = 1 if len(words) <= 3 else 2
+    return " ".join(words[:keep]) + " 〇〇…？"
+
+
+def _render_scene(spec: dict, lines: list[str]) -> Image.Image:
+    """英会話: 左に大きなずんだもん（胸から上・感情の伝わる顔）、右に特大の一言、その下に答えを伏せた吹き出し。
+
+    画面の占める割合の目安: ずんだもん30〜40%・メインの文字35〜45%・吹き出し10〜15%。場面の絵は主張しすぎないよう、
+    ぼかして暗くした背景として全体に敷く。右下（再生時間のバッジ）には何も置かない。
+    """
+    w, h = THUMB_SIZE
+    accent = accent_color(spec)
+    photo = _photo(spec) or _panel_image(spec.get("image"), THUMB_SIZE)
+    if photo is not None:
+        canvas = photo.convert("RGBA")  # 場面の写真は暗くせず、明るく鮮明なまま（場所が一目で分かるように）
+    else:
+        canvas = _background(spec=spec)
+        canvas.alpha_composite(_sunburst(THUMB_SIZE, (w * 0.22, h * 0.6), _rays(spec, ((120, 210, 255), (60, 150, 240))),
+                                         fade=0.95))
+    # 文字を置く右側だけを暗くする（左半分は0%、右へ向かって70%まで）
+    grad = Image.new("L", (w, 1))
+    for x in range(w):
+        grad.putpixel((x, 0), int((115 if photo is not None else 180) * max(0.0, min(1.0, (x / w - 0.42) / 0.33))))
+    shade = Image.new("RGBA", THUMB_SIZE, (8, 10, 30, 255))
+    shade.putalpha(grad.resize(THUMB_SIZE))
+    canvas.alpha_composite(shade)
+
+    z_expr = spec.get("zundamon") or "panic"
+    zunda = _character("zundamon", z_expr, 640, bust=0.5)
+    if zunda is not None:
+        zunda = ImageOps.mirror(zunda)  # 文字の方（右）を向かせる（そっぽを向いて見えないように）
+    zunda_top = h - (zunda.height if zunda is not None else 0) + 24
+    if zunda is not None:
+        _paste(canvas, _drop_shadow(_outline_sprite(zunda, 14), 16, 12), -40, zunda_top)
+
+    # メインの文字（1文字が画面の高さの15〜20%くらい）。しっぽの上に重なってもよい
+    text_left = int(w * 0.37)
+    text = _pop_text(lines[:3], w - text_left - 30, 400, 150, align="center", accent=accent, shadow_blur=14,
+                     fill_color=_text_colors(spec)[0])
+    _paste_rotated(canvas, text, ((text_left + w - 30) // 2, 245), 2.0)
+    _phrase_bubble(canvas, masked_phrase(spec), (int(w * 0.41), 455, SAFE_RIGHT - 5, 595),
+                   (int(w * 0.40), 650), border=accent, border_width=9)  # しっぽは短く、ずんだもんの方（左下）へ
     return canvas
 
 
@@ -467,6 +672,7 @@ def render_thumbnail(spec: dict) -> Image.Image:
     lines = [line.strip() for line in str(spec.get("text") or "").split("\n") if line.strip()][:3]
     z_expr, m_expr = spec.get("zundamon") or "surprised", spec.get("metan") or "point"
     shout = spec.get("shout") if spec.get("shout") is not None else DEFAULT_SHOUTS.get(z_expr, "")
+    text_fill, text_accent = _text_colors(spec)
     w, h = THUMB_SIZE
 
     if layout == "before_after":
@@ -474,53 +680,72 @@ def render_thumbnail(spec: dict) -> Image.Image:
     elif layout == "scene":
         canvas = _render_scene(spec, lines)
     elif layout == "duo":
-        canvas = _background()
-        canvas.alpha_composite(_sunburst(THUMB_SIZE, (w * 0.5, h * 0.66), ((255, 96, 70), (255, 170, 60)), fade=0.9))
-        canvas = Image.alpha_composite(canvas, Image.new("RGBA", THUMB_SIZE, (20, 10, 40, 40)))
+        canvas = _background(spec=spec)
+        if _photo(spec) is None:
+            canvas.alpha_composite(_sunburst(THUMB_SIZE, (w * 0.5, h * 0.66), _rays(spec, ((255, 96, 70), (255, 170, 60))),
+                                             fade=0.9))
+            canvas = Image.alpha_composite(canvas, Image.new("RGBA", THUMB_SIZE, (20, 10, 40, 40)))
         pic = _picture(spec.get("image"), 470, 330)
         if pic is not None:
             pic = _drop_shadow(pic, 14, 12)
             _paste(canvas, pic, (w - pic.width) // 2 + 6, 340)
         band = Image.new("RGBA", THUMB_SIZE, (0, 0, 0, 0))
-        ImageDraw.Draw(band).polygon([(0, 128), (w, 104), (w, 300), (0, 324)], fill=(15, 15, 30, 215))
+        ImageDraw.Draw(band).polygon([(0, 128), (w, 104), (w, 300), (0, 324)],
+                                     fill=(15, 15, 30, 170 if _photo(spec) is not None else 215))
         canvas.alpha_composite(band)
         metan = _character("shikoku_metan", m_expr, 430, bust=0.62)
         zunda = _character("zundamon", z_expr, 460, bust=0.62)
         if metan is not None:
             _paste(canvas, _drop_shadow(_outline_sprite(metan, 12)), -30, h - metan.height + 40)
         if zunda is not None:
-            _paste(canvas, _drop_shadow(_outline_sprite(zunda, 12)), w - zunda.width + 10, h - zunda.height + 40)
-        text = _pop_text(lines, w - 140, 215, 140, align="center")
+            _paste(canvas, _drop_shadow(_outline_sprite(zunda, 12)), SAFE_RIGHT - zunda.width - 15, h - zunda.height + 40)
+        text = _pop_text(lines, w - 140, 215, 140, align="center", accent=text_accent, fill_color=text_fill)
         _paste_rotated(canvas, text, (w // 2, 214), 1.2)
         if zunda is not None:
             head_y = h - zunda.height + 40
-            _speech_bubble(canvas, shout, (w - zunda.width - 200, head_y + 30, w - zunda.width + 40, head_y + 115),
-                           (w - zunda.width + 90, head_y + 95))
+            zl = SAFE_RIGHT - zunda.width - 15
+            _speech_bubble(canvas, shout, (zl - 210, head_y + 30, zl + 30, head_y + 115), (zl + 80, head_y + 95))
     elif layout == "big_text":
-        canvas = _background()
-        canvas = Image.alpha_composite(canvas, Image.new("RGBA", THUMB_SIZE, (10, 10, 40, 170)))
-        canvas.alpha_composite(_sunburst(THUMB_SIZE, (w * 0.42, h * 0.5), ((70, 60, 150), (30, 25, 80)), fade=1.0))
+        canvas = _background(spec=spec)
+        if _photo(spec) is not None:
+            canvas = Image.alpha_composite(canvas, Image.new("RGBA", THUMB_SIZE, (10, 10, 40, 70)))
+        else:
+            canvas = Image.alpha_composite(canvas, Image.new("RGBA", THUMB_SIZE,
+                                                             (10, 10, 40, 170 if _theme(spec) is None else 90)))
+            canvas.alpha_composite(_sunburst(THUMB_SIZE, (w * 0.42, h * 0.5),
+                                             _rays(spec, ((70, 60, 150), (30, 25, 80)), dark=True), fade=1.0))
         zunda = _character("zundamon", z_expr, 470, bust=0.62)
         if zunda is not None:
-            _paste(canvas, _drop_shadow(_outline_sprite(zunda, 10)), w - zunda.width + 10, h - zunda.height + 20)
-        text = _pop_text(lines, w - 380, h - 190, 230, align="center")
+            _paste(canvas, _drop_shadow(_outline_sprite(zunda, 10)), SAFE_RIGHT - zunda.width - 15, h - zunda.height + 20)
+        text = _pop_text(lines, w - 420, h - 190, 230, align="center", accent=text_accent, fill_color=text_fill)
         _paste_rotated(canvas, text, ((w - 300) // 2 + 20, h // 2 + 30), -2.5)
         if zunda is not None:
-            _speech_bubble(canvas, shout, (w - 300, 120, w - 30, 225), (w - zunda.width // 2, h - zunda.height + 60))
+            _speech_bubble(canvas, shout, (SAFE_RIGHT - 280, 120, SAFE_RIGHT, 225),
+                           (SAFE_RIGHT - zunda.width // 2, h - zunda.height + 60))
     else:  # reaction
-        canvas = _background(darken_side="left", darkness=0.8)
-        canvas.alpha_composite(_sunburst(THUMB_SIZE, (w * 0.78, h * 0.42), ((255, 205, 0), (255, 150, 0)), fade=0.75))
-        zunda = _character("zundamon", z_expr, 840, bust=0.66)
+        canvas = _background(darken_side="left", darkness=0.8, spec=spec)
+        if _photo(spec) is None:
+            canvas.alpha_composite(_sunburst(THUMB_SIZE, (w * 0.78, h * 0.42), _rays(spec, ((255, 205, 0), (255, 150, 0))),
+                                             fade=0.75))
+        zunda = _character("zundamon", z_expr, 780, bust=0.66)
         if zunda is not None:
-            _paste(canvas, _drop_shadow(_outline_sprite(zunda, 14), 16, 12), w - zunda.width + 60, h - zunda.height + 130)
-        text = _pop_text(lines, int(w * 0.6), h - 170, 175)
+            _paste(canvas, _drop_shadow(_outline_sprite(zunda, 14), 16, 12), SAFE_RIGHT - zunda.width + 10,
+                   h - zunda.height + 130)
+        text = _pop_text(lines, int(w * 0.6), h - 170, 175, accent=text_accent, fill_color=text_fill)
         _paste_rotated(canvas, text, (int(w * 0.33), h // 2 + 40), 3.0)
         if zunda is not None:
-            left = w - zunda.width + 60
-            _speech_bubble(canvas, shout, (left - 300, 36, left - 30, 126), (left + 40, 150))
+            left = SAFE_RIGHT - zunda.width + 10
+            # 吹き出しは頭の右上に（左上の帯や大きな文字と重ならないように）
+            bx1 = w - 40
+            _speech_bubble(canvas, shout, (bx1 - 270, 36, bx1, 126), (left + zunda.width * 0.62, 170))
 
-    _draw_label(canvas, str(spec.get("sub") or ""))
-    _frame(canvas, (235, 40, 50) if layout in ("big_text", "before_after") else (255, 214, 0))
+    if layout != "scene":
+        _draw_label(canvas, str(spec.get("sub") or ""))  # 空欄なら帯は出さない
+    theme = _theme(spec)
+    if layout == "scene":
+        _frame(canvas, accent_color(spec))  # 場面ごとの色（一覧に並んだとき、1本ずつ違う企画に見えるように）
+    else:
+        _frame(canvas, theme["frame"] if theme else ((235, 40, 50) if layout in ("big_text", "before_after") else (255, 214, 0)))
     return canvas.convert("RGB")
 
 
@@ -538,7 +763,9 @@ def default_spec(project: Project) -> dict:
     if not spec.get("sub"):
         if project.source_kind == "english":
             day = lesson.get("day")
-            spec["sub"] = "毎日英会話" + (f" Day{day}" if day and str(day) != "7" else " まとめ" if day else "")
+            # Day の番号は入れない（初めて見る人が「Day1から見ないと」と感じてクリックを避けるため）
+            # 大きな一言とは別の角度のメリット（シリーズ名や Day の番号は入れない。文字の要素を増やさないため）
+            spec["sub"] = ""
         elif project.source_kind == "research":
             spec["sub"] = "研究で解説"
         else:
@@ -547,7 +774,7 @@ def default_spec(project: Project) -> dict:
         spec.setdefault("layout", "scene")
         spec.setdefault("scene", lesson.get("theme") or "")
         spec.setdefault("phrase", next((p.get("en", "") for p in lesson.get("phrases", []) if isinstance(p, dict)), ""))
-        spec.setdefault("zundamon", "happy")
+        spec.setdefault("zundamon", "panic")  # 英会話の企画は「焦り・困り」の共感が一番伝わる
     else:
         spec.setdefault("layout", "before_after")
         spec.setdefault("before", "モヤモヤ…")
@@ -591,3 +818,56 @@ def default_before_after_images(project: Project) -> tuple[Optional[str], Option
     later = [p for p in images({"explain", "summary"}) if p != before]
     after = later[-1] if later else next((p for p in reversed(all_images) if p != before), None)
     return before, after
+
+
+UPLOAD_DIR = Path(__file__).resolve().parents[2] / "assets" / "thumbnail_images"  # 自分でアップロードしたサムネイル用の画像
+_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp")
+
+
+def uploaded_images() -> list[Path]:
+    """サムネイル用に自分でアップロードした画像（新しい順）。"""
+    if not UPLOAD_DIR.exists():
+        return []
+    return sorted((p for p in UPLOAD_DIR.iterdir() if p.suffix.lower() in _IMAGE_EXTS),
+                  key=lambda p: p.stat().st_mtime, reverse=True)
+
+
+def save_uploaded_image(name: str, data: bytes) -> Path:
+    """アップロードされた画像を assets/thumbnail_images/ に保存する（同じ名前なら上書き）。"""
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    safe = re.sub(r'[\\/:*?"<>|]', "_", Path(name).name) or "image.png"
+    path = UPLOAD_DIR / safe
+    if not path.exists() or path.read_bytes() != data:
+        path.write_bytes(data)
+    return path
+
+
+def with_time_badge(img: Image.Image) -> Image.Image:
+    """確認用: 再生時間のバッジ（右下の黒い帯）が重なる場所を、半透明で重ねて見せる（保存する画像には入れない）。"""
+    out = img.convert("RGBA").copy()
+    w, h = out.size
+    sx, sy = w / THUMB_SIZE[0], h / THUMB_SIZE[1]
+    layer = Image.new("RGBA", out.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    zx, zy = int(TIME_BADGE_ZONE[0] * sx), int(TIME_BADGE_ZONE[1] * sy)
+    d.rectangle([zx, zy, w - 1, h - 1], outline=(255, 60, 60, 230), width=max(2, int(4 * sx)))
+    bw, bh = int(150 * sx), int(62 * sy)
+    d.rounded_rectangle([w - bw - int(14 * sx), h - bh - int(14 * sy), w - int(14 * sx), h - int(14 * sy)],
+                        radius=int(10 * sx), fill=(0, 0, 0, 200))
+    font = telop.load_font(telop.resolve_font_path(), max(10, int(40 * sy)))
+    d.text((w - bw - int(14 * sx) + int(20 * sx), h - bh - int(14 * sy) + int(8 * sy)), "12:34", font=font,
+           fill=(255, 255, 255, 255))
+    return Image.alpha_composite(out, layer)
+
+
+def repeated_words(text: str, sub: str, min_len: int = 3) -> list[str]:
+    """大きな一言と左上の補足フックで、同じ言葉（min_len 文字以上）が重なっているところ。"""
+    plain = re.sub(r"\*\*|==|\s", "", text or "")
+    sub = re.sub(r"\s", "", sub or "")
+    found = []
+    for size in range(len(sub), min_len - 1, -1):
+        for i in range(len(sub) - size + 1):
+            piece = sub[i:i + size]
+            if piece in plain and not any(piece in f for f in found):
+                found.append(piece)
+    return found

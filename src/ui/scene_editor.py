@@ -47,6 +47,7 @@ from src.utils.asset_loader import (
     get_character_display_name,
     get_expression_label,
     is_video_path,
+    background_label,
     list_backgrounds,
     list_characters,
     list_content_media,
@@ -193,7 +194,7 @@ def _render_bulk_script_import(project: Project, characters: list[str]) -> None:
             key="bulk_script_replace",
         )
 
-        if st.button("🪄 シーンを一括生成", use_container_width=True):
+        if st.button("🪄 シーンを一括生成", width="stretch"):
             if not script_text or not script_text.strip():
                 st.warning("台本のテキストが入力されていません。")
             else:
@@ -284,7 +285,8 @@ def render_scene_editor() -> None:
             with col_form:
                 bg_index = bg_options.index(scene.background_path) if scene.background_path in bg_options else 0
                 bg_choice = st.selectbox(
-                    "背景画像", options=bg_options, index=bg_index, key=f"bg_{scene.id}"
+                    "背景画像", options=bg_options, index=bg_index, key=f"bg_{scene.id}",
+                    format_func=lambda v: v if v == NO_BACKGROUND_LABEL else f"{background_label(v)}（{Path(v).name}）",
                 )
                 scene.background_path = None if bg_choice == NO_BACKGROUND_LABEL else bg_choice
                 if is_video_path(scene.background_path):
@@ -410,7 +412,7 @@ def render_scene_editor() -> None:
                         key=f"illust_caption_{scene.id}", placeholder="例: 寝る90分前にお風呂",
                     )
                     if scene.illustration_path and Path(scene.illustration_path).exists():
-                        col_thumb.image(scene.illustration_path, use_container_width=True)
+                        col_thumb.image(scene.illustration_path, width="stretch")
                     elif scene.illustration_request or scene.illustration_name:
                         st.caption(
                             f"💡 欲しいイラスト: {scene.illustration_request or '（説明なし）'}"
@@ -630,26 +632,26 @@ def render_scene_editor() -> None:
                             card_text=scene.card_text,
                         ),
                         caption=caption,
-                        use_container_width=True,
+                        width="stretch",
                     )
 
             btn_cols = st.columns(5)
             preview_voice_clicked = btn_cols[0].button(
-                "🔊 音声を試聴", key=f"preview_voice_{scene.id}", use_container_width=True
+                "🔊 音声を試聴", key=f"preview_voice_{scene.id}", width="stretch"
             )
-            if btn_cols[1].button("↑ 上へ", key=f"up_{scene.id}", disabled=(i == 0), use_container_width=True):
+            if btn_cols[1].button("↑ 上へ", key=f"up_{scene.id}", disabled=(i == 0), width="stretch"):
                 project.move_scene(scene.id, -1)
                 st.rerun()
             if btn_cols[2].button(
-                "↓ 下へ", key=f"down_{scene.id}", disabled=(i == len(project.scenes) - 1), use_container_width=True
+                "↓ 下へ", key=f"down_{scene.id}", disabled=(i == len(project.scenes) - 1), width="stretch"
             ):
                 project.move_scene(scene.id, 1)
                 st.rerun()
-            if btn_cols[3].button("複製", key=f"dup_{scene.id}", use_container_width=True):
+            if btn_cols[3].button("複製", key=f"dup_{scene.id}", width="stretch"):
                 new_scene = replace(scene, id=uuid.uuid4().hex[:8])
                 project.scenes.insert(i + 1, new_scene)
                 st.rerun()
-            if btn_cols[4].button("🗑 削除", key=f"del_{scene.id}", use_container_width=True):
+            if btn_cols[4].button("🗑 削除", key=f"del_{scene.id}", width="stretch"):
                 project.remove_scene(scene.id)
                 st.rerun()
 
@@ -657,6 +659,6 @@ def render_scene_editor() -> None:
                 _render_voice_preview(scene, project)
 
     st.divider()
-    if st.button("+ シーンを追加", use_container_width=True):
+    if st.button("+ シーンを追加", width="stretch"):
         project.add_scene(Scene(speaker=characters[0] if characters else "zundamon"))
         st.rerun()

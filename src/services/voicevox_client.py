@@ -23,10 +23,15 @@ from pathlib import Path
 from typing import Optional
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 # --- 設定（話者IDなど） -------------------------------------------------
 
-VOICEVOX_BASE_URL = "http://localhost:50021"
+# "localhost" だと Windows では先に IPv6（::1）へつなごうとして失敗し、IPv4 へ切り替わるまで毎回待たされる。
+# 動画の書き出し中のように PC が重いときは、その待ち時間で接続タイムアウトになり「接続が切れた」ように見えるため、
+# 最初から IPv4 のアドレスでつなぐ
+VOICEVOX_BASE_URL = "http://127.0.0.1:50021"
 
 # VOICEVOXの話者ID（「ノーマル」スタイル）。
 # 他のスタイル（あまあま・ツンツン等）を使いたい場合は、VOICEVOXを起動した状態で
@@ -38,8 +43,8 @@ VOICEVOX_SPEAKER_IDS: dict[str, int] = {
     "kasukabe_tsumugi": 8,  # 春日部つむぎ（ノーマル）
 }
 
-CONNECT_TIMEOUT = 3.0     # 起動確認・クエリ生成用の接続タイムアウト（秒）
-QUERY_TIMEOUT = 15.0      # /audio_query の応答タイムアウト（秒）
+CONNECT_TIMEOUT = 5.0     # 起動確認・クエリ生成用の接続タイムアウト（秒）
+QUERY_TIMEOUT = 30.0      # /audio_query の応答タイムアウト（秒）。書き出し中でPCが重いときも待てるよう長め
 SYNTHESIS_TIMEOUT = 120.0  # /synthesis の応答タイムアウト（秒）。長文だと時間がかかるため長めに設定
 
 # 指定秒数に収めるための話速自動調整（speedScale）の上限。
@@ -50,6 +55,28 @@ MIN_SPEED_SCALE = 0.5  # 現状は速める方向にしか使わないが、将�
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_AUDIO_DIR = PROJECT_ROOT / "tmp" / "audio"
+
+
+# 一時的な接続の失敗（VOICEVOXが重い処理中で応答が遅れた・接続が切れた・503 など）は、少し待って自動でやり直す。
+# また、同じ接続を使い回して（keep-alive）、セリフごとに新しい接続を作らないようにする
+# （Windows では短時間に大量の接続を作ると、使えるポートが一時的に足りなくなって接続に失敗することがあるため）。
+RETRY_TOTAL = 5
+RETRY_BACKOFF = 0.8  # やり直すまでの待ち時間（0.8秒・1.6秒・3.2秒…と延ばす）
+
+
+def _make_session(total: int = RETRY_TOTAL) -> requests.Session:
+    retry = Retry(
+        total=total, connect=total, read=min(2, total), status=total, backoff_factor=RETRY_BACKOFF,
+        status_forcelist=(500, 502, 503, 504), allowed_methods=None,  # POST（音声合成）も同じ内容でやり直してよい
+        raise_on_status=False,
+    )
+    session = requests.Session()
+    session.mount("http://", HTTPAdapter(max_retries=retry, pool_maxsize=4))
+    return session
+
+
+_http = _make_session()
+_http_quick = _make_session(total=1)  # 起動しているかの確認用（起動していないときに長く待たせない）
 
 
 # --- 例外定義 -------------------------------------------------------------
@@ -163,7 +190,7 @@ _user_dict_cache: dict[tuple, frozenset] = {}
 def _accent_type(pronunciation: str, base_url: str) -> int:
     """読み（カタカナ）を VOICEVOX に読ませたときのアクセント位置を、辞書登録用のアクセント型にする。"""
     try:
-        query = requests.post(
+        query = _http.post(
             f"{base_url}/audio_query", params={"speaker": 1, "text": pronunciation},
             timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT),
         ).json()
@@ -193,7 +220,7 @@ def sync_user_dict(reading_dict: Optional[list[dict]], base_url: str = VOICEVOX_
         return _user_dict_cache[entries]
     registered = set()
     try:
-        existing = requests.get(f"{base_url}/user_dict", timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT)).json()
+        existing = _http.get(f"{base_url}/user_dict", timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT)).json()
         by_surface = {v.get("surface"): (uuid, v.get("pronunciation"), v.get("priority")) for uuid, v in existing.items()}
         for word, pronunciation in entries:
             surface = _zenkaku(word)
@@ -207,10 +234,10 @@ def sync_user_dict(reading_dict: Optional[list[dict]], base_url: str = VOICEVOX_
                 "word_type": "PROPER_NOUN", "priority": 10,  # 最優先（VOICEVOX標準の辞書の読みより優先させる）
             }
             if found:
-                resp = requests.put(f"{base_url}/user_dict_word/{found[0]}", params=params,
+                resp = _http.put(f"{base_url}/user_dict_word/{found[0]}", params=params,
                                     timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT))
             else:
-                resp = requests.post(f"{base_url}/user_dict_word", params=params,
+                resp = _http.post(f"{base_url}/user_dict_word", params=params,
                                      timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT))
             if resp.status_code in (200, 204):
                 registered.add(word)
@@ -264,7 +291,7 @@ def ensure_engine_running(base_url: str = VOICEVOX_BASE_URL) -> None:
     「VOICEVOXが起動していません」という分かりやすいエラーで早期に止められるようにする。
     """
     try:
-        response = requests.get(f"{base_url}/version", timeout=CONNECT_TIMEOUT)
+        response = _http_quick.get(f"{base_url}/version", timeout=CONNECT_TIMEOUT)
         response.raise_for_status()
     except requests.exceptions.ConnectionError as e:
         raise VoicevoxConnectionError(
@@ -345,7 +372,7 @@ def measure_natural_duration(
     if not text or not text.strip():
         return 0.0
     try:
-        resp = requests.post(
+        resp = _http.post(
             f"{base_url}/audio_query",
             params={"speaker": get_speaker_id(character_key), "text": speech_text(text, reading_dict)},
             timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT),
@@ -364,7 +391,7 @@ def get_kana(text: str, character_key: str, reading_dict: Optional[list[dict]] =
              base_url: str = VOICEVOX_BASE_URL) -> str:
     """VOICEVOXが実際に読む予定の読み（AquesTalk風のカタカナ表記）を返す（読み間違いのチェック用）。"""
     try:
-        resp = requests.post(
+        resp = _http.post(
             f"{base_url}/audio_query",
             params={"speaker": get_speaker_id(character_key), "text": speech_text(text, reading_dict)},
             timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT),
@@ -420,7 +447,7 @@ def synthesize_voice(
 
     # 1. /audio_query
     try:
-        query_resp = requests.post(
+        query_resp = _http.post(
             f"{base_url}/audio_query",
             params={"speaker": speaker_id, "text": query_text},
             timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT),
@@ -449,7 +476,7 @@ def synthesize_voice(
 
     # 2. /synthesis
     try:
-        synth_resp = requests.post(
+        synth_resp = _http.post(
             f"{base_url}/synthesis",
             params={"speaker": speaker_id},
             json=query_json,
@@ -499,7 +526,7 @@ def list_available_speakers(base_url: str = VOICEVOX_BASE_URL) -> list[dict]:
     VOICEVOX_SPEAKER_IDS の値を決める際の参考用で、アプリ本体からは呼ばれない。
     """
     try:
-        resp = requests.get(f"{base_url}/speakers", timeout=CONNECT_TIMEOUT)
+        resp = _http.get(f"{base_url}/speakers", timeout=CONNECT_TIMEOUT)
         resp.raise_for_status()
         return resp.json()
     except requests.exceptions.RequestException as e:

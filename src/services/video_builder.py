@@ -57,6 +57,7 @@ from src.models import Project, Scene
 from src.services import (
     background_video,
     book_script,
+    hook_text,
     lipsync,
     motion,
     pause_cue,
@@ -204,7 +205,10 @@ def _build_fixed_overlay(
         layers.append(pr_label_overlay)
     # リピート・回答の間の見出しは、カウントダウンに合わせて出し入れするので、ここでは焼き込まない（pause_cue）
     if scene.headline and scene.headline.strip() and not scene.pause_style:
-        layers.append(telop.render_headline_image(scene.headline, resolution, font_path))
+        if scene.headline_style == hook_text.HOOK_STYLE:
+            layers.append(hook_text.render_hook_image(scene.headline, resolution))
+        else:
+            layers.append(telop.render_headline_image(scene.headline, resolution, font_path))
     # 字幕（読み上げテキストをそのまま表示。文字色は話者ごとに変える。字幕なしのシーンは出さない）
     if scene.show_telop and scene.text and scene.text.strip():
         progress(f"{label}: テロップを合成中…")
@@ -397,6 +401,7 @@ def _build_scene_clip(
     background_override: Optional[str] = None,
     project: Optional[Project] = None,
     motion_context: Optional[motion.SceneContext] = None,
+    audio_dir: Path = TMP_AUDIO_DIR,
 ):
     """1シーン分の(音声付き)動画クリップを構築する。
 
@@ -457,7 +462,7 @@ def _build_scene_clip(
         result = voicevox_client.synthesize_voice(
             voice_text,
             scene.speaker,
-            output_path=TMP_AUDIO_DIR / f"scene{scene_index}_{uuid.uuid4().hex[:8]}.wav",
+            output_path=audio_dir / f"scene{scene_index}_{uuid.uuid4().hex[:8]}.wav",
             target_duration=scene.duration,
             reading_dict=reading_dict,
             speech_speed=speech_speed,
@@ -798,7 +803,10 @@ def build_video(
         progress("VOICEVOXへの接続を確認中…")
         voicevox_client.ensure_engine_running()
 
-    TMP_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    # 書き出しごとに別の作業フォルダを使う（ブラウザの複数のタブで同時に書き出しても、
+    # 先に終わった書き出しが、ほかの書き出しの途中の音声ファイルを消してしまわないように）
+    work_dir = TMP_AUDIO_DIR / uuid.uuid4().hex[:12]
+    work_dir.mkdir(parents=True, exist_ok=True)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     font_path = telop.resolve_font_path()
@@ -843,6 +851,7 @@ def build_video(
                 background_override=book_script.effective_background_path(project, scene),
                 project=project,
                 motion_context=motion_contexts[i],
+                audio_dir=work_dir,
             )
             scene_clips.append(clip)
 
@@ -879,7 +888,7 @@ def build_video(
             threads=os.cpu_count() or 4,
             audio_codec="aac",
             audio_fps=AUDIO_SAMPLE_RATE,
-            temp_audiofile=str(TMP_AUDIO_DIR / f"temp-audio-{uuid.uuid4().hex[:8]}.m4a"),
+            temp_audiofile=str(work_dir / f"temp-audio-{uuid.uuid4().hex[:8]}.m4a"),
             remove_temp=True,
             logger=None,
             ffmpeg_params=_build_scene_cut_ffmpeg_params(scene_clips),
@@ -897,6 +906,6 @@ def build_video(
             except Exception:  # noqa: BLE001 - 後片付けの失敗で本処理を止めない
                 pass
         # 一時音声ファイルを掃除する（失敗しても致命的ではないため無視する）
-        shutil.rmtree(TMP_AUDIO_DIR, ignore_errors=True)
+        shutil.rmtree(work_dir, ignore_errors=True)
 
     return BuildResult(output_path=output_path, warnings=warnings)

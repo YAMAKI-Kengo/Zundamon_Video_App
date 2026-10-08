@@ -10,6 +10,7 @@ link_native_audio() でシーンに紐付く。すでに音声がある英文は
 """
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
@@ -43,6 +44,7 @@ DEFAULT_VOICE_B = "am_michael"  # 声B（会話の相手役）
 ProgressCallback = Callable[[str], None]
 
 _pipelines: dict[str, object] = {}
+_lock = threading.Lock()  # 読み上げAIは同時に1つだけ使う（ブラウザの複数のタブから同時に呼ばれても安全に）
 
 
 class EnglishTTSError(Exception):
@@ -50,11 +52,10 @@ class EnglishTTSError(Exception):
 
 
 def is_available() -> bool:
-    try:
-        import kokoro  # noqa: F401
-    except ImportError:
-        return False
-    return True
+    """読み上げAI（Kokoro）が入っているか。読み込むと数十秒かかるので、入っているかだけを調べる（読み込まない）。"""
+    import importlib.util
+
+    return importlib.util.find_spec("kokoro") is not None
 
 
 def _pipeline(voice: str):
@@ -75,8 +76,9 @@ def _pipeline(voice: str):
 def synthesize(text: str, voice: str = DEFAULT_VOICE_A, speed: float = DEFAULT_SPEED) -> np.ndarray:
     """英文を読み上げた音声（24kHz・モノラル・float32）を返す。"""
     try:
-        chunks = [np.asarray(audio, dtype=np.float32) for _, _, audio in _pipeline(voice)(text, voice=voice, speed=speed)
-                  if audio is not None]
+        with _lock:
+            chunks = [np.asarray(audio, dtype=np.float32)
+                      for _, _, audio in _pipeline(voice)(text, voice=voice, speed=speed) if audio is not None]
     except EnglishTTSError:
         raise
     except Exception as e:  # noqa: BLE001 - モデルのダウンロード失敗など、要因が多岐にわたるため利用者向けの文言にする

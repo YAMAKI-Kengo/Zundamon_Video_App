@@ -106,6 +106,7 @@ ENDING_CONFIG_PATH = ASSETS_DIR.parent / "config" / "ending.json"
 DEFAULT_ENDING_SECONDS = 12.0
 
 LINE_GAP_SECONDS = 0.15       # セリフとセリフの間に置く間（秒）。テンポを優先して短め
+SHORT_LINE_GAP_SECONDS = 0.03  # ショートのセリフの間（最初の数秒でスワイプされないよう、無音をほぼ作らない）
 MIN_SCENE_SECONDS = 1.0       # 1シーンの最短の表示秒数
 ESTIMATE_CHARS_PER_SECOND = 6.0  # VOICEVOX未起動時の概算に使う、等速(1.0)での読み上げ速度（話す速さの倍率を掛けて使う）
 READING_DEFAULTS_PATH = ASSETS_DIR.parent / "config" / "reading_defaults.json"
@@ -152,6 +153,7 @@ class BookScriptResult:
     lesson: dict = field(default_factory=dict)  # 英会話モードの情報（週・日・テーマ・フレーズ）
     thumbnail: dict = field(default_factory=dict)  # サムネイルの指定（台本の "thumbnail"）
     promo_short: dict = field(default_factory=dict)  # 本編紹介ショートの台本（台本の "promo_short"）
+    pinned_comment: str = ""  # コメント欄に固定するコメント（台本の "pinned_comment"）
 
 
 def extract_json_text(text: str) -> str:
@@ -862,10 +864,13 @@ def build_scenes(
     used_voicevox = False
     if use_voicevox_timing:
         used_voicevox = _fit_durations_with_voicevox(
-            scenes, merge_readings(reading_dict or [], _parse_readings(data.get("readings"))), warnings, speech_speed
+            scenes, merge_readings(reading_dict or [], _parse_readings(data.get("readings"))), warnings, speech_speed,
+            line_gap=SHORT_LINE_GAP_SECONDS if str(data.get("style") or "").lower() == "short" else LINE_GAP_SECONDS,
         )
     tidy_moods(scenes)
     apply_board_hold(scenes, board_pause)
+    if str(data.get("style") or "").lower() == "short":
+        apply_hook(scenes, data.get("hook"))  # 単体のショートも、最初の数秒に特大のフックの文字を出す
     if needs_ending:
         scenes.extend(build_ending_scenes_list(warnings))
 
@@ -884,6 +889,7 @@ def build_scenes(
         tags=[str(t).strip() for t in tags if str(t).strip()],
         title_candidates=_str_list(data.get("title_candidates")),
         description_lead=str(data.get("description_lead") or "").strip(),
+        pinned_comment=str(data.get("pinned_comment") or "").strip(),
         hashtags=[h.lstrip("#＃") for h in _str_list(data.get("hashtags"))],
         style=str(data.get("style") or "").strip().lower() if str(data.get("style") or "").strip().lower()
         in ("normal", "short") else "",
@@ -896,6 +902,19 @@ def build_scenes(
         sources=_parse_sources(data.get("sources")),
         promo_short=promo_short_data(data),
     )
+
+
+def apply_hook(scenes: list[Scene], hook) -> None:
+    """ショートの最初の数秒（黒板が出るまでの導入のセリフ）に、フックの文字を画面の中央上に特大で出す
+    （最初の1フレームから「自分のことだ」と分かり、音声なしで見ている人の指も止める）。"""
+    hook = str(hook or "").replace("\\n", "\n").strip()
+    if not hook:
+        return
+    for scene in scenes:
+        if scene.section != "intro" or (scene.has_slide and scene.show_board):
+            break
+        if not scene.card_text and not scene.headline:
+            scene.headline, scene.headline_style = hook, "hook"
 
 
 def promo_short_data(data: dict) -> dict:
@@ -940,6 +959,7 @@ def build_promo_project(main: Project, use_voicevox_timing: bool = True) -> tupl
         speech_speed=main.speech_speed, video_format=VideoFormat.PORTRAIT, board_pause=main.board_pause,
     )
     short.promo_of = main.video_title or main.book_title or "本編"
+    apply_hook(result.scenes, main.promo_short.get("hook"))
     apply_to_project(short, result)
     short.name = f"ショート: {main.book_title or short.promo_of}"
     short.promo_short = {}
@@ -973,7 +993,7 @@ def _str_list(value) -> list[str]:
 
 def _fit_durations_with_voicevox(
     scenes: list[Scene], reading_dict: Optional[list[dict]], warnings: list[str],
-    speech_speed: float = DEFAULT_SPEECH_SPEED,
+    speech_speed: float = DEFAULT_SPEECH_SPEED, line_gap: float = LINE_GAP_SECONDS,
 ) -> bool:
     """VOICEVOXで各セリフの実際の読み上げ時間を測り、表示秒数に反映する。起動していなければ何もしない。"""
     try:
@@ -993,7 +1013,7 @@ def _fit_durations_with_voicevox(
             natural = voicevox_client.measure_natural_duration(
                 scene.reading.strip() or scene.text, scene.speaker, reading_dict=reading_dict, speech_speed=speech_speed
             )
-            scene.duration = max(MIN_SCENE_SECONDS, round(natural + LINE_GAP_SECONDS, 1))
+            scene.duration = max(MIN_SCENE_SECONDS, round(natural + line_gap, 2))
         except (VoicevoxConnectionError, VoicevoxSynthesisError) as e:
             warnings.append(f"シーン{i}: 読み上げ時間を測れなかったため、文字数からの概算にしました（{e}）")
     return True
@@ -1255,6 +1275,7 @@ def apply_to_project(project: Project, result: BookScriptResult, replace: bool =
     if replace or result.thumbnail:
         project.thumbnail = dict(result.thumbnail)
     project.description_lead = result.description_lead
+    project.pinned_comment = result.pinned_comment
     project.hashtags = list(result.hashtags)
     if result.style:
         project.video_style = result.style

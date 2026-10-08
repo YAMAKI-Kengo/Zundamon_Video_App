@@ -161,7 +161,7 @@ def _render_se_section(project: Project) -> None:
             st.caption("使える効果音: " + "、".join(names))
         else:
             st.info("効果音がまだありません。基本セット（ポン・キラーン・ドン など）を作成できます。")
-            if st.button("🎛 基本の効果音セットを作成", use_container_width=True, key="se_generate"):
+            if st.button("🎛 基本の効果音セットを作成", width="stretch", key="se_generate"):
                 from scripts import generate_sound_effects
 
                 generate_sound_effects.main()
@@ -279,7 +279,7 @@ def _render_common_background_section(project: Project) -> None:
                 st.caption(f"設定中の共通背景（動画）: {label}")
             else:
                 st.caption(f"設定中の共通背景（画像）: {label}")
-            if st.button("🗑 共通の背景を削除", use_container_width=True):
+            if st.button("🗑 共通の背景を削除", width="stretch"):
                 project.common_background_path = None
                 st.rerun()
         else:
@@ -323,7 +323,7 @@ def _render_reading_check(project: Project) -> None:
 
     if not project.scenes:
         return
-    if not st.button("🔍 台本の読み間違いを自動チェック", use_container_width=True, key="reading_check",
+    if not st.button("🔍 台本の読み間違いを自動チェック", width="stretch", key="reading_check",
                      help="VOICEVOXが実際にどう読むかを調べ、Claudeに読み間違いを探させて読み方辞書に追加します"
                           "（VOICEVOXの起動とClaude APIのキーが必要です。費用は1回数円程度）。"):
         return
@@ -367,7 +367,7 @@ def _render_reading_dict_section(project: Project) -> None:
                 "reading": st.column_config.TextColumn("読み（ひらがな/カタカナ）", help="例: ふたり"),
             },
             num_rows="dynamic",
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             key="reading_dict_editor",
         )
@@ -391,7 +391,7 @@ def _render_project_io_section(project: Project) -> None:
             data=project_json.encode("utf-8"),
             file_name=f"{project.name or 'project'}.json",
             mime="application/json",
-            use_container_width=True,
+            width="stretch",
         )
 
         uploaded_project = st.file_uploader(
@@ -400,7 +400,7 @@ def _render_project_io_section(project: Project) -> None:
             key="project_json_uploader",
         )
         if uploaded_project is not None:
-            if st.button("📂 このプロジェクトを読み込む（現在の内容は上書きされます）", use_container_width=True):
+            if st.button("📂 このプロジェクトを読み込む（現在の内容は上書きされます）", width="stretch"):
                 try:
                     data = json.loads(uploaded_project.getvalue().decode("utf-8"))
                     new_project = Project.from_dict(data)
