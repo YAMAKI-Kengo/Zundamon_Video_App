@@ -24,7 +24,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 from src.services import background_video, telop
 from src.utils.asset_loader import (
@@ -186,7 +186,7 @@ def _background_cached(path: str, mtime: float, size: tuple[int, int], blur: flo
         img = Image.fromarray(background_video.extract_preview_frame(path)).convert("RGBA")
     else:
         img = Image.open(path).convert("RGBA")
-    return apply_mood(blur_background(cover_resize(img, size), blur), mood)
+    return apply_mood(blur_background(fit_background(img, size), blur), mood)
 
 
 TRANSITION_CARD_BLUR = 10.0        # 場面転換テロップの背景のぼかし（1080p換算）
@@ -245,6 +245,59 @@ def cover_resize(img: Image.Image, size: tuple[int, int]) -> Image.Image:
     left = (new_w - target_w) // 2
     top = (new_h - target_h) // 2
     return resized.crop((left, top, left + target_w, top + target_h))
+
+
+BACKGROUND_MAX_CROP = 0.35        # 背景画像を画面いっぱいに広げるときに切り落としてよい幅（高さ）の割合
+BACKGROUND_FILL_BLUR = 0.04        # 画面の向きと合わない背景の、余白を埋めるぼかしの強さ（画面短辺に対する比率）
+BACKGROUND_FILL_DARKEN = 0.8       # 余白を埋めるぼかした背景の明るさ（本体の絵との境目を分かりやすくする）
+
+
+def fit_background(img: Image.Image, size: tuple[int, int]) -> Image.Image:
+    """背景画像を画面サイズに合わせる。
+
+    縦横比が近ければ、従来どおり画面を覆うように拡大して中央クロップ（cover_resize）する。
+    横長の背景（みんちりえ等の 16:9 の背景）を縦画面で使う場合など、中央クロップでは絵の大部分が
+    切れてしまうときは、同じ絵をぼかして画面全体に敷き、その上に切り落としを BACKGROUND_MAX_CROP までに
+    抑えた大きさで絵を中央に置く（引き伸ばしはしない）。
+    """
+    target_w, target_h = size
+    src_w, src_h = img.size
+    if not (src_w and src_h and target_w and target_h):
+        return cover_resize(img, size)
+    src_ratio, dst_ratio = src_w / src_h, target_w / target_h
+    if min(src_ratio, dst_ratio) / max(src_ratio, dst_ratio) >= 1 - BACKGROUND_MAX_CROP:
+        return cover_resize(img, size)
+
+    from PIL import ImageEnhance
+
+    backdrop = cover_resize(img, size).convert("RGB")
+    backdrop = backdrop.resize((max(1, target_w // 8), max(1, target_h // 8)), Image.BILINEAR)  # ぼかしを軽くするため縮小してから
+    backdrop = backdrop.filter(ImageFilter.GaussianBlur(min(size) * BACKGROUND_FILL_BLUR / 8)).resize(size, Image.BILINEAR)
+    canvas = ImageEnhance.Brightness(backdrop).enhance(BACKGROUND_FILL_DARKEN).convert("RGBA")
+
+    scale = min(target_w / src_w, target_h / src_h) / (1 - BACKGROUND_MAX_CROP)
+    new_w, new_h = max(1, round(src_w * scale)), max(1, round(src_h * scale))
+    fg = img.convert("RGBA").resize((new_w, new_h), Image.LANCZOS)
+    left, top = (new_w - min(new_w, target_w)) // 2, (new_h - min(new_h, target_h)) // 2
+    fg = fg.crop((left, top, left + min(new_w, target_w), top + min(new_h, target_h)))
+
+    # 絵の端（画面に収まっている側）をなめらかにぼかした背景へなじませる
+    feather = max(1, round(min(fg.size) * 0.06))
+    mask = Image.new("L", fg.size, 255)
+    draw = ImageDraw.Draw(mask)
+    vertical_edges = fg.size[1] < target_h  # 横長の絵を縦画面に置く → 上下の端をなじませる
+    for i in range(feather):
+        value = round(255 * (i + 1) / (feather + 1))
+        if vertical_edges:
+            draw.line([(0, i), (fg.size[0], i)], fill=value)
+            draw.line([(0, fg.size[1] - 1 - i), (fg.size[0], fg.size[1] - 1 - i)], fill=value)
+        else:
+            draw.line([(i, 0), (i, fg.size[1])], fill=value)
+            draw.line([(fg.size[0] - 1 - i, 0), (fg.size[0] - 1 - i, fg.size[1])], fill=value)
+    if fg.mode == "RGBA":
+        mask = ImageChops.multiply(mask, fg.getchannel("A"))
+    canvas.paste(fg, ((target_w - fg.size[0]) // 2, (target_h - fg.size[1]) // 2), mask)
+    return canvas
 
 
 def load_content_media_image(path: Optional[str]) -> Optional[Image.Image]:

@@ -46,6 +46,7 @@ def _fill_book_script_sample() -> None:
 def _import_script(project: Project, script_text: str, use_voicevox_timing: bool, replace_existing: bool,
                    add_ending: bool, reveal_bullets: bool) -> bool:
     """台本JSONからシーンを作ってプロジェクトに反映し、結果のメッセージを次の再描画で表示できるよう保存する。"""
+    project = _script_target(project)
     try:
         with st.spinner("台本を読み込んでいます…"):
             data = book_script.load_book_script(script_text)
@@ -78,6 +79,22 @@ def _import_script(project: Project, script_text: str, use_voicevox_timing: bool
         "warnings": result.warnings,
     }
     return True
+
+
+def _script_target(project: Project) -> Project:
+    """台本の取り込み先。紹介ショートを表示中でも、ショートを上書きせず本編の側に取り込む
+    （どの動画を表示しているかと、どの動画を作るかを切り離す）。"""
+    pair = _promo_pair()
+    if pair and project is pair["short"]:
+        project = pair["main"]
+    elif project.promo_of:  # 本編と組になっていない紹介ショート（プロジェクトファイルから開いたもの等）も上書きしない
+        fresh = Project()
+        for attr in book_script._PROMO_INHERITED:
+            setattr(fresh, attr, json.loads(json.dumps(getattr(project, attr))))
+        project = fresh
+    if project is not get_project():
+        set_project(project)
+    return project
 
 
 def _format_cost(result: book_ai.AIResult) -> str:
@@ -866,7 +883,8 @@ def _promo_pair() -> dict | None:
     return st.session_state.get(_PROMO_PAIR_KEY)
 
 
-def _open_promo_short(main: Project, rebuild: bool = False) -> None:
+def _promo_for(main: Project, rebuild: bool = False) -> tuple[Project, list[str]]:
+    """本編の紹介ショート（作りかけがあればそれ、無ければ台本から作る）。本編とショートの組として覚えておく。"""
     pair = _promo_pair()
     short = pair["short"] if pair and pair["main"] is main and not rebuild else None
     warnings: list[str] = []
@@ -876,12 +894,33 @@ def _open_promo_short(main: Project, rebuild: bool = False) -> None:
                 main, use_voicevox_timing=st.session_state.get("book_script_timing", True),
             )
     st.session_state[_PROMO_PAIR_KEY] = {"main": main, "short": short}
+    return short, warnings
+
+
+def _open_promo_short(main: Project, rebuild: bool = False) -> None:
+    short, warnings = _promo_for(main, rebuild)
     set_project(short)
     st.session_state[_PROMO_FLASH_KEY] = {
         "success": f"本編紹介ショート（{len(short.scenes)}シーン・約{short.total_duration:.0f}秒・縦画面）に切り替えました。"
                    "上のバーの「🎬 本編 / 📱 紹介ショート」でいつでも切り替えられます。「🎬 書き出しへ」で書き出せます。",
         "warnings": warnings,
     }
+
+
+def export_targets(project: Project) -> tuple[Project | None, bool]:
+    """「動画を生成する」で書き出す本編（表示中が紹介ショートでも本編を返す）と、紹介ショートも書き出せるか。
+    本編と組でない単独のショートは (そのショート, False)。"""
+    pair = _promo_pair()
+    if pair and (project is pair["main"] or project is pair["short"]):
+        return pair["main"], True
+    if project.promo_of or video_metadata.is_short(project):
+        return project, False
+    return project, bool(project.promo_short.get("blocks"))
+
+
+def promo_for_export(main: Project) -> tuple[Project, list[str]]:
+    """書き出し用に、本編の紹介ショートを用意する（表示中の動画は切り替えない）。"""
+    return _promo_for(main)
 
 
 def _switch_pair_view() -> None:

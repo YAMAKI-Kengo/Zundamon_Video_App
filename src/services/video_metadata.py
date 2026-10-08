@@ -155,12 +155,33 @@ SERIES_TAG = "【ずんだもん解説】"  # 解説動画（本・論文記事�
 
 
 def with_series_tag(title: str, project: Project) -> str:
-    """解説動画のタイトルの先頭に【ずんだもん解説】を付ける（英会話は【毎日英会話】のシリーズなので付けない）。"""
+    """解説動画のタイトルを「タイトル【ずんだもん解説】#ハッシュタグ」の形にする
+    （英会話は【毎日英会話】のシリーズなので付けない）。"""
     title = title.strip()
-    if not title or is_english(project) or SERIES_TAG in title:
+    if not title or is_english(project):
         return title
-    title = re.sub(r"【ずんだもん】|｜ずんだもん解説$", "", title).strip()
-    return _fit(SERIES_TAG + title)
+    # 末尾のハッシュタグ（#Shorts など）を外してから、【ずんだもん解説】をタイトルの最後に付け直す
+    hashtags = re.findall(r"[#＃]\S+", title)
+    body = re.sub(r"\s*[#＃]\S+", "", title)
+    body = re.sub(r"【ずんだもん解説】|【ずんだもん】|｜ずんだもん解説$", "", body).strip(" 　｜|")
+    tail = SERIES_TAG + " ".join(hashtags)
+    if len(body) + len(tail) > TITLE_MAX_CHARS:
+        body = body[: max(0, TITLE_MAX_CHARS - len(tail) - 1)] + "…"
+    return body + tail
+
+
+_FILENAME_UNSAFE = str.maketrans({
+    "\\": "＼", "/": "／", ":": "：", "*": "＊", "?": "？", '"': "＂", "<": "＜", ">": "＞", "|": "｜",
+})
+FILENAME_MAX_BYTES = 200  # ファイル名（拡張子・「_TikTok投稿用」などを除く部分）の上限（多くのOSの上限255バイトに収める）
+
+
+def safe_filename(title: str, fallback: str = "output") -> str:
+    """タイトルをそのままファイル名にする。OSのファイル名に使えない文字だけ全角の同じ形の文字に置き換える。"""
+    name = re.sub(r"[\x00-\x1f\x7f]", "", (title or "").translate(_FILENAME_UNSAFE)).strip().rstrip(". ")
+    while len(name.encode("utf-8")) > FILENAME_MAX_BYTES:
+        name = name[:-1]
+    return name or fallback
 
 
 def _dedupe(items: list[str]) -> list[str]:
@@ -591,3 +612,47 @@ def export_text(project: Project) -> str:
         "【タグ】", ", ".join(project.video_tags), "",
         "【X（旧Twitter）の投稿文】", project.x_post or build_x_post(project),
     ])
+
+
+# --- 縦動画（ショート）を TikTok・Instagram（リール）にも投稿するための説明文 ---
+SNS_PLATFORMS = {"tiktok": "TikTok", "instagram": "Instagram"}
+SNS_HASHTAGS = {"tiktok": ["ずんだもん", "VOICEVOX"], "instagram": ["ずんだもん", "リール"]}
+SNS_CAPTION_MAX_CHARS = 2200  # TikTok・Instagram の説明文の上限の目安
+SNS_MAX_HASHTAGS = 5          # Instagram はハッシュタグ5つまで。TikTok も多すぎない数にそろえる
+
+
+def build_sns_caption(project: Project, platform: str) -> str:
+    """縦動画を TikTok / Instagram に投稿するときの説明文（タイトル → 見どころ → 誘導 → クレジット → ハッシュタグ）。"""
+    title = project.video_title.strip() or (build_title_candidates(project) or [""])[0]
+    title = re.sub(r"\s*[#＃]\S+", "", title).strip()
+    lead = [line.strip() for line in project.description_lead.splitlines() if line.strip()]
+    if platform == "instagram":
+        action = "役に立ったら、保存して見返してね！フォローもよろしくお願いします。"
+    else:
+        action = "役に立ったら、いいね・フォローをよろしくお願いします！"
+    guide = ["▶ 詳しい解説は YouTube の本編で（プロフィールのリンクから）"] if project.promo_of else []
+    tags = []
+    base = build_hashtags(project)  # 先頭の #ずんだもん解説 などの大事なもの → その投稿先でよく使われるもの → 残り
+    for text in base[:3] + SNS_HASHTAGS.get(platform, []) + base[3:]:
+        tag = _HASHTAG_UNSAFE.sub("", str(text).lstrip("#＃"))
+        if tag:
+            tags.append(f"#{tag}")
+    hashtags = " ".join(_dedupe(tags)[:SNS_MAX_HASHTAGS])
+    for with_credits in (True, False):
+        lines = [title, ""] + (lead + [""] if lead else []) + (guide + [""] if guide else []) + [action, ""]
+        if with_credits:
+            lines += _credits(project) + [""]
+        text = "\n".join(lines + [hashtags]).strip()
+        if len(text) <= SNS_CAPTION_MAX_CHARS:
+            return text
+    return text[:SNS_CAPTION_MAX_CHARS]
+
+
+def export_files(project: Project) -> dict[str, str]:
+    """動画と一緒に保存する投稿用テキスト {ファイル名の後ろに付ける言葉: 中身}。縦動画は TikTok・Instagram 用も作る。"""
+    if not is_short(project):
+        return {"_YouTube投稿用": export_text(project)}
+    files = {"_YouTubeショート投稿用": export_text(project)}
+    for key, label in SNS_PLATFORMS.items():
+        files[f"_{label}投稿用"] = build_sns_caption(project, key)
+    return files

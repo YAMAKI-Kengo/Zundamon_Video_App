@@ -19,7 +19,7 @@ from src.models import (
     Project,
     VideoFormat,
 )
-from src.state import get_project, set_project
+from src.state import TAB_KEY, TABS, get_project, set_project
 from src.utils.asset_loader import ASSETS_DIR, is_video_path, list_bgm, list_se
 
 BGM_DIR = ASSETS_DIR / "bgm"
@@ -89,11 +89,13 @@ def _render_bgm_section(project: Project) -> None:
         st.caption(
             "シーン編集で各シーンに設定した「場面」ごとに曲を切り替えます。曲が変わる箇所は自動でクロスフェードします。"
         )
+        # 英会話の場面のBGMは、台本を読み込む前（英会話モードを開いた時点）から選べるようにする
+        english = project.source_kind == "english" or st.session_state.get(TAB_KEY) == TABS["english"]
         for section, section_label in SECTION_LABELS.items():
             if not section:
                 continue
-            if section in LESSON_SECTIONS and project.source_kind != "english":
-                continue  # 英会話モードの場面は、英会話の動画のときだけ出す
+            if section in LESSON_SECTIONS and not english:
+                continue  # 英会話モードの場面は、英会話の動画のとき・英会話モードを開いているときだけ出す
             chosen = bgm_selectbox(
                 section_label, project.section_bgm.get(section), key=f"bgm_section_{section}",
                 inherit_label="(動画全体のBGMと同じ)",
