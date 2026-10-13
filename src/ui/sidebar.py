@@ -350,6 +350,12 @@ def _render_reading_dict_section(project: Project) -> None:
             help="1.0がVOICEVOXの普通の速さです。解説動画はテンポよく1.2倍前後がおすすめです。"
                  "変えた場合は、台本を取り込み直すと表示秒数もこの速さに合わせて計算し直されます。",
         )
+        project.voice_emotion = st.toggle(
+            "表情に合わせて声色を変える", value=project.voice_emotion, key="voice_emotion",
+            help="泣いている顔は「なみだめ」、ひそひそ話は「ささやき」、めたんの呆れ顔は「ツンツン」で抑揚を抑える…のように、"
+                 "セリフの表情に合わせてVOICEVOXの声の種類と高さ・抑揚・速さを変えます。"
+                 "お使いのVOICEVOXにその声の種類が無い場合は、普通の声のまま話し方だけを変えます。",
+        )
         _render_reading_check(project)
         st.caption(
             "VOICEVOXが特定の単語を誤読する場合、ここに「単語」と「読み（ひらがな/カタカナ）」を"

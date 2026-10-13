@@ -256,6 +256,7 @@ class Project:
     book_title: str = ""  # 書籍解説モードで扱っている本のタイトル（表示・スライド生成用）
     book_author: str = ""  # 本の著者名（説明文・タグに使う）
     book_cover_path: Optional[str] = None  # 本の表紙画像（本を紹介するシーンで画面中央に表示する）
+    voice_emotion: bool = True  # セリフの表情に合わせて声色（なみだめ・ツンツン等）と話し方を変える（src.services.voice_tone）
     speech_speed: float = 1.2  # 話す速さ（1.0=VOICEVOXの等速。解説動画はテンポよく1.2倍が既定）
     # 動画の動き（src.services.motion）の自動演出の設定
     auto_camera: bool = True      # 驚き系の表情で話者にアップ・解説中はゆっくりズームイン
@@ -342,6 +343,7 @@ class Project:
             "book_author": self.book_author,
             "book_cover_path": self.book_cover_path,
             "speech_speed": self.speech_speed,
+            "voice_emotion": self.voice_emotion,
             "auto_camera": self.auto_camera,
             "auto_shake": self.auto_shake,
             "char_bob": self.char_bob,
@@ -387,6 +389,7 @@ class Project:
             book_author=data.get("book_author", ""),
             book_cover_path=data.get("book_cover_path"),
             speech_speed=data.get("speech_speed", 1.2),
+            voice_emotion=bool(data.get("voice_emotion", True)),
             auto_camera=data.get("auto_camera", True),
             auto_shake=data.get("auto_shake", True),
             char_bob=data.get("char_bob", True),

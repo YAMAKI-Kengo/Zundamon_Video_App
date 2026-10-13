@@ -1031,7 +1031,8 @@ def _fit_durations_with_voicevox(
             continue  # ネイティブ音声を使う英語のセリフ（音声が届いたらその長さに合わせる）
         try:
             natural = voicevox_client.measure_natural_duration(
-                scene.reading.strip() or scene.text, scene.speaker, reading_dict=reading_dict, speech_speed=speech_speed
+                scene.reading.strip() or scene.text, scene.speaker, reading_dict=reading_dict, speech_speed=speech_speed,
+                expression=scene.expression,
             )
             scene.duration = max(min_seconds, round(natural + line_gap, 2))
         except (VoicevoxConnectionError, VoicevoxSynthesisError) as e:

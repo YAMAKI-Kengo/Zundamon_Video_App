@@ -467,6 +467,7 @@ def _build_scene_clip(
             target_duration=scene.duration,
             reading_dict=reading_dict,
             speech_speed=speech_speed,
+            expression=scene.expression if project is None or project.voice_emotion else "",
         )
         audio_path = result.audio_path
         if result.speed_scale - speech_speed > 0.01:

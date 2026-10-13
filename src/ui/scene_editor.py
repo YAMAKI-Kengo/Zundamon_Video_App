@@ -111,6 +111,7 @@ def _render_voice_preview(scene: Scene, project: Project) -> None:
                 target_duration=scene.duration,
                 reading_dict=project.reading_dict,
                 speech_speed=book_script.effective_speech_speed(project),
+                expression=scene.expression if project.voice_emotion else "",
             )
         except VoicevoxConnectionError:
             st.error(
