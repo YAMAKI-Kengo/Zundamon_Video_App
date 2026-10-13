@@ -55,6 +55,7 @@ from src.utils.asset_loader import (
     load_se_guide,
 )
 from src.models import GUEST_CHARACTERS
+from src.services import bgm_library
 from src.services.voicevox_client import DEFAULT_SPEECH_SPEED
 from src.utils.env_config import load_env
 
@@ -191,6 +192,7 @@ def _script_schema(with_promo: bool = False) -> dict:
         "caption": _STR,
         "image_request": _STR,
         "image_name": _STR,
+        "bgm": {"type": "string", "enum": [""] + bgm_library.MOOD_CHOICES},
     })
     guest_keys = [c for c in characters if c in GUEST_CHARACTERS]
     block = _obj({
@@ -360,6 +362,15 @@ def _background_rules() -> str:
 {SCENE_MOVE_RULES}"""
 
 
+def _bgm_rules() -> str:
+    moods = "\n".join(f"  - {key}: {label}" for key, label in bgm_library.MOODS.items())
+    return f"""- bgm（BGMの雰囲気）: 場面の雰囲気が変わるセリフにだけ書き、そのセリフからBGMがその雰囲気の曲に切り替わる（それ以外のセリフは空文字。前の曲が続く）。動画の最初のセリフには必ず書く。
+{moods}
+  - none: 無音（ショックの瞬間・「…」の間など、BGMを止めて一言を際立たせる。次のセリフで別の雰囲気に戻す）
+  切り替えは、気持ちが大きく変わる転換点だけ（1本で4〜10回程度）。曲は最低でも8秒は続かないと切り替わらないので、1〜2セリフごとに変えない。
+  例: 調子に乗る（bright）→ 雲行きが怪しくなる（tense）→ 大損してガーン（none）→ 落ち込む（emotional）→ めたんの解説（calm）→ 逆転（bright）。"""
+
+
 def _se_guide() -> str:
     """使える効果音と、その用途の一覧（config/se_guide.json。用途が未登録の効果音は名前だけ）。"""
     names = [p.stem for p in list_se()]
@@ -470,6 +481,7 @@ def _common_rules() -> str:
   text に文（25字・8語程度まで）、focus に赤線を引く部分（text の中にそのまま含まれる語句）、meaning にその部分の意味・使い方（25字以内。例: text「レバレッジ25倍で取引する」、focus「レバレッジ」、meaning「手元のお金の何倍まで取引できるか」）を書く。
   その部分を説明する2〜3セリフに、同じ note を続けて付ける（その間は黒板の代わりに解説カードが出る）。使わない行は text・focus・meaning をすべて空文字にする。
 - bullet（黒板のどの行の話か）: 黒板の箇条書きの行を初めて話すセリフに、その行の番号（1から）を書く（その番号の行が、そのセリフで黒板に書き足される）。それ以外のセリフは 0。行の番号は、話す順番どおりに1, 2, 3…と増えるようにする。まとめ（summary）は全部の行を最初から出すので、すべて 0 でよい。
+{_bgm_rules()}
 - pause・pause_text は使わない（すべての行で pause を 0、pause_text を空文字にする）。無音の「考えてみて」の間は話のテンポが悪くなるため、問いかけにはすぐ会話で答える。
 - show_book は、めたんが本（書名）を紹介するセリフだけ true にする（そのシーンで本の表紙画像が画面に出る）。それ以外はすべて false。
 
@@ -942,7 +954,7 @@ def tidy_script_lines(data: dict, source_kind: str = "book") -> None:
                 line.pop("image_name", None)
             if not line.get("image") and not line.get("image_request"):
                 line.pop("caption", None)
-            for key in ("mood", "card", "pause", "pause_text"):
+            for key in ("mood", "card", "pause", "pause_text", "bgm"):
                 if not line.get(key):
                     line.pop(key, None)
             if not (line.get("note") or {}).get("text"):

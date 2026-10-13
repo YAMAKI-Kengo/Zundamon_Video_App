@@ -23,6 +23,7 @@ from src.ui.prompt_box import prompt_box
 from src.models import MOOD_LABELS, Project
 
 from src.services import (
+    bgm_library,
     book_ai, book_loader, book_script, motion, promo_short, slide_renderer, thumbnail, video_history, video_metadata,
 )
 from src.ui import preview
@@ -532,7 +533,7 @@ def _render_overview(project: Project) -> None:
         icon = _SECTION_ICONS.get(group.section, ":material/movie:")
         label = group.label
         title = group.slide_title or "（スライドなし）"
-        bgm = project.resolve_bgm_path(group.scenes[0])
+        bgm = bgm_library.scene_bgm_path(project, group.scenes[0])
         with st.container(border=True):
             st.markdown(f"**{icon} ブロック{group_no}：{label}**　—　{title}")
             col_img, col_lines = st.columns([image_ratio, 2])
@@ -591,7 +592,7 @@ def _render_overview(project: Project) -> None:
                         unsafe_allow_html=True,
                     )
                     scene_no += 1
-                st.caption(f"{group.duration:.1f}秒　BGM: {Path(bgm).stem if bgm else 'なし'}")
+                st.caption(f"{group.duration:.1f}秒　BGM: {bgm_library.track_for_path(bgm).title if bgm else 'なし'}")
 
 
 def _render_illustration_requests(project: Project) -> None:
@@ -698,10 +699,12 @@ def _render_metadata(project: Project) -> None:
         ("meta_pinned", project.pinned_comment or video_metadata.build_pinned_comment(project)),
     ):
         st.session_state.setdefault(key, value)
-    # BGMや config/bgm_credits.json を変えたら、説明文のクレジット欄だけ最新にする（他の部分の手直しは残す）
+    # BGMや assets/bgm/_library.json を変えたら、説明文のクレジット欄だけ最新にする（他の部分の手直しは残す）
     fresh = video_metadata.refresh_credits(st.session_state["meta_description"], project)
     if fresh != st.session_state["meta_description"]:
         st.session_state["meta_description"] = fresh
+    for warning in video_metadata.bgm_credit_warnings(project):
+        st.warning(warning + " 投稿前に、配布元のページで確認して記入してください。", icon=":material/music_note:")
 
     st.caption(
         "台本の内容（本のタイトル・悩み・ポイント・まとめ・各シーンの秒数）から自動で作っています。"

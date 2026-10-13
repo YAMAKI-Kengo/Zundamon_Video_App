@@ -215,6 +215,23 @@ def _normalize_phase(section: str, value) -> str:
 CARD_DEFAULT_SECONDS = 2.0  # 場面転換テロップの表示秒数の既定値
 
 
+# 台本の "bgm"（BGMの雰囲気）の書き方のゆれ → src.services.bgm_library.MOOD_CHOICES のキー
+_BGM_MOOD_ALIASES = {
+    "calm": "calm", "daily": "calm", "日常": "calm", "解説": "calm", "落ち着いた": "calm", "普通": "calm",
+    "bright": "bright", "happy": "bright", "fun": "bright", "楽しい": "bright", "明るい": "bright",
+    "comedy": "comedy", "comic": "comedy", "コミカル": "comedy", "ギャグ": "comedy",
+    "tense": "tense", "tension": "tense", "緊張": "tense", "ピンチ": "tense", "焦り": "tense",
+    "serious": "serious", "シリアス": "serious", "深刻": "serious",
+    "emotional": "emotional", "sad": "emotional", "感動": "emotional", "悲しい": "emotional", "しんみり": "emotional",
+    "mysterious": "mysterious", "mystery": "mysterious", "謎": "mysterious", "不思議": "mysterious",
+    "none": "none", "silence": "none", "無音": "none", "なし": "none",
+}
+
+
+def _parse_bgm_mood(value) -> str:
+    return _BGM_MOOD_ALIASES.get(str(value or "").strip().lower(), "")
+
+
 def _parse_card_seconds(value) -> float:
     try:
         seconds = float(value or CARD_DEFAULT_SECONDS)
@@ -748,6 +765,7 @@ def build_scenes(
         slide_title, slide_bullets = _parse_slide(block.get("slide"), block_no, warnings)
         slide_numbered = isinstance(block.get("slide"), dict) and block["slide"].get("numbered") is True
         block_mood = _parse_mood(block.get("mood"))
+        pending_bgm = _parse_bgm_mood(block.get("bgm"))  # ブロックの "bgm" は、そのブロックの最初のセリフから
         block_hidden = _parse_hidden(block.get("hide"), label_map, f"ブロック{block_no}", warnings)
         lines = block.get("lines") or []
         if not isinstance(lines, list) or not lines:
@@ -825,8 +843,10 @@ def build_scenes(
                     illustration_name=_clean_illustration_name(line.get("image_name")),
                     **_parse_note(line.get("note")),
                     bullet_ref=_parse_bullet_ref(line.get("bullet")),
+                    bgm_mood=_parse_bgm_mood(line.get("bgm")) or pending_bgm,
                 )
             )
+            pending_bgm = ""
             # "pause": 秒数 … セリフのあとに、視聴者がリピート・回答する間（音声なし。字幕と見出しは出したまま）
             pause = _parse_pause(line.get("pause"))
             style = _parse_pause_style(line.get("pause_style"), section)
@@ -943,7 +963,7 @@ def promo_short_data(data: dict) -> dict:
 _PROMO_INHERITED = (
     "speech_speed", "reading_dict", "bgm_path", "bgm_volume", "se_volume", "section_bgm",
     "pr_label_enabled", "pr_label_text", "book_cover_path", "auto_camera", "auto_shake", "char_bob",
-    "auto_jump", "char_slide_in", "slide_transition", "background_blur",
+    "auto_jump", "char_slide_in", "slide_transition", "background_blur", "mood_bgm", "voice_emotion",
 )
 
 

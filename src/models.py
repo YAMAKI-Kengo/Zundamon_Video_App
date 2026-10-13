@@ -197,6 +197,9 @@ class Scene:
     note_meaning: str = ""            # その部分の意味・使い方（例: 「〜をもらえる？ 注文の定番」）
     bullet_ref: int = 0               # このセリフで初めて話す黒板の行の番号（1から。台本の "bullet"。0なら指定なし）
     board_hold: float = 0.0           # 黒板に新しく書いた文字を読む時間として、セリフのあとに足している秒数（duration に含む）
+    # BGMの雰囲気（src.services.bgm_library.MOOD_CHOICES のキー。空なら前のシーンの雰囲気を引き継ぐ）。
+    # 台本の "bgm"。雰囲気が変わるセリフにだけ書き、その気分のフォルダ（assets/bgm/<気分>/）の曲に切り替える
+    bgm_mood: str = ""
 
     @property
     def has_slide(self) -> bool:
@@ -252,6 +255,8 @@ class Project:
     # テロップの表示テキスト(Scene.text)はそのままに、VOICEVOXへ渡す読み上げテキストの中だけ
     # word→readingの単純な文字列置換を行う（voicevox_client.apply_reading_dict）。
     section_bgm: dict[str, str] = field(default_factory=dict)
+    # 雰囲気ごとに流す曲（利用者が自動選択から変えたもの）。{"tense": "assets/bgm/tense/xxx.mp3"}。無ければ自動で選ぶ
+    mood_bgm: dict[str, str] = field(default_factory=dict)
     # 場面ごとのBGM。{"intro": "assets/bgm/xxx.mp3", ...} の形式（Scene.sectionのキーに対応）。
     book_title: str = ""  # 書籍解説モードで扱っている本のタイトル（表示・スライド生成用）
     book_author: str = ""  # 本の著者名（説明文・タグに使う）
@@ -339,6 +344,7 @@ class Project:
             "pr_label_text": self.pr_label_text,
             "reading_dict": self.reading_dict,
             "section_bgm": self.section_bgm,
+            "mood_bgm": self.mood_bgm,
             "book_title": self.book_title,
             "book_author": self.book_author,
             "book_cover_path": self.book_cover_path,
@@ -385,6 +391,7 @@ class Project:
             pr_label_text=data.get("pr_label_text", "PR"),
             reading_dict=data.get("reading_dict", []),
             section_bgm=data.get("section_bgm", {}),
+            mood_bgm=data.get("mood_bgm", {}) or {},
             book_title=data.get("book_title", ""),
             book_author=data.get("book_author", ""),
             book_cover_path=data.get("book_cover_path"),

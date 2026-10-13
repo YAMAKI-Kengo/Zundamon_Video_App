@@ -32,7 +32,7 @@ from src.models import (
     Scene,
     VideoFormat,
 )
-from src.services import book_script, motion, script_import, slide_renderer, telop, voicevox_client
+from src.services import bgm_library, book_script, motion, script_import, slide_renderer, telop, voicevox_client
 from src.ui.preview_cache import scene_preview
 from src.services.voicevox_client import (
     VoicevoxConnectionError,
@@ -386,12 +386,20 @@ def render_scene_editor() -> None:
                     else:
                         scene.phase = ""
                 with col_bgm:
-                    scene.bgm_path = bgm_selectbox(
-                        "このシーンのBGM", scene.bgm_path, key=f"scene_bgm_{scene.id}",
-                        inherit_label="(場面・全体の設定に従う)",
+                    mood_keys = [""] + bgm_library.MOOD_CHOICES
+                    scene.bgm_mood = st.selectbox(
+                        "BGMの雰囲気（ここから切り替え）", options=mood_keys,
+                        index=mood_keys.index(scene.bgm_mood) if scene.bgm_mood in mood_keys else 0,
+                        format_func=lambda k: bgm_library.MOOD_LABELS.get(k, "(前のシーンのまま)"),
+                        key=f"scene_bgm_mood_{scene.id}",
+                        help="このシーンから、BGMをこの雰囲気の曲に切り替えます（気分ごとの曲はサイドバーで変えられます）。",
                     )
-                    resolved_bgm = project.resolve_bgm_path(scene)
-                    st.caption(f"→ 流れる曲: {Path(resolved_bgm).stem if resolved_bgm else 'なし'}")
+                    scene.bgm_path = bgm_selectbox(
+                        "このシーンだけの曲", scene.bgm_path, key=f"scene_bgm_{scene.id}",
+                        inherit_label="(雰囲気・場面の設定に従う)",
+                    )
+                    resolved_bgm = bgm_library.scene_bgm_path(project, scene)
+                    st.caption(f"→ 流れる曲: {bgm_library.track_for_path(resolved_bgm).title if resolved_bgm else 'なし'}")
                 with col_se:
                     scene.se_path = se_selectbox("効果音（セリフの頭で鳴る）", scene.se_path, key=f"se_{scene.id}")
                     if scene.se_path and Path(scene.se_path).exists():

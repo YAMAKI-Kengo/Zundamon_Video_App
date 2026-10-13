@@ -20,6 +20,7 @@ from src.models import (
     VideoFormat,
 )
 from src.state import TAB_KEY, TABS, get_project, set_project
+from src.services import bgm_library, video_metadata
 from src.utils.asset_loader import ASSETS_DIR, is_video_path, list_bgm, list_se
 
 BGM_DIR = ASSETS_DIR / "bgm"
@@ -56,7 +57,7 @@ def bgm_selectbox(label: str, current: Optional[str], key: str, inherit_label: O
         labels[None] = "BGMなし"
     for path in list_bgm():
         options.append(str(path))
-        labels[str(path)] = f"{path.stem}"
+        labels[str(path)] = _bgm_label(path)
     if current not in options:  # assets/bgm/ 以外の場所にある曲が設定済みの場合も選択肢に残す
         options.append(current)
         labels[current] = f"{Path(current).stem}"
@@ -65,8 +66,49 @@ def bgm_selectbox(label: str, current: Optional[str], key: str, inherit_label: O
     )
 
 
+def _bgm_label(path: Path) -> str:
+    """選択肢の表示「〔気分〕曲名」（気分のフォルダの外の曲は曲名だけ）。"""
+    track = bgm_library.track_for_path(path)
+    mood = bgm_library.MOOD_LABELS.get(track.mood, "")
+    return f"〔{mood}〕{track.title}" if mood else track.title
+
+
+def _render_mood_bgm(project: Project) -> None:
+    """雰囲気ごとに流す曲（自動で選んだ曲を利用者が変えられる）。"""
+    st.markdown("**雰囲気ごとのBGM（自動選択）**")
+    st.caption(
+        "台本のセリフに書かれたBGMの雰囲気（楽しい・緊張・感動など）に合わせて、assets/bgm/ の気分ごとのフォルダから"
+        "曲を自動で選び、雰囲気が変わったところで切り替えます（短すぎる区間は前の曲のまま）。曲を変えたい雰囲気だけ選び直してください。"
+    )
+    if not bgm_library.uses_moods(project) and project.scenes:
+        st.caption("今の台本には雰囲気の指定がないため、下の「場面ごとのBGM」の設定で流れます。")
+    for mood in bgm_library.MOODS:
+        tracks = bgm_library.list_tracks(mood)
+        if not tracks:
+            continue
+        auto = bgm_library.auto_track(project, mood, use_choice=False)
+        options: list[Optional[str]] = [None, NO_BGM] + [str(t.path) for t in tracks]
+        labels = {None: f"自動（{Path(auto).stem if auto else 'なし'}）", NO_BGM: "BGMなし"}
+        labels.update({str(t.path): t.title for t in tracks})
+        current = project.mood_bgm.get(mood)
+        if current not in options:
+            current = None
+        picked = st.selectbox(
+            bgm_library.MOOD_LABELS[mood], options=options, index=options.index(current),
+            format_func=lambda v, labels=labels: labels[v], key=f"mood_bgm_{mood}",
+        )
+        if picked is None:
+            project.mood_bgm.pop(mood, None)
+        else:
+            project.mood_bgm[mood] = picked
+    used = video_metadata.used_bgm_paths(project) if project.scenes else []
+    if used:
+        st.caption("この動画で流れる曲: " + "、".join(bgm_library.track_for_path(p).title for p in used))
+
+
 def _render_bgm_section(project: Project) -> None:
     with st.sidebar.expander("BGM（背景音楽）", expanded=False):
+        _render_mood_bgm(project)
         uploaded_bgm = st.file_uploader(
             "BGMファイルをアップロード（mp3 / wav / m4a）",
             type=["mp3", "wav", "m4a"],
@@ -124,7 +166,8 @@ def _render_bgm_section(project: Project) -> None:
             max_value=1.0,
             value=float(project.bgm_volume),
             step=0.05,
-            help="ナレーションが聞き取りにくくならないよう、控えめな値がおすすめです（全ての曲に共通）。",
+            help="ナレーションが聞き取りにくくならないよう、控えめな値がおすすめです（全ての曲に共通）。"
+                 "曲ごとの録音の音量の違いは自動でそろえてから、この音量を掛けます。",
         )
 
 

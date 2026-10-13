@@ -20,8 +20,8 @@ MoviePyを用いた最終的な動画書き出し処理。
      "telop" 設定を反映する。改行はユーザーが読み上げテキスト内に入力した改行を尊重しつつ、
      画面幅に収まらない行はPillowでのフォント幅実測に基づき自動で折り返す。
 全シーンを結合したうえで、BGMをナレーション音声にミックスしてから1本のMP4として書き出す。
-BGMはシーンごとに「シーン個別 → 場面（導入/解説/まとめ）ごと → プロジェクト全体」の優先順で決まり
-（Project.resolve_bgm_path）、同じBGMが続くシーンを1区間にまとめて、区間ごとにループ/トリミング・
+BGMはシーンごとに「シーン個別 → 台本の雰囲気（気分のフォルダの曲） → 場面（導入/解説/まとめ）ごと →
+プロジェクト全体」の優先順で決まり（bgm_library.scene_bgm_paths）、曲ごとに音の大きさをそろえる。同じBGMが続くシーンを1区間にまとめて、区間ごとにループ/トリミング・
 指定音量(project.bgm_volume)を適用する。曲が切り替わる境界はクロスフェード、動画の頭・お尻と
 BGMなしの区間との境界はフェードイン/アウトにする（plan_bgm_segments / _build_bgm_clips）。
 書き出し時のエンコード速度（x264のpreset）は speed_preset 引数で選べる（ENCODE_PRESETS参照。
@@ -55,6 +55,7 @@ from moviepy import (
 
 from src.models import Project, Scene
 from src.services import (
+    bgm_library,
     background_video,
     book_script,
     hook_text,
@@ -609,15 +610,15 @@ class BgmSegment:
 
 
 def plan_bgm_segments(project: Project, scene_durations: list[float]) -> list[BgmSegment]:
-    """各シーンのBGM（Project.resolve_bgm_path）を求め、同じBGMが続くシーンを1区間にまとめる。
+    """各シーンのBGM（bgm_library.scene_bgm_paths。台本の雰囲気・場面の設定から決まる）を求め、
+    同じBGMが続くシーンを1区間にまとめる。
 
     BGMなしのシーンは区間に含めない（＝無音）。別の区間で同じ曲が再び使われた場合は、
     その区間の頭から曲をかけ直す。
     """
     segments: list[BgmSegment] = []
     t = 0.0
-    for scene, duration in zip(project.scenes, scene_durations):
-        path = project.resolve_bgm_path(scene)
+    for path, duration in zip(bgm_library.scene_bgm_paths(project, scene_durations), scene_durations):
         if path:
             if segments and segments[-1].path == path and abs(segments[-1].end - t) < 1e-6:
                 segments[-1].end = t + duration
@@ -676,7 +677,8 @@ def _build_bgm_segment_clip(
         edge_fade = min(BGM_EDGE_FADE_SECONDS, clip_duration / 4)
         fade_in = crossfade if prev_adjacent else edge_fade
         fade_out = crossfade if next_adjacent else edge_fade
-        effects = [afx.MultiplyVolume(max(0.0, min(1.0, volume)))]
+        # 曲ごとの録音の音量の違いをそろえてから、BGMの音量を掛ける（大きな曲でセリフが埋もれないように）
+        effects = [afx.MultiplyVolume(max(0.0, min(1.0, volume)) * bgm_library.loudness_gain(bgm_path))]
         if fade_in > 0:
             effects.append(afx.AudioFadeIn(fade_in))
         if fade_out > 0:
