@@ -73,6 +73,8 @@ class Track:
     source: str = ""        # 配布元の名前
     source_url: str = ""    # 曲の配布ページ（分かる場合だけ）
     license: str = ""       # 必要なライセンス表記（分かる場合だけ）
+    credit: str = ""        # 作曲者が指定しているクレジットの書き方（あれば、説明文にはこの文をそのまま載せる）
+    conditions: str = ""    # 作曲者独自の利用条件（メモ。説明文には載せない）
 
     @property
     def key(self) -> str:
@@ -114,6 +116,7 @@ def _all_tracks() -> list[Track]:
             title=str(info.get("title") or _title_from_filename(path)),
             artist=str(info.get("artist") or ""), source=str(info.get("source") or ""),
             source_url=str(info.get("source_url") or ""), license=str(info.get("license") or ""),
+            credit=str(info.get("credit") or ""), conditions=str(info.get("conditions") or ""),
         ))
     return tracks
 
@@ -152,6 +155,7 @@ def save_library(library: dict[str, dict]) -> None:
 LIBRARY_NOTE = (
     "BGMの曲情報。キーは assets/bgm/ からのファイルの場所。動画の説明文のクレジットには、その動画で実際に使った曲だけを、"
     "ここの title（曲名）・artist（作者）・source（配布元）・source_url（曲のページ）・license（必要なライセンス表記）で載せる。"
+    "credit があれば（作曲者が表記の仕方を指定している曲）、その文をそのまま載せる。conditions は作曲者独自の利用条件のメモ（説明文には載せない）。"
     "新しい曲を置くと、曲ファイルのタグから曲名・作者を読んで自動で追記する（info_from に情報の出どころ）。"
     "分からない項目は空のままにし、推測で埋めないこと（artist が空の曲は、説明文に「作者名未登録」と出る）。"
 )
@@ -395,7 +399,11 @@ def credit_lines(paths: list[str]) -> tuple[list[str], list[str]]:
     missing: list[str] = []
     for path in paths:
         track = track_for_path(path)
-        if track.artist:
+        if track.credit:
+            line = f"　{track.credit}"  # 作曲者が指定した書き方をそのまま載せる
+            if line in groups.get(track.source, []):
+                continue  # 同じ作曲者の曲を2曲使っても、指定の表記は1回だけ
+        elif track.artist:
             line = f"　{track.title} / {track.artist}" + ("" if track.artist.endswith("様") else " 様")
         else:
             line = f"　{track.title}（作者名未登録）"
