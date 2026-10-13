@@ -250,9 +250,9 @@ def _research_title_candidates(project: Project) -> list[str]:
     points_part = f"{n_points}つのポイント" if n_points else "要点"
     minutes = max(1, math.ceil(project.total_duration / 60))
     template = [
-        f"研究で判明！{topic}の{points_part}",
+        f"{topic}、実際やったらどうなる？",
         f"{topic}で失敗する人の共通点",
-        f"{minutes}分で分かる{topic}｜研究データで解説",
+        f"{minutes}分で分かる{topic}の結論",
     ]
     return _dedupe(ai + [_fit(t) for t in template])
 

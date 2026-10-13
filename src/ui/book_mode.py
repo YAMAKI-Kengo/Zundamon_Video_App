@@ -359,6 +359,8 @@ def _render_analysis_preview(analysis_text: str) -> None:
     title = analysis.get("book_title") or "（タイトル不明）"
     author = f"／{analysis['author']}" if analysis.get("author") else ""
     st.markdown(f"**{title}{author}**　{analysis.get('one_line_summary', '')}")
+    if analysis.get("answer"):
+        st.markdown(f"**問いへの答え**　{analysis['answer']}")
     if analysis.get("source_kind") == "research":
         report = st.session_state.get("ai_research_report", "")
         sources = analysis.get("sources") or []

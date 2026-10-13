@@ -1408,14 +1408,14 @@ SAMPLE_BOOK_SCRIPT = {
             "lines": [
                 {"speaker": "shikoku_metan", "expression": "angry", "text": "そんなんじゃだめよ。", "se": "ビシッとツッコミ2"},
                 {"speaker": "zundamon", "expression": "surprised", "text": "どうしてなのだ？長く寝ればいいはずなのだ！"},
-                {"speaker": "shikoku_metan", "expression": "normal", "text": "なぜ失敗したのかと、どうすればぐっすり眠れるのかに分けて話すわ。"},
-                {"speaker": "shikoku_metan", "expression": "happy", "text": "今日は『ぐっすり眠るための科学』で教えてあげるわ。", "se": "ジャジャーン", "show_book": True},
+                {"speaker": "shikoku_metan", "expression": "normal", "text": "このままだと、あんた毎晩ゴロゴロ地獄よ。でも、ある方法で一発で変わるわ。"},
+                {"speaker": "shikoku_metan", "expression": "happy", "text": "今日は『ぐっすり眠るための科学』を参考にするわ。", "se": "ジャジャーン", "show_book": True},
             ],
         },
         {
             "section": "explain", "phase": "why",
             "slide": {
-                "title": "失敗の理由1：時間だけ気にしていた",
+                "title": "なぜ2時間も寝つけなかった？",
                 "bullets": [
                     "眠くないのに布団に入っても**寝つけない**",
                     "大事なのは長さより**眠りの質**",
@@ -1423,7 +1423,7 @@ SAMPLE_BOOK_SCRIPT = {
                 ],
             },
             "lines": [
-                {"speaker": "shikoku_metan", "expression": "normal", "text": "まずは、なぜ失敗したのか見ていくわよ。", "se": "学校のチャイム", "board": False},
+                {"speaker": "shikoku_metan", "expression": "normal", "text": "まずは、あんたの3日間を振り返るわよ。", "se": "学校のチャイム", "board": False},
                 {"speaker": "shikoku_metan", "expression": "normal", "text": "あんた、眠くないのに早く布団に入ったでしょ。", "board": True},
                 {"speaker": "zundamon", "expression": "troubled", "text": "早く寝れば長く眠れると思ったのだ…", "board": True},
                 {"speaker": "shikoku_metan", "expression": "normal", "text": "この本によると、大事なのは長さより質なのよ。", "board": True},
@@ -1432,14 +1432,14 @@ SAMPLE_BOOK_SCRIPT = {
         {
             "section": "explain", "phase": "how",
             "slide": {
-                "title": "成功のコツ1：眠り始めを深くする",
+                "title": "眠り始めが一晩でいちばん深い",
                 "bullets": [
                     "寝入ってすぐに**一晩でいちばん深い眠り**が来る",
                     "この時間の質で翌朝のすっきり感が決まる",
                 ],
             },
             "lines": [
-                {"speaker": "shikoku_metan", "expression": "happy", "text": "じゃあ、どうすればぐっすり眠れるのか教えてあげるわ。", "se": "シーン切り替え1", "board": False},
+                {"speaker": "shikoku_metan", "expression": "happy", "text": "じゃあ、ぐっすり眠れる人は何をしてるのか見てみましょう。", "se": "シーン切り替え1", "board": False},
                 {"speaker": "shikoku_metan", "expression": "normal", "text": "寝入ってすぐに、いちばん深い眠りが来るのよ。", "board": True},
                 {"speaker": "zundamon", "expression": "surprised", "text": "じゃあ最初だけ寝ればいいのだ！", "se": "ボヨヨーン", "board": True},
                 {"speaker": "shikoku_metan", "expression": "angry", "text": "そういう意味じゃないわよ！", "se": "ビシッとツッコミ2", "board": False},
@@ -1448,7 +1448,7 @@ SAMPLE_BOOK_SCRIPT = {
         {
             "section": "explain", "phase": "how",
             "slide": {
-                "title": "成功のコツ2：体温を味方につける",
+                "title": "お風呂は寝る1〜2時間前",
                 "bullets": [
                     "寝る**1〜2時間前**にお風呂に入る",
                     "上がった体温が下がるときに自然と眠くなる",
@@ -1464,13 +1464,13 @@ SAMPLE_BOOK_SCRIPT = {
         },
         {
             "section": "summary",
-            "slide": {"title": "まとめ", "numbered": True, "bullets": [
-                "失敗の理由：眠くないのに長く寝ようとした",
-                "コツ：眠り始めの深い眠りを大事にする",
-                "コツ：お風呂は寝る1〜2時間前に済ませる",
+            "slide": {"title": "結論", "numbered": True, "bullets": [
+                "眠くないのに長く寝ようとすると逆効果",
+                "大事なのは長さより眠り始めの深さ",
+                "お風呂は寝る1〜2時間前に済ませる",
             ]},
             "lines": [
-                {"speaker": "shikoku_metan", "expression": "happy", "text": "今日のポイント、いくつ言えるかしら？", "se": "パパッ",
+                {"speaker": "shikoku_metan", "expression": "happy", "text": "結論。長く寝るより、眠り始めを深くするのが正解よ。", "se": "パパッ",
                  "board": False},
                 {"speaker": "zundamon", "expression": "happy", "text": "今夜はお風呂に入って、眠くなってから寝るのだ！"},
                 {"speaker": "shikoku_metan", "expression": "normal", "text": "8時間寝る作戦はどうしたのよ。"},
