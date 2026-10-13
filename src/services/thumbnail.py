@@ -767,7 +767,7 @@ def default_spec(project: Project) -> dict:
             # 大きな一言とは別の角度のメリット（シリーズ名や Day の番号は入れない。文字の要素を増やさないため）
             spec["sub"] = ""
         elif project.source_kind == "research":
-            spec["sub"] = "研究で解説"
+            spec["sub"] = "ずんだもん解説"
         else:
             spec["sub"] = "本要約"
     if project.source_kind == "english":
