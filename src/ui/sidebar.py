@@ -50,23 +50,23 @@ def bgm_selectbox(label: str, current: Optional[str], key: str, inherit_label: O
         options.append(None)
         labels[None] = inherit_label
         options.append(NO_BGM)
-        labels[NO_BGM] = "🔇 BGMなし"
+        labels[NO_BGM] = "BGMなし"
     else:
         options.append(None)
-        labels[None] = "🔇 BGMなし"
+        labels[None] = "BGMなし"
     for path in list_bgm():
         options.append(str(path))
-        labels[str(path)] = f"🎵 {path.stem}"
+        labels[str(path)] = f"{path.stem}"
     if current not in options:  # assets/bgm/ 以外の場所にある曲が設定済みの場合も選択肢に残す
         options.append(current)
-        labels[current] = f"🎵 {Path(current).stem}"
+        labels[current] = f"{Path(current).stem}"
     return st.selectbox(
         label, options=options, index=options.index(current), format_func=lambda v: labels[v], key=key, help=help or None
     )
 
 
 def _render_bgm_section(project: Project) -> None:
-    with st.sidebar.expander("🎵 BGM（背景音楽）", expanded=False):
+    with st.sidebar.expander("BGM（背景音楽）", expanded=False):
         uploaded_bgm = st.file_uploader(
             "BGMファイルをアップロード（mp3 / wav / m4a）",
             type=["mp3", "wav", "m4a"],
@@ -135,12 +135,12 @@ def se_selectbox(label: str, current: Optional[str], key: str) -> Optional[str]:
         options.append(current)
     return st.selectbox(
         label, options=options, index=options.index(current), key=key,
-        format_func=lambda v: "（なし）" if v is None else f"🔔 {Path(v).stem}",
+        format_func=lambda v: "（なし）" if v is None else f"{Path(v).stem}",
     )
 
 
 def _render_se_section(project: Project) -> None:
-    with st.sidebar.expander("🔔 効果音", expanded=False):
+    with st.sidebar.expander("効果音", expanded=False):
         st.caption(
             "シーン編集で各シーンに効果音を設定すると、そのセリフの頭で鳴ります。"
             "台本JSONでは各セリフに \"se\": \"きらーん1\" のように名前で指定できます。"
@@ -161,7 +161,7 @@ def _render_se_section(project: Project) -> None:
             st.caption("使える効果音: " + "、".join(names))
         else:
             st.info("効果音がまだありません。基本セット（ポン・キラーン・ドン など）を作成できます。")
-            if st.button("🎛 基本の効果音セットを作成", width="stretch", key="se_generate"):
+            if st.button("基本の効果音セットを作成", width="stretch", key="se_generate"):
                 from scripts import generate_sound_effects
 
                 generate_sound_effects.main()
@@ -173,9 +173,9 @@ def _render_se_section(project: Project) -> None:
 
 
 def _render_motion_section(project: Project) -> None:
-    with st.sidebar.expander("🎞 動き・演出", expanded=False):
+    with st.sidebar.expander("動き・演出", expanded=False):
         st.caption(
-            "各シーンの動きを「自動」にしている場合の演出です。シーン編集の「🎥 動き」で1シーンずつ変更もできます。"
+            "各シーンの動きを「自動」にしている場合の演出です。シーン編集の「動き」で1シーンずつ変更もできます。"
             "動きのあるシーンは1コマずつ合成するため、書き出しに時間がかかるようになります。"
         )
         project.auto_camera = st.checkbox(
@@ -189,7 +189,7 @@ def _render_motion_section(project: Project) -> None:
             "話している方がゆらゆら揺れる（呼吸）", value=project.char_bob, key="motion_char_bob",
         )
         project.auto_jump = st.checkbox(
-            "喜び・驚きの表情になったときにぴょんと跳ねる", value=project.auto_jump, key="motion_auto_jump",
+            "表情に合わせて体を動かす（喜びで跳ねる・焦りで走り回る・落ち込みで沈む など）", value=project.auto_jump, key="motion_auto_jump",
         )
         project.char_slide_in = st.checkbox(
             "非表示だったキャラクターが横から入ってくる", value=project.char_slide_in, key="motion_char_slide_in",
@@ -205,14 +205,14 @@ def _render_motion_section(project: Project) -> None:
 def _render_illustration_section() -> None:
     from src.utils.asset_loader import ILLUSTRATION_DIR, list_illustrations
 
-    with st.sidebar.expander("🖼 イラスト素材", expanded=False):
+    with st.sidebar.expander("イラスト素材", expanded=False):
         st.caption(
             "assets/illustrations/ に置いたイラストを、Claudeが台本の内容に合わせてシーンごとに選び、"
             "画面中央に大きく表示します。ファイル名で何の絵か分かるようにしておくと選ばれやすくなります"
             "（例: 眠れない男の子.png、お風呂.png）。フォルダ分けしてもかまいません。"
         )
         st.caption(
-            "⚠️ いらすとや等の素材は各サイトの利用規約を確認してください（いらすとやは商用利用の場合、"
+            "いらすとや等の素材は各サイトの利用規約を確認してください（いらすとやは商用利用の場合、"
             "1つの作品に使えるのは20点までです。台本の自動生成では1本20種類までに抑えています）。"
         )
         uploaded = st.file_uploader(
@@ -236,7 +236,7 @@ def _save_uploaded_common_background(uploaded_file) -> str:
 
 
 def _render_common_background_section(project: Project) -> None:
-    with st.sidebar.expander("🖼 共通の背景画像", expanded=False):
+    with st.sidebar.expander("共通の背景画像", expanded=False):
         st.caption(
             "全シーンで共通して使う背景（画像/動画）です。シーンごとに個別の背景を"
             "設定した場合は、そのシーンでは個別の背景が優先されます。"
@@ -279,7 +279,7 @@ def _render_common_background_section(project: Project) -> None:
                 st.caption(f"設定中の共通背景（動画）: {label}")
             else:
                 st.caption(f"設定中の共通背景（画像）: {label}")
-            if st.button("🗑 共通の背景を削除", width="stretch"):
+            if st.button(":material/delete: 共通の背景を削除", width="stretch"):
                 project.common_background_path = None
                 st.rerun()
         else:
@@ -287,7 +287,7 @@ def _render_common_background_section(project: Project) -> None:
 
 
 def _render_chapter_label_section(project: Project) -> None:
-    with st.sidebar.expander("📑 左上の目次ラベル", expanded=False):
+    with st.sidebar.expander("左上の目次ラベル", expanded=False):
         st.caption(
             "いま何の話をしているかが分かるよう、説明文の目次と同じ見出し（「失敗の理由1：〜」など）を"
             "画面左上に常に表示します。ショート動画とエンディングには出ません。"
@@ -298,7 +298,7 @@ def _render_chapter_label_section(project: Project) -> None:
 
 
 def _render_pr_label_section(project: Project) -> None:
-    with st.sidebar.expander("📢 PR/広告表記", expanded=False):
+    with st.sidebar.expander("PR/広告表記", expanded=False):
         st.caption(
             "アフィリエイト・PR案件の動画で、広告であることを示すバッジを動画全体に常時表示します"
             "（2023年10月施行のステマ規制対応。画面右上に固定表示され、シーンごとにON/OFFはできません）。"
@@ -323,7 +323,7 @@ def _render_reading_check(project: Project) -> None:
 
     if not project.scenes:
         return
-    if not st.button("🔍 台本の読み間違いを自動チェック", width="stretch", key="reading_check",
+    if not st.button("台本の読み間違いを自動チェック", width="stretch", key="reading_check",
                      help="VOICEVOXが実際にどう読むかを調べ、Claudeに読み間違いを探させて読み方辞書に追加します"
                           "（VOICEVOXの起動とClaude APIのキーが必要です。費用は1回数円程度）。"):
         return
@@ -339,11 +339,11 @@ def _render_reading_check(project: Project) -> None:
                    + "、".join(f"{c['word']}→{c['reading']}" for c in result.added[:10]))
     else:
         st.info(f"読み間違いは見つかりませんでした（{result.checked_lines}セリフを確認）。")
-    st.caption(f"💰 約${result.cost_usd:.3f}")
+    st.caption(f"約${result.cost_usd:.3f}")
 
 
 def _render_reading_dict_section(project: Project) -> None:
-    with st.sidebar.expander("🗣 話す速さ・読み方辞書", expanded=False):
+    with st.sidebar.expander("話す速さ・読み方辞書", expanded=False):
         project.speech_speed = st.slider(
             "話す速さ", min_value=0.8, max_value=1.6, value=float(project.speech_speed), step=0.05,
             key="speech_speed", format="x%.2f",
@@ -356,7 +356,7 @@ def _render_reading_dict_section(project: Project) -> None:
             "登録すると、テロップの表示はそのままに、読み上げ音声だけ登録した読みに置き換わります。"
         )
         st.caption(
-            "⚠️ 単純な文字列の置換のため、「人」のように1文字だけ登録すると「日本人」などの"
+            "単純な文字列の置換のため、「人」のように1文字だけ登録すると「日本人」などの"
             "一部まで置き換わってしまうことがあります。実際に誤読された単語・フレーズ単位"
             "（例:「二人」→「ふたり」）で登録するのがおすすめです。"
         )
@@ -382,12 +382,12 @@ def _render_reading_dict_section(project: Project) -> None:
 
 
 def _render_project_io_section(project: Project) -> None:
-    with st.sidebar.expander("💾 プロジェクトの保存・読み込み", expanded=False):
+    with st.sidebar.expander("プロジェクトの保存・読み込み", expanded=False):
         st.caption("作業内容（シーン・テキスト・BGM設定など）をファイルに保存し、あとで続きから再開できます。")
 
         project_json = json.dumps(project.to_dict(), ensure_ascii=False, indent=2)
         st.download_button(
-            "💾 プロジェクトを保存 (.json)",
+            ":material/save: プロジェクトを保存 (.json)",
             data=project_json.encode("utf-8"),
             file_name=f"{project.name or 'project'}.json",
             mime="application/json",
@@ -400,7 +400,7 @@ def _render_project_io_section(project: Project) -> None:
             key="project_json_uploader",
         )
         if uploaded_project is not None:
-            if st.button("📂 このプロジェクトを読み込む（現在の内容は上書きされます）", width="stretch"):
+            if st.button("このプロジェクトを読み込む（現在の内容は上書きされます）", width="stretch"):
                 try:
                     data = json.loads(uploaded_project.getvalue().decode("utf-8"))
                     new_project = Project.from_dict(data)
@@ -415,7 +415,7 @@ def _render_project_io_section(project: Project) -> None:
 def render_sidebar() -> None:
     project = get_project()
 
-    st.sidebar.header("プロジェクト設定")
+    st.sidebar.header("設定")
     project.name = st.sidebar.text_input("プロジェクト名", value=project.name)
 
     format_options = list(VideoFormat)
@@ -429,27 +429,27 @@ def render_sidebar() -> None:
         help="横画面(1920x1080) / 縦画面(1080x1920) を切り替えます",
     )
     project.format = format_options[labels.index(selected_label)]
+    _render_project_io_section(project)
 
-    st.sidebar.caption(f"解像度: {project.resolution[0]} x {project.resolution[1]}")
-
+    # 似た設定ごとに見出しを付けてまとめる（探しやすくするため）
+    st.sidebar.caption("映像")
     _render_common_background_section(project)
-    _render_chapter_label_section(project)
-    _render_pr_label_section(project)
+    _render_motion_section(project)
+    _render_illustration_section()
+    st.sidebar.caption("音声・音楽")
     _render_reading_dict_section(project)
     _render_bgm_section(project)
     _render_se_section(project)
-    _render_motion_section(project)
-    _render_illustration_section()
-    _render_project_io_section(project)
+    st.sidebar.caption("画面に出す表示")
+    _render_chapter_label_section(project)
+    _render_pr_label_section(project)
 
     st.sidebar.divider()
-    st.sidebar.subheader(f"シーン一覧（{len(project.scenes)}件）")
-    if not project.scenes:
-        st.sidebar.caption("シーンがありません。下の「+ シーンを追加」から作成してください。")
-    else:
+    with st.sidebar.expander(f"シーン一覧（{len(project.scenes)}件）", expanded=False):
+        if not project.scenes:
+            st.caption("シーンがありません。「シーン編集」タブで追加できます。")
         for i, scene in enumerate(project.scenes):
             preview_text = scene.text[:14] + ("…" if len(scene.text) > 14 else "")
-            st.sidebar.caption(f"{i + 1}. [{scene.speaker}] {preview_text or '(未入力)'} / {scene.duration:.1f}秒")
+            st.caption(f"{i + 1}. [{scene.speaker}] {preview_text or '(未入力)'} / {scene.duration:.1f}秒")
 
-    st.sidebar.divider()
     st.sidebar.metric("合計尺（目安）", f"{project.total_duration:.1f} 秒")

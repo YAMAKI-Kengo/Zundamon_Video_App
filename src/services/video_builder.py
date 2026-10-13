@@ -411,7 +411,8 @@ def _build_scene_clip(
     common_background_path はプロジェクト全体の共通背景。シーン自身に背景が
     設定されていればそちらを優先し、未設定の場合のみ共通背景を使う。
     """
-    speech_speed = project.speech_speed if project is not None else voicevox_client.DEFAULT_SPEECH_SPEED
+    speech_speed = book_script.effective_speech_speed(project) if project is not None \
+        else voicevox_client.DEFAULT_SPEECH_SPEED
     label = f"シーン{scene_index + 1}"
     effective_background_path = background_override or scene.background_path or common_background_path
 

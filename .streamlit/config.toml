@@ -1,0 +1,43 @@
+# 画面の見た目（配色・文字・角の丸み）。ライト/ダークは、パソコンの設定に合わせて自動で切り替わる。
+# 配布版（packaging/launcher.py）も、このファイルを読んで同じ見た目にする。
+
+[theme]
+font = "'Noto Sans JP', 'Yu Gothic UI', 'Hiragino Sans', 'Meiryo', sans-serif"
+headingFont = "'Noto Sans JP', 'Yu Gothic UI', 'Hiragino Sans', 'Meiryo', sans-serif"
+headingFontWeights = [700, 700, 600, 600, 600, 600]
+baseFontSize = 15
+baseRadius = "10px"
+buttonRadius = "8px"
+showWidgetBorder = true
+showSidebarBorder = true
+linkUnderline = false
+
+[theme.light]
+primaryColor = "#2F9E5B"
+backgroundColor = "#F6F7F9"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1C2430"
+borderColor = "#DDE2E8"
+linkColor = "#1F7A45"
+codeBackgroundColor = "#EEF1F4"
+dataframeHeaderBackgroundColor = "#EEF1F4"
+
+[theme.light.sidebar]
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F6F7F9"
+borderColor = "#E3E7EC"
+
+[theme.dark]
+primaryColor = "#3FB872"
+backgroundColor = "#0F1216"
+secondaryBackgroundColor = "#181C22"
+textColor = "#E6E9ED"
+borderColor = "#2A3038"
+linkColor = "#5FD08F"
+codeBackgroundColor = "#14181D"
+dataframeHeaderBackgroundColor = "#1D2229"
+
+[theme.dark.sidebar]
+backgroundColor = "#13171C"
+secondaryBackgroundColor = "#181C22"
+borderColor = "#2A3038"

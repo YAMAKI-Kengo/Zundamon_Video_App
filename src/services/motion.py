@@ -8,9 +8,14 @@
   2. 黒板/資料メディア … 黒板の内容が前のシーンから変わったときは切り替えアニメーション
                          （スライド/フェード/ワイプ）、同じ黒板に箇条書きが増えたときは
                          増えた行が左から書かれていくアニメーション
-  3. 立ち絵 … 話者の呼吸（ゆらゆら）・跳ねる動き、非表示から表示に変わったキャラクターの登場（横から入る）
+  3. 立ち絵 … 話者の呼吸（ゆらゆら）・跳ねる動き・セリフの気持ちに合わせた動き（慌てて走り回る・のけぞる・
+               しょんぼり沈む・ツッコミで詰め寄る など。CHAR_MOTION_LABELS）、非表示から表示に変わった
+               キャラクターの登場（横から歩いて入る）と、表示から非表示に変わったキャラクターの退場（横へ出ていく）
   4. カメラ … 話者へのアップ（パッと/ゆっくり）・全体のゆっくりズームイン・画面の揺れ
                （背景〜立ち絵をまとめて拡大/移動する。字幕・見出し・PR表記は動かさないよう後から重ねる）
+
+場所（背景）が変わるシーンは、背景が横に流れて新しい場所に移り、キャラクターが横から歩いて入ってくる
+（急に別の場所へ切り替わって見えないように）。
 
 各シーンの動きは Scene.camera / shake / char_motion で指定する。"auto" の場合は Project の自動演出の
 設定（auto_camera 等）と、表情・効果音・場面から自動で決める（resolve_* 関数）。
@@ -30,7 +35,9 @@ from src.models import Project, Scene
 from src.services import slide_renderer
 from src.utils.asset_loader import is_video_path, load_se_guide
 from src.services.compositor import (
+    _partner_expression,
     character_side,
+    character_sprite,
     dual_character_sprites,
     load_content_media_image,
     guest_on_screen,
@@ -40,6 +47,12 @@ from src.services.compositor import (
 # --- 自動演出のルール ---
 ZOOM_EXPRESSIONS = {"surprised", "shock", "excited", "angry", "cry", "idea"}   # 話者にパッとアップする表情
 JUMP_EXPRESSIONS = {"happy", "surprised", "excited"}                          # ぴょんと跳ねる表情
+# 自動のとき、表情から決める動き（表情が変わった瞬間だけ。しょんぼりは同じ表情が続く間ずっと沈んだまま）
+AUTO_ACTIONS = {
+    "panic": "panic", "shock": "recoil", "excited": "hop", "cry": "shiver", "angry": "lunge",
+    "gloomy": "slump", "sad": "slump",
+}
+ACTIONS = {"hop", "panic", "recoil", "shiver", "slump", "lunge", "tsukkomi", "nod"}  # 体を動かす動き
 # 画面を揺らす効果音は config/se_guide.json の "shake": true で指定する（旧版の基本セットの名前も残す）
 LEGACY_SHAKE_SE_NAMES = {"ガーン", "ドン"}
 SHAKE_EXPRESSIONS = {"shock"}                                                  # 画面を揺らす表情
@@ -60,8 +73,26 @@ ENTER_SECONDS = 0.45                             # 横から入ってくる時�
 TRANSITION_SECONDS = 0.5                         # 黒板の切り替え時間
 POP_SECONDS = 0.35                               # 画像（本の表紙など）がポンと現れる時間
 FADE_SECONDS = 0.25                              # 黒板がふわっと現れる・消えるときのフェード時間
-BACKGROUND_FADE_SECONDS = 0.6                    # 背景（場所）が変わるとき、前の背景から切り替わる時間
 WRITE_SECONDS = 0.8                              # 箇条書き1行を書き足す時間（シーンが短いときは半分まで）
+EXIT_SECONDS = 0.4                               # 横へ出ていく時間
+STEP_SECONDS = 0.16                              # 歩いて入ってくるときの1歩の時間
+STEP_HEIGHT_RATIO = 0.012                        # 1歩ごとの上下の幅（画面高さに対する比率）
+MOVE_SECONDS = 0.7                               # 場所が変わるとき、背景が横に流れて新しい場所に移る時間
+# 体を動かす動きの大きさ・速さ（幅は画面幅、高さは画面高さに対する比率）
+PANIC_DISTANCE_RATIO = 0.13                      # 慌てて走り回る幅（定位置から画面の内側へ）
+PANIC_LAP_SECONDS = 0.8                          # 1往復の時間
+PANIC_MAX_SECONDS = 2.4                          # 走り回る長さ（長いセリフでもこれ以上は走らない）
+HOP_SECONDS = 0.3                                # はしゃぐときの1回の跳ねる時間
+HOP_COUNT = 3
+HOP_HEIGHT_RATIO = 0.03
+RECOIL_DISTANCE_RATIO = 0.05                     # のけぞる幅（画面の外側へ）
+LUNGE_DISTANCE_RATIO = 0.07                      # 詰め寄る幅（画面の内側へ）
+TSUKKOMI_DISTANCE_RATIO = 0.09
+SHIVER_AMPLITUDE_RATIO = 0.004
+SLUMP_DEPTH_RATIO = 0.08                         # しょんぼり沈む深さ
+SLUMP_SECONDS = 0.35
+NOD_SECONDS = 0.28                               # うなずき1回の時間（2回うなずく）
+NOD_DEPTH_RATIO = 0.012
 
 
 def _ease(p: float) -> float:
@@ -82,6 +113,20 @@ def _ease_out(p: float) -> float:
     return 1 - (1 - p) ** 3
 
 
+def _ease_in(p: float) -> float:
+    p = min(1.0, max(0.0, p))
+    return p ** 3
+
+
+def _pulse(t: float, attack: float, hold: float, release: float) -> float:
+    """素早く動いて（attack）、少し止まって（hold）、ゆっくり戻る（release）動きの量（0→1→0）。"""
+    if t < attack:
+        return _ease_out(t / attack)
+    if t < attack + hold:
+        return 1.0
+    return 1.0 - _ease((t - attack - hold) / release)
+
+
 # ---------------------------------------------------------------------------
 # 各シーンの動きの決定（"auto" の解決）
 # ---------------------------------------------------------------------------
@@ -92,6 +137,7 @@ class SceneContext:
     prev: Optional[Scene]
     block_offset: float     # 同じ黒板（ブロック）が始まってから、このシーンの開始までの秒数
     block_duration: float   # 同じ黒板（ブロック）全体の秒数
+    next: Optional[Scene] = None
 
 
 def build_contexts(scenes: list[Scene], durations: Optional[list[float]] = None) -> list[SceneContext]:
@@ -111,7 +157,8 @@ def build_contexts(scenes: list[Scene], durations: Optional[list[float]] = None)
         total = sum(durations[i] for i in block)
         offset = 0.0
         for i in block:
-            contexts[i] = SceneContext(scenes[i - 1] if i else None, offset, max(total, 1e-3))
+            contexts[i] = SceneContext(scenes[i - 1] if i else None, offset, max(total, 1e-3),
+                                       scenes[i + 1] if i + 1 < len(scenes) else None)
             offset += durations[i]
     return contexts  # type: ignore[return-value]
 
@@ -123,8 +170,10 @@ def _speaker_visible(scene: Scene) -> bool:
 def resolve_camera(project: Project, scene: Scene) -> str:
     mode = scene.camera or "auto"
     if mode == "auto":
-        if not project.auto_camera or scene.section == "ending":
-            mode = "none"
+        body_action = scene.char_motion in ACTIONS or (
+            scene.char_motion in ("", "auto") and project.auto_jump and scene.expression in AUTO_ACTIONS)
+        if not project.auto_camera or scene.section == "ending" or body_action:
+            mode = "none"  # 体を動かすシーンは、動き（と相手の反応）が見えるよう寄らない
         elif scene.expression in ZOOM_EXPRESSIONS and scene.text.strip():
             mode = "zoom_speaker"
         elif scene.section == "explain" and scene.has_slide:
@@ -147,27 +196,45 @@ def resolve_shake(project: Project, scene: Scene) -> bool:
 
 
 def resolve_char_motion(project: Project, scene: Scene, prev: Optional[Scene] = None) -> set[str]:
-    """話者の動き（"bob" / "jump" の集合）。話者が非表示・セリフが無いシーンでは動かさない。
+    """話者の動き（"bob" / "jump" と、体を動かす動き ACTIONS のどれか1つの集合）。話者が非表示・セリフが無いシーンでは動かさない。
 
-    自動の「ぴょん」は、喜び・驚き系の表情になった瞬間（話者が交代した・表情が変わった）だけにする
-    （同じ話者が同じ表情で話し続ける間に毎回跳ねると、しつこく見えるため）。
+    自動の動きは、表情が変わった瞬間（話者が交代した・表情が変わった）だけにする（同じ話者が同じ表情で話し続ける
+    間に毎回跳ねると、しつこく見えるため）。しょんぼり沈む動きだけは、同じ表情が続く間ずっと沈んだままにする。
     """
     if not _speaker_visible(scene) or not scene.text.strip():
         return set()
     mode = scene.char_motion or "auto"
     if mode == "none":
         return set()
+    bob = {"bob"} if project.char_bob else set()
     if mode == "bob":
         return {"bob"}
-    if mode == "jump":
-        return {"jump", "bob"} if project.char_bob else {"jump"}
-    motions = set()
-    if project.char_bob:
-        motions.add("bob")
+    if mode == "jump" or mode in ACTIONS:
+        return {mode} | (bob if mode in ("jump", "slump", "nod") else set())
+    motions = set(bob)
     expression_changed = prev is None or prev.speaker != scene.speaker or prev.expression != scene.expression
-    if project.auto_jump and scene.expression in JUMP_EXPRESSIONS and expression_changed:
-        motions.add("jump")
+    if project.auto_jump:
+        action = AUTO_ACTIONS.get(scene.expression)
+        if action == "slump" or (action and expression_changed):
+            motions = {action} | (bob if action == "slump" else set())
+        elif scene.expression in JUMP_EXPRESSIONS and expression_changed:
+            motions.add("jump")
     return motions
+
+
+def _action(project: Project, scene: Optional[Scene], prev: Optional[Scene] = None) -> str:
+    """シーンの話者の体を動かす動き（無ければ空文字）。"""
+    if scene is None:
+        return ""
+    return next(iter(resolve_char_motion(project, scene, prev) & ACTIONS), "")
+
+
+def reacting_partner(project: Project, scene: Scene, prev: Optional[Scene] = None) -> Optional[str]:
+    """ツッコミを受けてのけぞる相手（画面にいる、話者以外のメインのキャラクター）。"""
+    if _action(project, scene, prev) != "tsukkomi":
+        return None
+    visible = [c for c in ("zundamon", "shikoku_metan") if c != scene.speaker and c not in scene.render_hidden]
+    return visible[0] if visible else None
 
 
 def entering_characters(project: Project, scene: Scene, prev: Optional[Scene]) -> set[str]:
@@ -175,6 +242,13 @@ def entering_characters(project: Project, scene: Scene, prev: Optional[Scene]) -
     if not project.char_slide_in or prev is None:
         return set()
     return set(prev.render_hidden) - set(scene.render_hidden)
+
+
+def leaving_characters(project: Project, scene: Scene, prev: Optional[Scene]) -> set[str]:
+    """前のシーンでは表示していて、このシーンから非表示になるキャラクター（横へ出ていく。急に消えないように）。"""
+    if not project.char_slide_in or prev is None or prev.card_text.strip():
+        return set()
+    return set(scene.render_hidden) - set(prev.render_hidden)
 
 
 def _board_key(scene: Scene):
@@ -226,6 +300,7 @@ def needs_motion(project: Project, scene: Scene, ctx: SceneContext) -> bool:
         or resolve_shake(project, scene)
         or bool(resolve_char_motion(project, scene, ctx.prev))
         or bool(entering_characters(project, scene, ctx.prev))
+        or bool(leaving_characters(project, scene, ctx.prev))
         or board_change(project, scene, ctx.prev) is not None
     )
 
@@ -294,8 +369,8 @@ def build_motion_clip(
 ) -> VideoClip:
     """動き付きのシーン映像（字幕・見出しは含まない）を作る。background は画面サイズの静止画。
 
-    background_before を渡すと（前のシーンと背景の場所が違うとき）、シーンの最初に前の背景から
-    ふわっと切り替える（急に場所が変わって見えないように）。
+    background_before を渡すと（前のシーンと背景の場所が違うとき）、シーンの最初に背景が横に流れて新しい場所に
+    移り、キャラクターが横から歩いて入ってくる（急に場所が変わって見えないように）。部屋に戻るときは逆向きに流れる。
     """
     width, height = resolution
     is_portrait = height > width
@@ -303,7 +378,8 @@ def build_motion_clip(
     bg_before = background_before.convert("RGB") if background_before is not None else None
     if bg_before is not None and bg_before.size != bg.size:
         bg_before = bg_before.resize(bg.size)
-    bg_fade = min(BACKGROUND_FADE_SECONDS, duration * 0.5)
+    move_seconds = min(MOVE_SECONDS, duration * 0.5)
+    move_direction = -1 if not scene.background_path else 1  # 部屋に戻るとき（場所の指定なし）は逆向きに流れる
 
     # --- 黒板 ---
     board_now = _load_board(scene, resolution)
@@ -331,7 +407,23 @@ def build_motion_clip(
         scene.speaker, scene.expression, resolution, scene.render_hidden, scene.partner_expression
     )
     motions = resolve_char_motion(project, scene, ctx.prev)
+    action = next(iter(motions & ACTIONS), "")
     entering = entering_characters(project, scene, ctx.prev) & set(sprites)
+    if bg_before is not None and project.char_slide_in:
+        entering = set(sprites)  # 新しい場所へ: みんなで歩いて入ってくる
+    partner = reacting_partner(project, scene, ctx.prev)
+    # 退場するキャラクター（前のシーンの表情のまま、横へ出ていく）
+    leaving = {}
+    prev = ctx.prev
+    for key in leaving_characters(project, scene, prev):
+        expression = prev.expression if prev.speaker == key else _partner_expression(key, prev.partner_expression)
+        leaving[key] = character_sprite(key, expression, False, resolution)
+    # しょんぼり沈む動き: 前のシーンも同じ話者が沈んでいれば沈んだまま始め、次のシーンも沈むなら最後に戻らない
+    slump_from_start = (action == "slump" and prev is not None and prev.speaker == scene.speaker
+                        and _action(project, prev) == "slump")
+    slump_until_end = (action == "slump" and ctx.next is not None and ctx.next.speaker == scene.speaker
+                       and _action(project, ctx.next, scene) == "slump")
+    mirrored: dict[int, Image.Image] = {}  # 走り回るときの左右反転の立ち絵（画像のidごとに作って使い回す）
     total_frames = len(mouth_flags)
 
     # --- カメラ ---
@@ -409,15 +501,65 @@ def build_motion_clip(
         if board_now is not None:
             _paste_alpha(canvas, *board_now)
 
-    def character_offset(key: str, img: Image.Image, t: float) -> tuple[int, int]:
+    def action_offset(t: float, inward: int) -> tuple[float, float, bool]:
+        """話者の体を動かす動き（定位置からのずれと、左右反転するか）。inward は画面の内側の向き（左=-1、右=+1）。"""
         dx = dy = 0.0
+        flip = False
+        if action == "panic" and t < min(PANIC_MAX_SECONDS, duration):
+            run = min(PANIC_MAX_SECONDS, duration)
+            laps = max(1, round(run / PANIC_LAP_SECONDS))
+            phase = t / run * laps  # 往復の回数ぶん、内側へ走っては戻る
+            dx = inward * width * PANIC_DISTANCE_RATIO * (1 - math.cos(2 * math.pi * phase)) / 2
+            flip = math.sin(2 * math.pi * phase) < 0  # 戻るときは向きを変える
+            dy = -height * STEP_HEIGHT_RATIO * 1.5 * abs(math.sin(math.pi * t / STEP_SECONDS))
+        elif action == "hop" and t < HOP_SECONDS * HOP_COUNT:
+            dy = -height * HOP_HEIGHT_RATIO * abs(math.sin(math.pi * t / HOP_SECONDS))
+        elif action == "recoil":
+            amount = _pulse(t, 0.12, 0.35, 0.5)
+            dx = -inward * width * RECOIL_DISTANCE_RATIO * amount
+            dy = -height * 0.01 * amount
+        elif action == "lunge":
+            dx = inward * width * LUNGE_DISTANCE_RATIO * _pulse(t, 0.18, max(0.0, duration - 0.7), 0.4)
+        elif action == "tsukkomi":
+            dx = inward * width * TSUKKOMI_DISTANCE_RATIO * _pulse(t, 0.1, 0.25, 0.4)
+        elif action == "shiver":
+            dx = width * SHIVER_AMPLITUDE_RATIO * math.sin(2 * math.pi * 18 * t)
+        elif action == "slump":
+            down = 1.0 if slump_from_start else _ease_out(t / SLUMP_SECONDS)
+            if not slump_until_end:
+                down *= 1 - _ease((t - (duration - 0.3)) / 0.3)
+            dy = height * SLUMP_DEPTH_RATIO * down
+        elif action == "nod" and t < NOD_SECONDS * 2:
+            dy = height * NOD_DEPTH_RATIO * math.sin(math.pi * t / NOD_SECONDS) ** 2
+        return dx, dy, flip
+
+    def character_offset(key: str, img: Image.Image, t: float) -> tuple[int, int, bool]:
+        dx = dy = 0.0
+        flip = False
+        side = character_side(key)
         if key == scene.speaker:
             if "bob" in motions:
                 dy += height * BOB_AMPLITUDE_RATIO * math.sin(2 * math.pi * t / BOB_PERIOD)
             if "jump" in motions and t < JUMP_SECONDS:
                 dy -= height * JUMP_HEIGHT_RATIO * math.sin(math.pi * t / JUMP_SECONDS)
+            adx, ady, flip = action_offset(t, -side)
+            dx, dy = dx + adx, dy + ady
+        elif key == partner:
+            # ツッコミを受けた相手: 一瞬遅れてのけぞり、少し震える
+            amount = _pulse(max(0.0, t - 0.08), 0.1, 0.3, 0.45)
+            dx += side * width * RECOIL_DISTANCE_RATIO * amount
+            if 0.08 < t < 0.6:
+                dx += width * SHIVER_AMPLITUDE_RATIO * math.sin(2 * math.pi * 20 * t)
         if key in entering and t < ENTER_SECONDS:
-            dx += character_side(key) * (1 - _ease_out(t / ENTER_SECONDS)) * (img.width + width * 0.05)
+            dx += side * (1 - _ease_out(t / ENTER_SECONDS)) * (img.width + width * 0.05)
+            dy -= height * STEP_HEIGHT_RATIO * abs(math.sin(math.pi * t / STEP_SECONDS))  # 歩いて入ってくる
+        return round(dx), round(dy), flip
+
+    def leaving_offset(key: str, img: Image.Image, t: float) -> Optional[tuple[int, int]]:
+        if t >= EXIT_SECONDS:
+            return None
+        dx = character_side(key) * _ease_in(t / EXIT_SECONDS) * (img.width + width * 0.05)
+        dy = -height * STEP_HEIGHT_RATIO * abs(math.sin(math.pi * t / STEP_SECONDS))
         return round(dx), round(dy)
 
     def camera_box(t: float) -> Optional[tuple[float, float, float, float]]:
@@ -452,14 +594,26 @@ def build_motion_clip(
     def make_frame(t: float):
         frame_idx = min(int(round(t * fps)), max(total_frames - 1, 0))
         mouth_open = mouth_flags[frame_idx] if mouth_flags else False
-        if bg_before is not None and t < bg_fade:
-            canvas = Image.blend(bg_before, bg, _ease(t / bg_fade))
+        if bg_before is not None and t < move_seconds:
+            # 新しい場所へ: 前の背景が流れて出ていき、新しい背景が反対側から入ってくる
+            shift = round(width * _ease(t / move_seconds)) * move_direction
+            canvas = Image.new("RGB", bg.size)
+            canvas.paste(bg_before, (-shift, 0))
+            canvas.paste(bg, (width * move_direction - shift, 0))
         else:
             canvas = bg.copy()
         board_layer(canvas, t)
+        for key, (img, (x, y)) in leaving.items():
+            offset = leaving_offset(key, img, t)
+            if offset is not None:
+                canvas.paste(img, (x + offset[0], y + offset[1]), img)
         for key, variants in sprites.items():
             img, (x, y) = variants[mouth_open if key == scene.speaker else False]
-            dx, dy = character_offset(key, img, t)
+            dx, dy, flip = character_offset(key, img, t)
+            if flip:
+                if id(img) not in mirrored:
+                    mirrored[id(img)] = img.transpose(Image.FLIP_LEFT_RIGHT)
+                img = mirrored[id(img)]
             canvas.paste(img, (x + dx, y + dy), img)
         box = camera_box(t)
         if box is not None:
@@ -478,25 +632,31 @@ def describe_motion(project: Project, scene: Scene, ctx: SceneContext) -> list[s
     items = []
     camera = resolve_camera(project, scene)
     if camera != "none":
-        items.append(f"🎥 {CAMERA_LABELS[camera]}")
+        items.append(f"カメラ（{CAMERA_LABELS[camera]}）")
     if resolve_shake(project, scene):
-        items.append("📳 画面の揺れ")
+        items.append("画面の揺れ")
+    from src.models import CHAR_MOTION_LABELS
+
     motions = resolve_char_motion(project, scene, ctx.prev)
+    for action in sorted(motions & ACTIONS):
+        items.append(CHAR_MOTION_LABELS.get(action, action))
     if "jump" in motions:
-        items.append("🐸 ぴょん")
+        items.append("ぴょん")
     if "bob" in motions:
-        items.append("〰 ゆらゆら")
+        items.append("ゆらゆら")
     if entering_characters(project, scene, ctx.prev):
-        items.append("🚶 登場")
+        items.append("登場")
+    if leaving_characters(project, scene, ctx.prev):
+        items.append("退場")
     change = board_change(project, scene, ctx.prev)
     if change == "transition":
-        items.append(f"🔀 黒板切り替え（{TRANSITION_LABELS.get(project.slide_transition, '')}）")
+        items.append(f"黒板切り替え（{TRANSITION_LABELS.get(project.slide_transition, '')}）")
     elif change == "write":
-        items.append("✍ 箇条書きを書き足し")
+        items.append("箇条書きを書き足し")
     elif change == "pop":
-        items.append("🖼 画像がポンと登場")
+        items.append("画像がポンと登場")
     elif change == "fade":
-        items.append("🔀 黒板がふわっと登場")
+        items.append("黒板がふわっと登場")
     elif change == "hide":
-        items.append("💬 黒板を片付けて会話だけに")
+        items.append("黒板を片付けて会話だけに")
     return items

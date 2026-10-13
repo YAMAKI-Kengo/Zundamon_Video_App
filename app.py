@@ -28,7 +28,7 @@ load_env()
 
 st.set_page_config(
     page_title="ずんだもん解説動画ジェネレーター",
-    page_icon="🎬",
+    page_icon=":material/movie:",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -54,11 +54,43 @@ def _link_new_assets(project) -> None:
         st.toast(f"ネイティブ音声を{len(voiced)}シーンに反映しました。")
 
 
+_STYLE = """
+<style>
+/* 上の余白を詰め、横幅を読みやすい広さに */
+.block-container { padding-top: 3.6rem; padding-bottom: 4rem; max-width: 1280px; }
+/* 見出し */
+.app-header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin: 0 0 10px; }
+.app-header h1 { font-size: 1.45rem; font-weight: 700; margin: 0; padding: 0; letter-spacing: .01em; }
+.app-header .app-steps { font-size: .85rem; opacity: .62; }
+/* タブ: 文字を少し大きく、選択中を太く */
+.stTabs [data-baseweb="tab-list"] { gap: 6px; }
+.stTabs [data-baseweb="tab"] { font-size: .95rem; padding: 6px 12px; }
+.stTabs [aria-selected="true"] { font-weight: 600; }
+/* 枠付きの箱・折りたたみに、ごく薄い影を付けてカードのように見せる */
+[data-testid="stExpander"] details, .st-key-project_bar {
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .05);
+}
+.st-key-project_bar { padding: 4px 6px; }
+/* ボタンの文字を少し太く */
+.stButton button, .stDownloadButton button, [data-testid="stPopover"] button { font-weight: 600; }
+</style>
+"""
+
+
+def _render_header() -> None:
+    st.markdown(_STYLE, unsafe_allow_html=True)
+    st.markdown(
+        '<div class="app-header"><h1>ずんだもん解説動画メーカー</h1>'
+        '<span class="app-steps">台本を作る → シーンを確認・修正 → 動画を作る → 投稿の準備</span></div>',
+        unsafe_allow_html=True,
+    )
+
+
 def main() -> None:
     init_session_state()
     keep_widget_values()
 
-    st.markdown("#### 🎬 ずんだもん解説動画メーカー")
+    _render_header()
 
     render_sidebar()
     _link_new_assets(get_project())
@@ -69,23 +101,13 @@ def main() -> None:
     render_project_bar()
     apply_pending_tab()
     # 開いているタブの中身だけを描く（全部のタブを毎回描くと重く、切り替えの途中で古い画面が残って見えるため）
-    tab_book, tab_english, tab_review, tab_analytics, tab_edit = st.tabs(
-        list(TABS.values()), key=TAB_KEY, on_change="rerun")
-    if tab_book.open:
-        with tab_book:
-            render_book_mode()
-    if tab_english.open:
-        with tab_english:
-            render_english_mode()
-    if tab_review.open:
-        with tab_review:
-            render_review_tab()
-    if tab_edit.open:
-        with tab_edit:
-            render_scene_editor()
-    if tab_analytics.open:
-        with tab_analytics:
-            render_analytics()
+    tabs = dict(zip(TABS, st.tabs(list(TABS.values()), key=TAB_KEY, on_change="rerun")))
+    renderers = {"book": render_book_mode, "english": render_english_mode, "edit": render_scene_editor,
+                 "review": render_review_tab, "analytics": render_analytics}
+    for name, tab in tabs.items():
+        if tab.open:
+            with tab:
+                renderers[name]()
 
 
 if __name__ == "__main__":

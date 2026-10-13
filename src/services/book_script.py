@@ -32,7 +32,8 @@ LLM（Step 5）に出力させる形式と同じだが、手書き・他のAIチ
 - 黒板の箇条書きは、既定ではブロック内のセリフの進行に合わせて1行ずつ書き足していく
   （reveal_bullets=True のとき。ブロックに "reveal": false と書くとそのブロックは最初から全部表示）。
 - 各セリフに "camera"（auto / none / zoom_speaker / slow_zoom_speaker / slow_zoom）、
-  "shake"（true / false）、"motion"（auto / none / bob / jump）を書くと、カメラワーク・画面の揺れ・
+  "shake"（true / false）、"motion"（auto / none / bob / jump / hop / panic / recoil / shiver / slump / lunge /
+  tsukkomi / nod。models.CHAR_MOTION_LABELS）を書くと、カメラワーク・画面の揺れ・
   話者の動きを指定できる（省略時は表情・効果音・場面から自動で決まる。src.services.motion 参照）。
 - セリフに "image": "イラスト名"（assets/illustrations/ の画像のファイル名から拡張子を除いたもの）と
   "caption": "短い説明" を書くと、そのシーンではイラストを白いカードに載せて画面中央に大きく表示する（黒板より優先）。
@@ -108,6 +109,8 @@ DEFAULT_ENDING_SECONDS = 12.0
 LINE_GAP_SECONDS = 0.15       # セリフとセリフの間に置く間（秒）。テンポを優先して短め
 SHORT_LINE_GAP_SECONDS = 0.03  # ショートのセリフの間（最初の数秒でスワイプされないよう、無音をほぼ作らない）
 MIN_SCENE_SECONDS = 1.0       # 1シーンの最短の表示秒数
+SHORT_MIN_SCENE_SECONDS = 0.6  # ショートの1シーンの最短の表示秒数（短いリアクションで間延びしないように）
+SHORT_SPEECH_BOOST = 1.1       # ショートは本編より少し速く話す（話す速さの設定に掛ける）
 ESTIMATE_CHARS_PER_SECOND = 6.0  # VOICEVOX未起動時の概算に使う、等速(1.0)での読み上げ速度（話す速さの倍率を掛けて使う）
 READING_DEFAULTS_PATH = ASSETS_DIR.parent / "config" / "reading_defaults.json"
 
@@ -682,6 +685,13 @@ def slide_renderer_normalize(bullets: list[str]) -> list[str]:
     return normalize_bullets(bullets)
 
 
+def effective_speech_speed(project) -> float:
+    """実際に読み上げる速さ。ショート（単体のショート・本編紹介ショート）は本編より少し速くする。"""
+    if project.video_style == "short" or project.promo_of:
+        return round(project.speech_speed * SHORT_SPEECH_BOOST, 2)
+    return project.speech_speed
+
+
 def estimate_scene_duration(text: str, speech_speed: float = DEFAULT_SPEECH_SPEED, lang: str = "ja") -> float:
     if lang == "en":  # 英語は単語数から（ネイティブ音声が届いたら、その長さに置き換わる）
         words = len(text.split())
@@ -709,6 +719,9 @@ def build_scenes(
         BookScriptError: セリフが1つも読み取れなかった場合。
     """
     warnings: list[str] = []
+    is_short = str(data.get("style") or "").lower() == "short"
+    if is_short:
+        speech_speed = round(speech_speed * SHORT_SPEECH_BOOST, 2)  # effective_speech_speed() と同じ速さで測る
     blocks = data.get("blocks")
     if blocks is None:
         blocks = data.get("sections")
@@ -865,7 +878,8 @@ def build_scenes(
     if use_voicevox_timing:
         used_voicevox = _fit_durations_with_voicevox(
             scenes, merge_readings(reading_dict or [], _parse_readings(data.get("readings"))), warnings, speech_speed,
-            line_gap=SHORT_LINE_GAP_SECONDS if str(data.get("style") or "").lower() == "short" else LINE_GAP_SECONDS,
+            line_gap=SHORT_LINE_GAP_SECONDS if is_short else LINE_GAP_SECONDS,
+            min_seconds=SHORT_MIN_SCENE_SECONDS if is_short else MIN_SCENE_SECONDS,
         )
     tidy_moods(scenes)
     apply_board_hold(scenes, board_pause)
@@ -963,6 +977,11 @@ def build_promo_project(main: Project, use_voicevox_timing: bool = True) -> tupl
     apply_to_project(short, result)
     short.name = f"ショート: {main.book_title or short.promo_of}"
     short.promo_short = {}
+    if short.source_kind == "english":
+        from src.services import english_lesson  # 循環importを避けるため関数内で読み込む
+
+        # 英語のセリフに、本編と同じネイティブ音声を紐付ける（紐付けないとVOICEVOXが英語を読んでしまう）
+        english_lesson.link_native_audio(short.scenes, english_lesson.native_gap(short))
     from src.services import video_metadata  # 循環importを避けるため関数内で読み込む
 
     video_metadata.apply_generated_metadata(short, overwrite=False)
@@ -994,6 +1013,7 @@ def _str_list(value) -> list[str]:
 def _fit_durations_with_voicevox(
     scenes: list[Scene], reading_dict: Optional[list[dict]], warnings: list[str],
     speech_speed: float = DEFAULT_SPEECH_SPEED, line_gap: float = LINE_GAP_SECONDS,
+    min_seconds: float = MIN_SCENE_SECONDS,
 ) -> bool:
     """VOICEVOXで各セリフの実際の読み上げ時間を測り、表示秒数に反映する。起動していなければ何もしない。"""
     try:
@@ -1013,7 +1033,7 @@ def _fit_durations_with_voicevox(
             natural = voicevox_client.measure_natural_duration(
                 scene.reading.strip() or scene.text, scene.speaker, reading_dict=reading_dict, speech_speed=speech_speed
             )
-            scene.duration = max(MIN_SCENE_SECONDS, round(natural + line_gap, 2))
+            scene.duration = max(min_seconds, round(natural + line_gap, 2))
         except (VoicevoxConnectionError, VoicevoxSynthesisError) as e:
             warnings.append(f"シーン{i}: 読み上げ時間を測れなかったため、文字数からの概算にしました（{e}）")
     return True

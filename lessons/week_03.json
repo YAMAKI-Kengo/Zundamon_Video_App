@@ -1,0 +1,124 @@
+{
+  "theme": "空港で固まらない！チェックインから搭乗まで",
+  "theme_en": "Getting Through the Airport",
+  "goal": "空港のチェックイン・荷物預け・保安検査・搭乗口で、聞かれたことに短く答え、困ったときに自分から一言聞ける",
+  "days": [
+    {
+      "day": 1,
+      "title": "空港で最初の一言が出てこなくて固まる",
+      "situation": "旅行3か月前、めたんの提案で空港の下見に来たずんだもん。チェックインカウンターで係員役のめたんに話しかける練習をする",
+      "zunda_trouble": "「アイ、ゴー、ロサンゼルス！」と単語を並べて胸を張り、めたんに「それだとネイティブには『私、ロサンゼルスに行く…人です』くらいに聞こえてるのよ」と言われる",
+      "phrases": [
+        {
+          "en": "Hi, I'm checking in for my flight to LA.",
+          "ja": "こんにちは、ロサンゼルス行きの便のチェックインをお願いします。",
+          "point": "I'm checking in for 〜 で「〜のチェックインです」と用件を一言で伝えられ、ホテルでもそのまま使える"
+        },
+        {
+          "en": "Here's my passport.",
+          "ja": "パスポートです。",
+          "point": "物を渡すときの定番で、Here's my ticket. / Here's my reservation. のように何にでも応用できる"
+        }
+      ],
+      "grammar": "I'm checking in のように現在進行形で「今まさにしようとしていること」を言うと、用件が自然に伝わる"
+    },
+    {
+      "day": 2,
+      "title": "質問が聞き取れなくて全部「イエス」はNG！",
+      "situation": "カウンターで荷物を預ける場面。係員役のめたんから荷物の数や中身について質問される",
+      "zunda_trouble": "早口の質問が聞き取れず、全部に「イエス！」と答えた結果、「バッテリーを預ける荷物に入れた」ことになってしまう",
+      "phrases": [
+        {
+          "en": "Just one bag to check.",
+          "ja": "預ける荷物は1つだけです。",
+          "point": "Do you have any bags to check? への返事で、Just one. だけでも十分通じる"
+        },
+        {
+          "en": "Sorry, could you say that one more time?",
+          "ja": "すみません、もう一度言ってもらえますか？",
+          "point": "第1週の聞き返しの復習で、分からないまま Yes と言うより、聞き返すほうがずっと安全"
+        }
+      ],
+      "grammar": "could you は「クッジュー」とつながって聞こえる"
+    },
+    {
+      "day": 3,
+      "title": "通路側の席って英語で言えなくて焦る",
+      "situation": "チェックインの最後に座席の希望を聞かれる。長いフライトなので通路側がいいずんだもん",
+      "zunda_trouble": "「通路」が分からず「ロード・サイド、プリーズ！」と言い、めたんに「それだと『道路側の席』って聞こえて、飛行機の外に座るのかと思われるわよ」と笑われる",
+      "phrases": [
+        {
+          "en": "Could I get an aisle seat?",
+          "ja": "通路側の席にしてもらえますか？",
+          "point": "aisle は s を読まず「アイル」で、窓側なら a window seat に変えるだけ"
+        },
+        {
+          "en": "Either is fine.",
+          "ja": "どちらでも大丈夫です。",
+          "point": "2つから選ぶよう聞かれたときの万能な返事で、3つ以上なら Anything is fine. を使う"
+        }
+      ],
+      "grammar": "aisle の s は発音しない（黙字）。island と同じパターン"
+    },
+    {
+      "day": 4,
+      "title": "保安検査で「ノー」だけ言うのは実は不親切",
+      "situation": "保安検査場。検査員役のつむぎに、ポケットの中身や液体について聞かれる",
+      "zunda_trouble": "「ポケットに何か入ってる？」と聞かれ「ノー！」と即答したのに、ゲートでブザーが鳴り、ポケットからずんだ餅のキーホルダーが出てくる",
+      "phrases": [
+        {
+          "en": "Do I need to take this out?",
+          "ja": "これは出したほうがいいですか？",
+          "point": "パソコンや液体など迷ったものを手に持って聞けば、take off（脱ぐ）に変えて靴や上着にも使える"
+        },
+        {
+          "en": "Oh, I forgot about this.",
+          "ja": "あ、これを忘れていました。",
+          "point": "うっかりを素直に伝える一言で、あやまるより先にこれを言うと場がやわらぐ"
+        }
+      ],
+      "grammar": "take this out / take off のように、句動詞は後ろの小さな単語（out, off）を強めに読む"
+    },
+    {
+      "day": 5,
+      "title": "英語のアナウンスが聞き取れなくて頭が真っ白",
+      "situation": "搭乗口の前で待っていると、ゲート変更のアナウンスが流れる。周りの人が一斉に動き出す",
+      "zunda_trouble": "アナウンスの gate と時間だけ聞き取れず、「ゲート、チェンジ…ゲート、チェンジ…」と呪文のようにつぶやきながら同じ場所で待ち続ける",
+      "phrases": [
+        {
+          "en": "Excuse me, did they just change the gate?",
+          "ja": "すみません、今ゲートが変わったんですか？",
+          "point": "近くの人に気軽に聞ける形で、did they just 〜? は「今〜した？」と直前の出来事を確認するのに便利"
+        },
+        {
+          "en": "Is this the line for LA?",
+          "ja": "これはロサンゼルス行きの列ですか？",
+          "point": "Is this the line for 〜? は空港だけでなく、バスやお店の列でもそのまま使える"
+        }
+      ],
+      "grammar": "did they は「ディッゼイ」、just change は t が消えて「ジャスチェンジ」のように聞こえる"
+    },
+    {
+      "day": 6,
+      "title": "丁寧すぎて逆に伝わらない一言",
+      "situation": "搭乗前、乗り継ぎ便が不安になったずんだもんが、ゲートの係員役めたんに自分から質問する",
+      "zunda_trouble": "失礼がないようにと「I would like to humbly ask you a question about my connecting flight...」と長々しゃべり、めたんに「丁寧すぎて、ネイティブには何か大事件が起きたのかと思われるわよ」と心配される",
+      "phrases": [
+        {
+          "en": "Quick question, where do I go for my connecting flight?",
+          "ja": "ちょっと聞きたいんですが、乗り継ぎ便はどこに行けばいいですか？",
+          "point": "Quick question, を最初に付けるだけで丁寧さと気軽さが両立し、この1週間のどの場面でも使える"
+        },
+        {
+          "en": "Got it, thanks so much!",
+          "ja": "わかりました、本当にありがとうございます！",
+          "point": "説明を理解したときの返事で、OK, thank you. より会話が自然に締まる"
+        }
+      ],
+      "grammar": "Got it は t がつながって「ガリッ」のように聞こえる（アメリカ英語のフラップT）"
+    }
+  ],
+  "next_theme_idea": "機内で困らない：飲み物を頼む・席を倒す前の一言・体調が悪いときに伝える",
+  "week": 3,
+  "level": "b1"
+}

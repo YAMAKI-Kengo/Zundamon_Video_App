@@ -8,7 +8,7 @@ tmp/slides/
 tmp/preview_audio/
 assets/backgrounds/uploaded_*
 assets/content_media/uploaded_*
-.streamlit/
+.streamlit/secrets.toml
 
 # --- APIキー等の秘密情報（.env.example をコピーして作る） ---
 .env

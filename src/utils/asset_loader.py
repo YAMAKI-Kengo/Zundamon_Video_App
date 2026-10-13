@@ -239,8 +239,12 @@ PLACE_BACKGROUND_ENUM_MAX = 80  # 台本のAIに選択肢（enum）として渡�
 
 
 def place_background_names() -> list[str]:
-    """場所の背景の名前（台本の background に書く名前。日本語名があればそれ）の一覧。"""
-    return list(dict.fromkeys(background_label(p) for p in list_place_backgrounds()))
+    """場所の背景の名前（台本の background に書く名前。日本語名があればそれ）の一覧。
+
+    「黒板｜手前レイヤ・机2」のような重ね合わせ用の部品（背景の一部だけの画像）は、1枚の背景としては使えないので除く。
+    """
+    return list(dict.fromkeys(name for name in (background_label(p) for p in list_place_backgrounds())
+                              if "レイヤ" not in name))
 
 
 def place_background_schema() -> dict:

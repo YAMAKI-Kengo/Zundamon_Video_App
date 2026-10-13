@@ -111,35 +111,35 @@ BASE_TOP, BASE_BOTTOM = (70, 88, 160), (28, 30, 70)  # 下地のグラデーシ�
 THEMES: dict[str, dict] = {
     "auto": {"label": "おまかせ（レイアウトごとの色）"},
     # --- 勝てる配色（3色ルール）: 背景は暗めでシンプル、文字は白か黄色、強調は赤・ピンク・蛍光グリーン ---
-    "win_navy": {"label": "🏆 濃紺 × 白 × 赤（定番）", "base": ((40, 54, 115), (12, 14, 38)),
+    "win_navy": {"label": "濃紺 × 白 × 赤（定番）", "base": ((40, 54, 115), (12, 14, 38)),
                  "rays": ((255, 205, 60), (220, 120, 30)), "dark": ((52, 66, 130), (22, 26, 62)),
                  "frame": (255, 214, 0), "text": (255, 255, 255), "accent": (235, 30, 45)},
-    "win_gray_yellow": {"label": "🏆 濃いグレー × 黄 × 赤", "base": ((72, 72, 80), (20, 20, 24)),
+    "win_gray_yellow": {"label": "濃いグレー × 黄 × 赤", "base": ((72, 72, 80), (20, 20, 24)),
                         "rays": ((255, 225, 70), (215, 160, 20)), "dark": ((82, 82, 92), (34, 34, 40)),
                         "frame": (255, 226, 40), "text": (255, 226, 40), "accent": (235, 30, 45)},
-    "win_gray_pink": {"label": "🏆 濃いグレー × 白 × ショッキングピンク", "base": ((72, 72, 80), (20, 20, 24)),
+    "win_gray_pink": {"label": "濃いグレー × 白 × ショッキングピンク", "base": ((72, 72, 80), (20, 20, 24)),
                       "rays": ((255, 120, 190), (215, 40, 130)), "dark": ((82, 82, 92), (34, 34, 40)),
                       "frame": (255, 40, 145), "text": (255, 255, 255), "accent": (255, 40, 145)},
-    "win_navy_green": {"label": "🏆 濃紺 × 黄 × 蛍光グリーン", "base": ((40, 54, 115), (12, 14, 38)),
+    "win_navy_green": {"label": "濃紺 × 黄 × 蛍光グリーン", "base": ((40, 54, 115), (12, 14, 38)),
                        "rays": ((120, 255, 140), (40, 190, 80)), "dark": ((52, 66, 130), (22, 26, 62)),
                        "frame": (60, 255, 100), "text": (255, 226, 40), "accent": (60, 255, 100)},
-    "win_wood": {"label": "🏆 暗い木目 × 白 × 赤", "base": ((115, 74, 42), (42, 24, 12)),
+    "win_wood": {"label": "暗い木目 × 白 × 赤", "base": ((115, 74, 42), (42, 24, 12)),
                  "rays": ((255, 200, 90), (205, 120, 40)), "dark": ((128, 84, 50), (62, 36, 18)),
                  "frame": (255, 214, 0), "text": (255, 255, 255), "accent": (235, 30, 45)},
     # --- そのほかの背景の色 ---
-    "navy": {"label": "🌃 ネイビー（落ち着き）", "base": ((70, 88, 160), (28, 30, 70)),
+    "navy": {"label": "ネイビー（落ち着き）", "base": ((70, 88, 160), (28, 30, 70)),
              "rays": ((255, 205, 0), (255, 150, 0)), "dark": ((70, 60, 150), (30, 25, 80)), "frame": (255, 214, 0)},
-    "red": {"label": "🔥 レッド（インパクト）", "base": ((205, 45, 55), (95, 12, 22)),
+    "red": {"label": "レッド（インパクト）", "base": ((205, 45, 55), (95, 12, 22)),
             "rays": ((255, 222, 70), (255, 125, 40)), "dark": ((160, 25, 35), (75, 8, 16)), "frame": (255, 214, 0)},
-    "yellow": {"label": "⚡ イエロー（元気）", "base": ((255, 212, 50), (228, 138, 0)),
+    "yellow": {"label": "イエロー（元気）", "base": ((255, 212, 50), (228, 138, 0)),
                "rays": ((255, 246, 160), (255, 200, 40)), "dark": ((228, 150, 0), (150, 80, 0)), "frame": (235, 40, 50)},
-    "green": {"label": "🫛 ずんだグリーン", "base": ((110, 185, 70), (32, 85, 32)),
+    "green": {"label": "ずんだグリーン", "base": ((110, 185, 70), (32, 85, 32)),
               "rays": ((215, 250, 140), (130, 205, 75)), "dark": ((55, 125, 55), (22, 62, 26)), "frame": (255, 255, 255)},
-    "blue": {"label": "🌊 スカイブルー（さわやか）", "base": ((115, 195, 250), (30, 100, 190)),
+    "blue": {"label": "スカイブルー（さわやか）", "base": ((115, 195, 250), (30, 100, 190)),
              "rays": ((205, 242, 255), (120, 200, 250)), "dark": ((40, 110, 200), (15, 50, 120)), "frame": (255, 255, 255)},
-    "pink": {"label": "🌸 ピンク（やさしい）", "base": ((248, 150, 195), (175, 62, 125)),
+    "pink": {"label": "ピンク（やさしい）", "base": ((248, 150, 195), (175, 62, 125)),
              "rays": ((255, 225, 238), (255, 165, 205)), "dark": ((195, 85, 145), (112, 32, 82)), "frame": (255, 255, 255)},
-    "black": {"label": "🖤 ブラック（シック）", "base": ((55, 55, 66), (10, 10, 16)),
+    "black": {"label": "ブラック（シック）", "base": ((55, 55, 66), (10, 10, 16)),
               "rays": ((255, 214, 0), (205, 150, 0)), "dark": ((64, 64, 76), (22, 22, 28)), "frame": (255, 214, 0)},
 }
 
@@ -586,10 +586,10 @@ def _render_before_after(spec: dict, lines: list[str]) -> Image.Image:
 # 場面ごとのアクセントカラー（強調する文字・吹き出しの枠・外枠）。一覧に並んだとき「毎回同じ」に見えないように変える
 ACCENTS: dict[str, dict] = {
     "auto": {"label": "おまかせ（ずんだもんの表情から）"},
-    "trouble": {"label": "🚨 トラブル・NG系（赤）", "color": (235, 30, 60)},
-    "town": {"label": "🚉 街中・移動系（黄・オレンジ）", "color": (255, 165, 0)},
-    "cafe": {"label": "☕ 日常会話・カフェ系（カフェラテ色）", "color": (196, 132, 78)},
-    "solution": {"label": "✨ 解決・神フレーズ系（青）", "color": (25, 150, 255)},
+    "trouble": {"label": "トラブル・NG系（赤）", "color": (235, 30, 60)},
+    "town": {"label": "街中・移動系（黄・オレンジ）", "color": (255, 165, 0)},
+    "cafe": {"label": "日常会話・カフェ系（カフェラテ色）", "color": (196, 132, 78)},
+    "solution": {"label": "解決・神フレーズ系（青）", "color": (25, 150, 255)},
 }
 _SOLUTION_FACES = {"smug", "idea", "happy", "excited", "laugh"}
 
@@ -871,3 +871,134 @@ def repeated_words(text: str, sub: str, min_len: int = 3) -> list[str]:
             if piece in plain and not any(piece in f for f in found):
                 found.append(piece)
     return found
+
+
+# ---------------------------------------------------------------------------
+# 画像生成AI（ChatGPT・Gemini など）でサムネイルを描いてもらうためのプロンプト
+# ---------------------------------------------------------------------------
+
+# 画像生成AIはキャラクターの見た目を知らないことが多いので、参考画像（立ち絵）と一緒に見た目の特徴も書いて伝える
+CHARACTER_LOOKS: dict[str, str] = {
+    "zundamon": "黄緑色のショートヘアで、頭の左右に枝豆のさやの形の髪飾り（耳）、後ろに丸まった緑のしっぽのような髪。"
+                "オレンジ色の目、「:3」の口。白い半袖ブラウスに、深緑のサスペンダー付きかぼちゃパンツ。小柄でデフォルメされた体型",
+    "shikoku_metan": "ピンク色の長い髪を大きなツインドリル（縦ロール）にし、白いフリルのヘッドドレス。青い目。"
+                     "白いフリルのロリータ風ワンピース（胸元は黒の編み上げ、紫のリボン）。小柄でデフォルメされた体型",
+    "kasukabe_tsumugi": "ミルクティー色（明るい茶髪）のロングヘアで、前髪にヘアピン。青い目、口元にほくろ。黒いシャツに黄色のネクタイ、"
+                        "からし色のパーカー（絆創膏の形のボタン）、チェックのミニスカート、ルーズソックスのギャル。小柄でデフォルメされた体型",
+}
+_LAYOUT_COMPOSITION: dict[str, str] = {
+    "scene": "左側に、ずんだもんを胸から上で大きく（画面の30〜40%）、文字のほう（右）を向けて配置。右側にメインの一言を特大で、"
+             "その下に英語の吹き出し。背景は動画の場面（{scene}）を明るく描き、文字の周りだけ少し暗くして読みやすくする。",
+    "before_after": "上部いっぱいにメインの一言を特大で。その下を左右2コマに分け、左は「見る前」（彩度を落とした暗い紺色の背景で、"
+                    "{before_face}のずんだもん）、右は「見た後」（明るい黄色の集中線の背景で、{after_face}のずんだもん）。"
+                    "左右の間に大きな矢印（→）。",
+    "reaction": "ずんだもんの顔のアップ（{zundamon}の表情）を画面の左半分に大きく。右側にメインの一言を特大で。背景は集中線。",
+    "duo": "左にずんだもん（{zundamon}）、右に四国めたん（{metan}）、真ん中に添付した画像（本の表紙・イラスト）を大きく。"
+           "メインの一言は上部に特大で。",
+    "big_text": "メインの一言を画面いっぱいに特大で。左下のすみに、ずんだもん（{zundamon}）を小さめに。背景は集中線。",
+}
+
+
+def _plain_lines(text: str) -> tuple[list[str], list[str], list[str]]:
+    """**赤** ==黄== の印を外した行と、赤・黄にする語の一覧。"""
+    lines = [ln.strip() for ln in str(text or "").replace("\n", "\n").split("\n") if ln.strip()]
+    reds = [m.group(1) for ln in lines for m in _COLOR_MARKUP.finditer(ln) if m.group(1)]
+    yellows = [m.group(2) for ln in lines for m in _COLOR_MARKUP.finditer(ln) if m.group(2)]
+    return [_COLOR_MARKUP.sub(lambda m: m.group(1) or m.group(2), ln) for ln in lines], reds, yellows
+
+
+def prompt_characters(spec: dict) -> list[str]:
+    """プロンプトに出すキャラクター（ずんだもんは必ず。めたんは2人のレイアウトのとき、ほかは絵の内容に名前があるとき）。"""
+    from src.utils.asset_loader import load_character_config
+
+    visual = str(spec.get("visual") or "")
+    found = ["zundamon"]
+    for key, cfg in load_character_config().items():
+        names = [cfg.get("display_name", "")] + list(cfg.get("aliases", []))
+        if key not in found and (any(n and n in visual for n in names) or (key == "shikoku_metan" and spec.get("layout") == "duo")):
+            found.append(key)
+    return found
+
+
+def reference_images(spec: dict) -> list[Path]:
+    """画像生成AIに一緒に渡す参考画像（キャラクターの立ち絵・本の表紙など）。"""
+    from src.utils.asset_loader import get_expression_image_path
+
+    layout = spec.get("layout") or "scene"
+    faces = {"zundamon": [spec.get("zundamon") or "surprised"], "shikoku_metan": [spec.get("metan") or "point"]}
+    if layout == "before_after":
+        faces["zundamon"] = [spec.get("before_face") or "gloomy", spec.get("after_face") or "happy"]
+    paths: list[Path] = []
+    for key in prompt_characters(spec):
+        for expr in faces.get(key, ["normal"]):
+            path = get_expression_image_path(key, expr, mouth_open=False)
+            if not path.exists():
+                path = get_expression_image_path(key, "normal", mouth_open=False)
+            if path.exists() and path not in paths:
+                paths.append(path)
+    image = spec.get("image") if layout == "duo" else spec.get("bg_image")
+    if image and Path(image).exists() and not is_video_path(image):
+        paths.append(Path(image))
+    return paths
+
+
+def image_prompt(spec: dict) -> str:
+    """画像生成AI（ChatGPT・Gemini など）に貼るサムネイルのプロンプト（参考画像と一緒に渡す）。"""
+    from src.utils.asset_loader import get_character_display_name, get_expression_label
+
+    layout = spec.get("layout") if spec.get("layout") in _LAYOUT_COMPOSITION else "scene"
+    lines, reds, yellows = _plain_lines(spec.get("text", ""))
+    face = lambda key, name: get_expression_label(key, str(spec.get(name) or ""))  # noqa: E731
+    composition = _LAYOUT_COMPOSITION[layout].format(
+        scene=spec.get("scene") or "英会話の場面", zundamon=face("zundamon", "zundamon"),
+        metan=face("shikoku_metan", "metan"), before_face=face("zundamon", "before_face"),
+        after_face=face("zundamon", "after_face"))
+
+    chars = []
+    for key in prompt_characters(spec):
+        # めたん・つむぎは、絵の内容に書いた表情を優先する（2人の構図のめたんだけ、選んだ表情を指示する）
+        expr = {"zundamon": face("zundamon", "zundamon"),
+                "shikoku_metan": face("shikoku_metan", "metan") if layout == "duo" else ""}.get(key, "")
+        chars.append(f"- {get_character_display_name(key)}: {CHARACTER_LOOKS.get(key, '')}"
+                     + (f"。表情は「{expr}」（感情がはっきり伝わる大げさな顔）" if expr and layout != "before_after" else ""))
+
+    texts = ["- メインの一言（いちばん大きく。極太のゴシック体・白い文字に黒の太い縁取りと影）: "
+             + " / ".join(f"「{ln}」" for ln in lines) + (f"（{len(lines)}行）" if len(lines) > 1 else "")]
+    if reds:
+        texts.append(f"  - {'・'.join(f'「{w}」' for w in reds)} だけは赤色で、さらに大きく")
+    if yellows:
+        texts.append(f"  - {'・'.join(f'「{w}」' for w in yellows)} は黄色で")
+    if layout == "scene" and masked_phrase(spec):
+        texts.append(f"- 白い吹き出しの中の英語（黒の太字）: 「{masked_phrase(spec)}」")
+    if layout == "before_after":
+        if spec.get("before"):
+            texts.append(f"- 左のコマの文字（白）: 「{spec['before']}」")
+        if spec.get("after"):
+            texts.append(f"- 右のコマの文字（黄色で大きく。いちばん目立つ）: 「{spec['after']}」")
+    elif spec.get("shout") and layout in ("reaction", "duo", "big_text"):
+        texts.append(f"- ずんだもんの小さな吹き出し: 「{spec['shout']}」")
+    if spec.get("sub") and layout != "scene":
+        texts.append(f"- 左上の赤い帯の小さなラベル: 「{spec['sub']}」")
+
+    visual = str(spec.get("visual") or "").strip()
+    return "\n".join([
+        "YouTubeのサムネイル画像を1枚作ってください。添付した画像は登場キャラクターの参考画像です。",
+        "",
+        "## 形式",
+        "- 横長 16:9（1280×720px）。日本のYouTube解説動画らしい、明るくポップで目を引くアニメ調のイラスト。",
+        "- スマホの一覧（切手くらいの大きさ）でも一目で内容が分かるように、要素は少なく大きく、背景と文字のコントラストを強く。",
+        "- 右下（横25%×縦20%）は再生時間の表示が重なるので、文字・吹き出し・キャラクターの顔を置かない。",
+        "",
+        "## 登場キャラクター（添付した参考画像の見た目に忠実に。髪型・髪の色・服装・耳の形を変えない）",
+        *chars,
+        "",
+        "## 構図",
+        f"- {composition}",
+        *([f"- 絵の内容: {visual}"] if visual else []),
+        "",
+        "## 入れる文字（次の文字だけを、一字一句正確な日本語・英語で）",
+        *texts,
+        "- これ以外の文字（" + ("絵の内容に書いた擬音・効果文字以外の" if visual else "") +
+        "説明文・ロゴ・透かし・サイン）は入れない。誤字や崩れた文字が無いように。",
+        "- 他のアニメ・漫画のパロディ風の演出をする場合も、他の作品のキャラクターそのもの・作品名・ロゴは描かない。",
+    ])

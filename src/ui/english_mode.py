@@ -1,11 +1,11 @@
 """
-「🗣 英会話モード」タブ。
+「英会話モード」タブ。
 
 毎日更新する英会話レッスン動画（1週間ごとにテーマを変える）を作る流れを1画面にまとめる:
   1. 1週間の計画: 第N週のテーマ・1〜6日目のフレーズを Claude で作る（lessons/week_XX.json に保存）
   2. 毎日の台本: 計画から、その日（1〜6日目のレッスン / 7日目のまとめ）の台本を作ってシーンにする
   3. ネイティブ音声: お手本の英文の一覧（ファイル名付き）を出し、assets/english_audio/ に置いた音声を紐付ける
-  4. 構成の確認（書籍解説モードと同じ一覧）→ 書き出しは「🎬 シーン編集・書き出し」タブ
+  4. 構成の確認（書籍解説モードと同じ一覧）→ 書き出しは「シーン編集・書き出し」タブ
 """
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def _render_week_plan(week: int, level: str, use_api: bool) -> dict | None:
         if previous:
             st.caption("これまでのテーマ: " + "、".join(previous))
         if use_api:
-            if st.button("🗓 1週間の計画を作る（Claude）", type="primary", key="en_plan_btn", width="stretch"):
+            if st.button(":material/calendar_month: 1週間の計画を作る（Claude）", type="primary", key="en_plan_btn", width="stretch"):
                 with st.status("1週間の計画を作っています…", expanded=True) as status:
                     try:
                         result = english_lesson.plan_week(week, theme_hint, level, previous, progress=status.write)
@@ -51,7 +51,7 @@ def _render_week_plan(week: int, level: str, use_api: bool) -> dict | None:
             st.caption("Claude（claude.ai）のチャットに次のプロンプトを貼り付け、返ってきたJSONを下の欄に貼って保存してください。")
             prompt_box(english_lesson.week_plan_manual_prompt(week, theme_hint, level, previous), "1週間の計画づくりのプロンプト")
         if st.session_state.get("_en_plan_cost"):
-            st.caption(f"💰 {st.session_state['_en_plan_cost']}")
+            st.caption(f"{st.session_state['_en_plan_cost']}")
 
         if plan is not None:
             st.markdown(f"**テーマ: {plan.get('theme', '')}**（{plan.get('theme_en', '')}）　{plan.get('goal', '')}")
@@ -63,7 +63,7 @@ def _render_week_plan(week: int, level: str, use_api: bool) -> dict | None:
             "計画のJSON（修正・貼り付けして保存できます）", key="en_plan_json", height=160,
             value=json.dumps(plan, ensure_ascii=False, indent=2) if plan else "",
         )
-        if st.button("💾 計画を保存", key="en_plan_save"):
+        if st.button(":material/save: 計画を保存", key="en_plan_save"):
             try:
                 data = json.loads(edited)
             except json.JSONDecodeError as e:
@@ -87,13 +87,13 @@ def _check_readings_after_import(project) -> None:
         with st.spinner("日本語の読み間違いをチェックしています…"):
             result = reading_check.run_reading_check(project)
     except (voicevox_client.VoicevoxConnectionError, voicevox_client.VoicevoxSynthesisError, book_ai.BookAIError) as e:
-        st.session_state["_en_reading_note"] = f"⚠️ 読み間違いのチェックができませんでした（{e}）"
+        st.session_state["_en_reading_note"] = f"読み間違いのチェックができませんでした（{e}）"
         return
     st.session_state.pop("reading_dict_editor", None)
     st.session_state["_en_reading_note"] = (
-        f"🔍 読み方を{len(result.added)}件、辞書に追加しました: "
+        f"読み方を{len(result.added)}件、辞書に追加しました: "
         + "、".join(f"{c['word']}→{c['reading']}" for c in result.added[:10])
-        if result.added else f"🔍 日本語の読み間違いは見つかりませんでした（{result.checked_lines}セリフを確認）"
+        if result.added else f"日本語の読み間違いは見つかりませんでした（{result.checked_lines}セリフを確認）"
     ) + f"（約${result.cost_usd:.3f}）"
 
 
@@ -127,7 +127,7 @@ def _render_daily_script(project, plan: dict, week: int, level: str, use_api: bo
                        help="台本を読み込んだあと、VOICEVOXが実際にどう読むかを調べ、Claudeが読み間違いを探して"
                             "読み方辞書に追加します（VOICEVOXの起動とAPIキーが必要。1回数円程度）。")
         if use_api:
-            if st.button(f"✍ {DAY_LABELS[day]}の台本を作る（Claude）", type="primary", key="en_lesson_btn",
+            if st.button(f":material/edit_note: {DAY_LABELS[day]}の台本を作る（Claude）", type="primary", key="en_lesson_btn",
                          width="stretch"):
                 with st.status("台本を書いています…", expanded=True) as status:
                     try:
@@ -142,17 +142,17 @@ def _render_daily_script(project, plan: dict, week: int, level: str, use_api: bo
                 st.session_state["_en_lesson_json"] = json.dumps(result.data, ensure_ascii=False, indent=2)
                 _import_lesson(project, result.data)
             if st.session_state.get("_en_lesson_cost"):
-                st.caption(f"💰 {st.session_state['_en_lesson_cost']}")
+                st.caption(f"{st.session_state['_en_lesson_cost']}")
             if st.session_state.get("_en_lesson_json"):
                 st.download_button(
-                    "⬇️ 台本JSONを保存", data=st.session_state["_en_lesson_json"], key="en_lesson_download",
+                    ":material/download: 台本JSONを保存", data=st.session_state["_en_lesson_json"], key="en_lesson_download",
                     file_name=f"week{week:02d}_day{day}_台本.json", mime="application/json",
                 )
         else:
             st.caption("Claude（claude.ai）のチャットに次のプロンプトを貼り付け、返ってきたJSONを下の欄に貼って読み込んでください。")
             prompt_box(english_lesson.lesson_manual_prompt(plan, day, level, project.speech_speed), "台本づくりのプロンプト")
         pasted = st.text_area("台本JSONを貼り付けて読み込む", key="en_lesson_paste", height=120)
-        if st.button("📥 貼り付けた台本を読み込む", key="en_lesson_import", disabled=not pasted.strip()):
+        if st.button("貼り付けた台本を読み込む", key="en_lesson_import", disabled=not pasted.strip()):
             try:
                 from src.services.book_script import BookScriptError, load_book_script
 
@@ -183,10 +183,10 @@ def _save_tts_settings(settings: dict) -> None:
 
 def _generate_missing_audio(project, overwrite: bool = False) -> None:
     """足りないネイティブ音声を読み上げAIで作り、シーンに紐付ける。"""
-    items = english_lesson.native_audio_items(project.scenes)
-    if not overwrite and all(i["ready"] for i in items):
-        return
+    items = english_lesson.lesson_audio_items(project)
     settings = _tts_settings()
+    if not overwrite and not any(english_tts.needs_generation(i, settings["voice_a"], settings["voice_b"]) for i in items):
+        return
     with st.status("お手本の音声を作っています…（初回は準備に1分ほどかかります）", expanded=True) as status:
         result = english_tts.generate_native_audio(
             items, settings["voice_a"], settings["voice_b"], settings["speed"], overwrite=overwrite,
@@ -210,7 +210,7 @@ def _render_tts_controls(project, items: list[dict]) -> None:
     voice_a = col_a.selectbox("声A（めたん役）", voice_keys, index=voice_keys.index(settings["voice_a"])
                               if settings["voice_a"] in voice_keys else 0, format_func=english_tts.VOICES.get,
                               key="en_tts_voice_a")
-    voice_b = col_b.selectbox("声B（会話の相手役）", voice_keys, index=voice_keys.index(settings["voice_b"])
+    voice_b = col_b.selectbox("声B（つむぎ役・会話の相手役）", voice_keys, index=voice_keys.index(settings["voice_b"])
                               if settings["voice_b"] in voice_keys else 0, format_func=english_tts.VOICES.get,
                               key="en_tts_voice_b")
     speed = col_speed.slider("話す速さ", 0.7, 1.2, float(settings["speed"]), 0.05, key="en_tts_speed",
@@ -220,12 +220,14 @@ def _render_tts_controls(project, items: list[dict]) -> None:
         _save_tts_settings(new_settings)
 
     missing = sum(1 for i in items if not i["ready"])
+    changed = sum(1 for i in items if i["ready"] and english_tts.needs_generation(i, voice_a, voice_b))
     col_make, col_redo, col_try = st.columns([2, 2, 1])
-    if col_make.button(f"🤖 足りない音声をAIで作る（{missing}件）", type="primary", key="en_tts_make",
-                       disabled=missing == 0, width="stretch"):
+    label = f"足りない音声をAIで作る（{missing}件）" if not changed else         f"足りない・声を変えた音声をAIで作る（{missing + changed}件）"
+    if col_make.button(label, type="primary", key="en_tts_make", disabled=missing + changed == 0, width="stretch",
+                       help="前に別の声で作った音声（声を変えた役のセリフ）も、今の声で作り直します。"):
         _generate_missing_audio(project)
         st.rerun()
-    if col_redo.button("♻️ この動画の音声をすべて作り直す", key="en_tts_redo", width="stretch",
+    if col_redo.button("この動画の音声をすべて作り直す", key="en_tts_redo", width="stretch",
                        help="声や速さを変えたときに使います（手作業で置いた音声も、AIの音声で置き換えます）。"):
         _generate_missing_audio(project, overwrite=True)
         st.rerun()
@@ -233,7 +235,7 @@ def _render_tts_controls(project, items: list[dict]) -> None:
         with st.spinner("試し聞きの音声を作っています…"):
             try:
                 st.audio(english_tts.sample_audio(voice_a, speed), format="audio/wav")
-                st.audio(english_tts.sample_audio(voice_b, speed, "Hi, I'm Alex. Nice to meet you, too."),
+                st.audio(english_tts.sample_audio(voice_b, speed, "Hi, I'm Tsumugi. Nice to meet you, too!"),
                          format="audio/wav")
             except english_tts.EnglishTTSError as e:
                 st.error(str(e))
@@ -242,7 +244,7 @@ def _render_tts_controls(project, items: list[dict]) -> None:
 
 def _render_native_audio(project) -> None:
     """③ ネイティブ音声の一覧と紐付け。"""
-    items = english_lesson.native_audio_items(project.scenes)
+    items = english_lesson.lesson_audio_items(project)
     if not items:
         return
     ready = sum(1 for i in items if i["ready"])
@@ -250,11 +252,11 @@ def _render_native_audio(project) -> None:
         _render_tts_controls(project, items)
         st.caption(
             f"手作業で用意する場合は、お手本の英文を音声にして、表のファイル名で `{english_lesson.AUDIO_DIR}` に"
-            "保存してください（mp3 / wav / m4a など。1文 = 1ファイル）。声A はめたん役（女性）、声B は会話の相手役です。"
+            "保存してください（mp3 / wav / m4a など。1文 = 1ファイル）。声A はめたん役（女性）、声B はつむぎ役（会話の相手役・女性）です。"
             "同じ英文は前の日・前の週と同じファイル名になるので、作り直す必要はありません。"
         )
         st.dataframe(
-            [{"": "✅" if i["ready"] else "⬜", "ファイル名": Path(i["path"]).name if i["ready"] else f"{i['id']}.mp3",
+            [{"状態": "用意済み" if i["ready"] else "未作成", "ファイル名": Path(i["path"]).name if i["ready"] else f"{i['id']}.mp3",
               "声": i["voice"], "英文": i["text"]}
              for i in items],
             hide_index=True, width="stretch",
@@ -263,10 +265,10 @@ def _render_native_audio(project) -> None:
         col_dl, col_link = st.columns(2)
         if missing:
             col_dl.download_button(
-                "⬇️ まだ無い音声の一覧（ファイル名・声・英文）", data=missing, key="en_audio_list",
+                ":material/download: まだ無い音声の一覧（ファイル名・声・英文）", data=missing, key="en_audio_list",
                 file_name="native_audio_list.txt", mime="text/plain", width="stretch",
             )
-        if col_link.button("🔄 置いた音声を読み込む", key="en_audio_link", width="stretch"):
+        if col_link.button("置いた音声を読み込む", key="en_audio_link", width="stretch"):
             linked = english_lesson.link_native_audio(project.scenes, english_lesson.native_gap(project))
             forget_scene_widgets(linked)
             st.toast(f"{len(linked)}シーンに音声を紐付けました。" if linked else "新しく置かれた音声はありませんでした。")
@@ -310,5 +312,5 @@ def render_english_mode() -> None:
 
     if project.source_kind == "english" and project.scenes:
         _render_native_audio(project)
-        st.button("✅ 仕上げ・投稿へ（構成の確認・タイトル・サムネイル）", key="en_go_review", on_click=go_to_tab,
+        st.button(":material/arrow_forward: 仕上げ・投稿へ（構成の確認・タイトル・サムネイル）", key="en_go_review", on_click=go_to_tab,
                   args=("review",))

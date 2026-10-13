@@ -10,5 +10,5 @@ import streamlit as st
 
 
 def prompt_box(text: str, label: str = "プロンプト", height: int = 140) -> None:
-    st.caption(f"📋 {label}（{len(text):,}字）— 枠の右上のボタンで全文をコピーできます")
+    st.caption(f"{label}（{len(text):,}字）— 枠の右上のボタンで全文をコピーできます")
     st.code(text, language=None, height=height, wrap_lines=True)

@@ -17,6 +17,7 @@ from PyInstaller.utils.hooks import collect_all
 # "app.py" / "src" / "config" / "assets" を解決するため、展開先ルート('.')へ配置する。
 datas = [
     ('app.py', '.'),
+    ('.streamlit', '.streamlit'),  # 画面の配色・文字（テーマ）
     ('src', 'src'),
     ('config', 'config'),
     ('assets', 'assets'),

@@ -104,6 +104,14 @@ CHAR_MOTION_LABELS: dict[str, str] = {
     "none": "動かさない",
     "bob": "ゆらゆら（呼吸）",
     "jump": "ぴょんと跳ねる",
+    "hop": "ぴょんぴょん跳ねてはしゃぐ",
+    "panic": "慌てて左右に走り回る",
+    "recoil": "驚いてのけぞる",
+    "shiver": "ぶるぶる震える",
+    "slump": "しょんぼり沈み込む",
+    "lunge": "相手に詰め寄る",
+    "tsukkomi": "ツッコミ（詰め寄って、相手がのけぞる）",
+    "nod": "うなずく",
 }
 TRANSITION_LABELS: dict[str, str] = {
     "slide": "スライド（横に入れ替わる）",
@@ -253,7 +261,7 @@ class Project:
     auto_camera: bool = True      # 驚き系の表情で話者にアップ・解説中はゆっくりズームイン
     auto_shake: bool = True       # 驚き系の効果音（config/se_guide.json の shake）・ガーン顔で画面を揺らす
     char_bob: bool = True         # 話している方がゆっくり上下に揺れる（呼吸）
-    auto_jump: bool = True        # 喜び・驚き系の表情で話者がぴょんと跳ねる
+    auto_jump: bool = True        # 表情に合わせて話者が体を動かす（喜びで跳ねる・焦りで走り回る・落ち込みで沈む など）
     char_slide_in: bool = True    # 非表示だったキャラクターが画面の横から入ってくる
     slide_transition: str = "slide"  # 黒板の内容が変わるときの切り替え方（TRANSITION_LABELS のキー）
     background_blur: float = 2.0  # 背景のぼかしの強さ（0=なし。1080pでのぼかし半径px。解像度に合わせて換算する）

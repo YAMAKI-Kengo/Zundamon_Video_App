@@ -74,6 +74,8 @@ def _run_streamlit_server(app_path: str, port: int) -> int:
     """
     import streamlit.web.cli as stcli
 
+    # Streamlit は「今いるフォルダ」の .streamlit/config.toml（画面の配色など）を読むので、同梱先のフォルダから起動する
+    os.chdir(os.path.dirname(app_path))
     sys.argv = [
         "streamlit",
         "run",

@@ -54,7 +54,13 @@ def _system(role: str, speech_speed: float) -> str:
 {book_ai.CHANNEL_CORE}
 
 {book_ai.ENGLISH_POLICY if role == "english" else book_ai.EXPLAINER_POLICY}
-{book_ai.promo_short_rules(role, speech_speed)}
+{book_ai.promo_short_rules(role, speech_speed, standalone=True)}
+
+{book_ai.NETA_RULES}
+
+{book_ai.MOTION_RULES}
+
+{book_ai.CLICK_RULES}
 
 ## 表情・効果音・使わない項目
 - expression は、そのキャラクターの表情の一覧から、セリフの感情に合うものを選ぶ:

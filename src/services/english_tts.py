@@ -39,12 +39,25 @@ VOICES: dict[str, str] = {
     "bm_lewis": "Lewis（男性・英）",
 }
 DEFAULT_VOICE_A = "af_heart"    # 声A（めたん役）
-DEFAULT_VOICE_B = "am_michael"  # 声B（会話の相手役）
+DEFAULT_VOICE_B = "af_bella"    # 声B（つむぎ役・会話の相手役。つむぎは女の子なので女性の声）
 
 ProgressCallback = Callable[[str], None]
 
 _pipelines: dict[str, object] = {}
 _lock = threading.Lock()  # 読み上げAIは同時に1つだけ使う（ブラウザの複数のタブから同時に呼ばれても安全に）
+
+
+def voice_for(item: dict, voice_a: str, voice_b: str) -> str:
+    """その英文を読む声（声B = 会話の相手役の英文は voice_b、それ以外は voice_a）。"""
+    return voice_b if str(item.get("voice", "A")).upper() == "B" else voice_a
+
+
+def needs_generation(item: dict, voice_a: str, voice_b: str) -> bool:
+    """まだ音声が無いか、読み上げAIで作った音声の声が今の設定と違う（声を変えた）か。手作業で置いた音声はそのまま使う。"""
+    if not item.get("ready"):
+        return True
+    made_with = item.get("tts_voice")
+    return bool(made_with) and made_with != voice_for(item, voice_a, voice_b)
 
 
 class EnglishTTSError(Exception):
@@ -99,7 +112,8 @@ def generate_native_audio(
     items: list[dict], voice_a: str = DEFAULT_VOICE_A, voice_b: str = DEFAULT_VOICE_B,
     speed: float = DEFAULT_SPEED, overwrite: bool = False, progress: Optional[ProgressCallback] = None,
 ) -> GenerateResult:
-    """english_lesson.native_audio_items() の一覧のうち、まだ音声が無い英文（overwrite=True なら全部）を読み上げて保存する。
+    """english_lesson.native_audio_items() の一覧のうち、まだ音声が無い英文と、読み上げAIで前に作った声が今の設定と
+    違う英文（overwrite=True なら全部）を読み上げて保存する。
 
     声A の英文は voice_a、声B（会話の相手役）の英文は voice_b で読む。ファイル名は「<音声ID>.wav」。
     上書きするときは、同じIDの別の形式の音声（手作業で置いた .mp3 など）を消してから保存する
@@ -109,12 +123,12 @@ def generate_native_audio(
 
     progress = progress or (lambda _m: None)
     result = GenerateResult()
-    targets = [i for i in items if overwrite or not i["ready"]]
+    targets = [i for i in items if overwrite or needs_generation(i, voice_a, voice_b)]
     english_lesson.AUDIO_DIR.mkdir(parents=True, exist_ok=True)
     manifest = english_lesson.load_manifest()
     for n, item in enumerate(targets, start=1):
-        voice = voice_b if str(item.get("voice", "A")).upper() == "B" else voice_a
-        progress(f"🗣 {n}/{len(targets)}（{VOICES.get(voice, voice)}）: {item['text']}")
+        voice = voice_for(item, voice_a, voice_b)
+        progress(f"{n}/{len(targets)}（{VOICES.get(voice, voice)}）: {item['text']}")
         try:
             audio = synthesize(item["text"], voice, speed)
         except EnglishTTSError as e:

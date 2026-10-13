@@ -63,8 +63,9 @@ def set_project(project: Project) -> None:
 
 # --- 画面上部のタブ（開いているタブだけを描いて軽くする。どのタブを開いているかは覚えておく） ---
 TAB_KEY = "main_tab"
-TABS = {"book": "📚 解説の台本", "english": "🗣 英会話の台本", "review": "✅ 仕上げ・投稿",
-        "analytics": "📈 振り返り", "edit": "🛠 シーン編集"}
+# 並び順は作業の順番（台本を作る → シーンを直す → 投稿の準備 → 投稿後の振り返り）
+TABS = {"book": "解説の台本", "english": "英会話の台本", "edit": "シーン編集", "review": "仕上げ・投稿",
+        "analytics": "振り返り"}
 _GOTO_TAB_KEY = "_goto_tab"
 
 

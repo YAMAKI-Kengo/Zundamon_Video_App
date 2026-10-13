@@ -110,12 +110,12 @@ def _render_voice_preview(scene: Scene, project: Project) -> None:
                 output_path=PREVIEW_AUDIO_DIR / f"preview_{scene.id}.wav",
                 target_duration=scene.duration,
                 reading_dict=project.reading_dict,
-                speech_speed=project.speech_speed,
+                speech_speed=book_script.effective_speech_speed(project),
             )
         except VoicevoxConnectionError:
             st.error(
-                "⚠️ VOICEVOXが起動していません。VOICEVOXを起動してから再度実行してください。",
-                icon="⚠️",
+                "VOICEVOXが起動していません。VOICEVOXを起動してから再度実行してください。",
+                icon=":material/warning:",
             )
             return
         except VoicevoxSynthesisError as e:
@@ -132,7 +132,7 @@ def _render_voice_preview(scene: Scene, project: Project) -> None:
         return
 
     st.audio(str(result.audio_path))
-    if result.speed_scale - project.speech_speed > 0.01:
+    if result.speed_scale - book_script.effective_speech_speed(project) > 0.01:
         st.caption(
             f"※ 表示秒数({scene.duration:.1f}秒)に収めるため、話速をx{result.speed_scale:.2f}に"
             "調整した場合の音声です（実際の動画生成時と同じ調整です）。"
@@ -150,7 +150,7 @@ def _render_bulk_script_import(project: Project, characters: list[str]) -> None:
     if flash is not None:
         del st.session_state[_BULK_IMPORT_FLASH_KEY]
 
-    with st.expander("📄 台本から一括でシーンを作成", expanded=flash is not None):
+    with st.expander("台本から一括でシーンを作成", expanded=flash is not None):
         if flash is not None:
             st.success(flash["success"])
             for w in flash["warnings"]:
@@ -194,7 +194,7 @@ def _render_bulk_script_import(project: Project, characters: list[str]) -> None:
             key="bulk_script_replace",
         )
 
-        if st.button("🪄 シーンを一括生成", width="stretch"):
+        if st.button(":material/auto_awesome: シーンを一括生成", width="stretch"):
             if not script_text or not script_text.strip():
                 st.warning("台本のテキストが入力されていません。")
             else:
@@ -248,7 +248,7 @@ def _render_page_selector(project: Project) -> tuple[int, int]:
         )
         col_info.caption(
             f"全{total}シーン。動作を軽くするため、{SCENES_PER_PAGE}シーンずつ表示しています"
-            "（「📚 書籍解説モード」の構成一覧で全体を確認できます）。"
+            "（「書籍解説モード」の構成一覧で全体を確認できます）。"
         )
     page = int(st.session_state.get(_PAGE_KEY, 1))
     return (page - 1) * SCENES_PER_PAGE, min(page * SCENES_PER_PAGE, total)
@@ -256,7 +256,6 @@ def _render_page_selector(project: Project) -> tuple[int, int]:
 
 def render_scene_editor() -> None:
     project = get_project()
-    st.subheader("シーン編集")
 
     characters = list_characters()
     if not characters:
@@ -277,7 +276,7 @@ def render_scene_editor() -> None:
     for i, scene in enumerate(project.scenes):
         if not page_start <= i < page_end:
             continue  # 表示中のページ以外のシーンは描かない（シーンが多いと、操作のたびの描き直しが非常に重くなるため）
-        header = f"シーン {i + 1}: " + (f"🎬 場面転換「{scene.card_text}」" if scene.card_text
+        header = f"シーン {i + 1}: " + (f"場面転換「{scene.card_text}」" if scene.card_text
                                           else scene.text[:24] or "(未入力)")
         with st.expander(header, expanded=True):
             col_form, col_preview = st.columns([2, 1])
@@ -290,7 +289,7 @@ def render_scene_editor() -> None:
                 )
                 scene.background_path = None if bg_choice == NO_BACKGROUND_LABEL else bg_choice
                 if is_video_path(scene.background_path):
-                    st.caption("🎬 動画背景として扱われます（表示秒数に合わせて自動でループ／トリミングされます）。")
+                    st.caption("動画背景として扱われます（表示秒数に合わせて自動でループ／トリミングされます）。")
                 elif not scene.background_path and project.common_background_path:
                     st.caption("背景未設定のため、サイドバーで設定した共通の背景を使用します。")
 
@@ -321,7 +320,7 @@ def render_scene_editor() -> None:
                 )
                 scene.content_media_path = None if media_choice == NO_CONTENT_MEDIA_LABEL else media_choice
                 if is_video_path(scene.content_media_path):
-                    st.caption("🎬 資料動画として扱われます（表示秒数に合わせて自動でループ／トリミングされます）。")
+                    st.caption("資料動画として扱われます（表示秒数に合わせて自動でループ／トリミングされます）。")
 
                 uploaded_media = st.file_uploader(
                     "資料メディア（写真/動画）をアップロード（任意）",
@@ -333,7 +332,7 @@ def render_scene_editor() -> None:
                     saved_media_path = _save_uploaded_content_media(uploaded_media, scene.id)
                     scene.content_media_path = str(saved_media_path)
 
-                with st.expander("📝 重要な表現の解説カード（赤い下線と意味）", expanded=bool(scene.note_text)):
+                with st.expander("重要な表現の解説カード（赤い下線と意味）", expanded=bool(scene.note_text)):
                     scene.note_text = st.text_input(
                         "文", value=scene.note_text, key=f"note_text_{scene.id}",
                         placeholder="例: Can I get a coffee?",
@@ -397,7 +396,7 @@ def render_scene_editor() -> None:
                     if scene.se_path and Path(scene.se_path).exists():
                         st.audio(scene.se_path)
 
-                with st.expander("🖼 イラスト（黒板より優先して画面中央に表示・任意）", expanded=bool(scene.illustration_path)):
+                with st.expander("イラスト（黒板より優先して画面中央に表示・任意）", expanded=bool(scene.illustration_path)):
                     illust_options = [None] + [str(p) for p in list_illustrations()]
                     if scene.illustration_path not in illust_options:
                         illust_options.append(scene.illustration_path)
@@ -405,7 +404,7 @@ def render_scene_editor() -> None:
                     scene.illustration_path = col_pick.selectbox(
                         "イラスト", options=illust_options, index=illust_options.index(scene.illustration_path),
                         format_func=lambda v: "（なし）" if v is None else Path(v).stem, key=f"illust_{scene.id}",
-                        help="assets/illustrations/ の画像から選びます（サイドバーの「🖼 イラスト素材」で追加できます）。",
+                        help="assets/illustrations/ の画像から選びます（サイドバーの「イラスト素材」で追加できます）。",
                     )
                     scene.illustration_caption = col_pick.text_input(
                         "イラストの下に添える説明（12字程度）", value=scene.illustration_caption,
@@ -415,11 +414,11 @@ def render_scene_editor() -> None:
                         col_thumb.image(scene.illustration_path, width="stretch")
                     elif scene.illustration_request or scene.illustration_name:
                         st.caption(
-                            f"💡 欲しいイラスト: {scene.illustration_request or '（説明なし）'}"
+                            f"欲しいイラスト: {scene.illustration_request or '（説明なし）'}"
                             f"　→ 「{scene.illustration_name}.png」の名前で assets/illustrations/ に置くと自動で表示されます。"
                         )
 
-                with st.expander("🧑‍🏫 スライド（黒板・任意）", expanded=scene.has_slide):
+                with st.expander("スライド（黒板・任意）", expanded=scene.has_slide):
                     st.caption(
                         "見出し・箇条書きを入力すると、黒板風のスライド画像を自動生成して画面中央に表示します"
                         "（上の「資料メディア」より優先されます）。箇条書き中の **言葉** は色を変えて強調されます。"
@@ -460,7 +459,7 @@ def render_scene_editor() -> None:
                         )
 
                 if project.source_kind == "english" or scene.lang == "en" or scene.reading or scene.audio_id:
-                    with st.expander("🗣 英会話用（英語のセリフ・読み・ネイティブ音声）",
+                    with st.expander("英会話用（英語のセリフ・読み・ネイティブ音声）",
                                      expanded=scene.lang == "en" or bool(scene.reading)):
                         col_lang, col_silent = st.columns(2)
                         scene.lang = col_lang.selectbox(
@@ -480,7 +479,7 @@ def render_scene_editor() -> None:
                         if scene.audio_id:
                             st.caption(
                                 f"ネイティブ音声: `{scene.audio_id}` → "
-                                + (f"✅ {Path(scene.voice_path).name}" if scene.voice_path else
+                                + (f"{Path(scene.voice_path).name}" if scene.voice_path else
                                    "⬜ まだありません（英会話モードの「③ ネイティブ音声」を参照）")
                             )
                 show_cols = st.columns(len(characters))
@@ -501,7 +500,7 @@ def render_scene_editor() -> None:
                 scene.hidden_characters = hidden
                 scene.guests = guests
                 if scene.speaker in hidden:
-                    st.caption("💡 話者を非表示にしているため、このシーンは声だけ（ナレーション）になります。")
+                    st.caption("話者を非表示にしているため、このシーンは声だけ（ナレーション）になります。")
 
                 speaker_index = characters.index(scene.speaker) if scene.speaker in characters else 0
                 scene.speaker = st.selectbox(
@@ -563,7 +562,7 @@ def render_scene_editor() -> None:
                 if long_lines:
                     detail = "、".join(f"{idx}行目({length}文字)" for idx, length in long_lines)
                     st.caption(
-                        f"💡 {detail} が目安（約{guide_count}文字/行）を超えています。"
+                        f"{detail} が目安（約{guide_count}文字/行）を超えています。"
                         "自動で折り返されますが、狙った位置で改行したい場合はここでEnterを押してください。"
                     )
 
@@ -577,7 +576,7 @@ def render_scene_editor() -> None:
                     placeholder="例: ご視聴ありがとうございました！",
                 )
 
-                with st.expander("🎥 動き（カメラ・揺れ・キャラクター）"):
+                with st.expander("動き（カメラ・揺れ・キャラクター）"):
                     col_cam, col_shake, col_motion = st.columns(3)
                     scene.camera = col_cam.selectbox(
                         "カメラ", options=list(CAMERA_LABELS), index=list(CAMERA_LABELS).index(scene.camera)
@@ -637,7 +636,7 @@ def render_scene_editor() -> None:
 
             btn_cols = st.columns(5)
             preview_voice_clicked = btn_cols[0].button(
-                "🔊 音声を試聴", key=f"preview_voice_{scene.id}", width="stretch"
+                ":material/play_arrow: 音声を試聴", key=f"preview_voice_{scene.id}", width="stretch"
             )
             if btn_cols[1].button("↑ 上へ", key=f"up_{scene.id}", disabled=(i == 0), width="stretch"):
                 project.move_scene(scene.id, -1)
@@ -651,7 +650,7 @@ def render_scene_editor() -> None:
                 new_scene = replace(scene, id=uuid.uuid4().hex[:8])
                 project.scenes.insert(i + 1, new_scene)
                 st.rerun()
-            if btn_cols[4].button("🗑 削除", key=f"del_{scene.id}", width="stretch"):
+            if btn_cols[4].button(":material/delete: 削除", key=f"del_{scene.id}", width="stretch"):
                 project.remove_scene(scene.id)
                 st.rerun()
 

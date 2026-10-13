@@ -12,7 +12,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from src.services import video_metadata
+from src.services import english_lesson, video_metadata
 from src.services.video_builder import DEFAULT_SPEED_PRESET, VideoBuildError, build_video
 from src.services.voicevox_client import VoicevoxConnectionError, VoicevoxSynthesisError
 from src.state import get_project
@@ -20,9 +20,9 @@ from src.state import get_project
 _LAST_EXPORT_KEY = "_last_export"  # 最後に書き出した動画 {"names": [本編・ショートの名前], "items": [{"label", "path", "warnings", "notes"}]}
 
 _SPEED_PRESET_OPTIONS: dict[str, str] = {
-    "fast": "⚡ 高速優先（下書き確認向け。ファイルサイズは大きめ）",
-    "balanced": "⚖️ バランス（既定）",
-    "quality": "🎬 高画質優先（時間がかかります）",
+    "fast": "高速優先（下書き確認向け。ファイルサイズは大きめ）",
+    "balanced": "バランス（既定）",
+    "quality": "高画質優先（時間がかかります）",
 }
 
 
@@ -31,7 +31,7 @@ _JUST_MADE_KEY = "_export_just_made"
 
 
 def render_speed_setting() -> str:
-    """書き出し速度の設定（上部のバーの ⚙ の中に出す）。"""
+    """書き出し速度の設定（上部のバーの の中に出す）。"""
     preset_keys = list(_SPEED_PRESET_OPTIONS.keys())
     st.session_state.setdefault("export_speed_preset", DEFAULT_SPEED_PRESET)
     return st.selectbox(
@@ -41,7 +41,7 @@ def render_speed_setting() -> str:
 
 
 def run_generation(project, speed_preset: str = DEFAULT_SPEED_PRESET) -> None:
-    """動画を書き出す（上部のバーの「🚀 動画を作る」から呼ぶ）。本編と紹介ショートの両方を書き出す。"""
+    """動画を書き出す（上部のバーの「動画を作る」から呼ぶ）。本編と紹介ショートの両方を書き出す。"""
     from src.ui.book_mode import export_targets  # book_mode がこのモジュールを読み込むため、ここで読み込む
 
     main, with_short = export_targets(project)
@@ -57,7 +57,7 @@ def render_last_export(project) -> None:
     if not paths:
         return
     just_made = st.session_state.pop(_JUST_MADE_KEY, False)
-    with st.expander(f"🎬 できた動画: {'、'.join(p.name for p in paths)}", expanded=just_made):
+    with st.expander(f"できた動画: {'、'.join(p.name for p in paths)}", expanded=just_made):
         _render_last_export(project)
 
 
@@ -94,7 +94,7 @@ def render_export_section() -> None:
 
     main, with_short = export_targets(project)
     kind = "本編＋紹介ショート" if with_short else ("ショート" if video_metadata.is_short(main) else "本編")
-    if st.button(f"🚀 動画を生成する（{kind}）", type="primary", width="stretch", key="export_generate"):
+    if st.button(f":material/movie: 動画を生成する（{kind}）", type="primary", width="stretch", key="export_generate"):
         _run_generation(main, with_short, speed_preset)
     _render_last_export(project)
 
@@ -116,12 +116,12 @@ def _render_last_export(project) -> None:
         for note in item.get("notes", []):
             st.caption(note)
         if item.get("warnings"):
-            with st.expander(f"⚠️ 生成時の注意事項（{len(item['warnings'])}件）"):
+            with st.expander(f"生成時の注意事項（{len(item['warnings'])}件）"):
                 for w in item["warnings"]:
                     st.warning(w)
         st.video(str(path))
         st.download_button(
-            f"⬇️ MP4をダウンロード（{item['label']}）", data=lambda p=path: p.read_bytes(), file_name=path.name,
+            f":material/download: MP4をダウンロード（{item['label']}）", data=lambda p=path: p.read_bytes(), file_name=path.name,
             mime="video/mp4", width="stretch", key=f"export_download_{i}",
         )
 
@@ -138,6 +138,13 @@ def _run_generation(main, with_short: bool, speed_preset: str = DEFAULT_SPEED_PR
         project, extra_warnings = targets.pop(0)
         label = _export_label(project)
         status_box.write(f"▶ {label}の書き出しを始めます")
+        # 英語のセリフに、置いてあるネイティブ音声を紐付ける（表示していない方の動画も、書き出す前に必ず）
+        english_lesson.link_native_audio(project.scenes, english_lesson.native_gap(project))
+        missing = english_lesson.missing_audio_count(project.scenes)
+        if missing:
+            extra_warnings = extra_warnings + [
+                f"英語のセリフ{missing}件に、ネイティブ音声がまだありません（VOICEVOXが英語を読むため、発音が不自然になります）。"
+                "「英会話の台本」タブの「ネイティブ音声」で作ってから、書き出し直してください。"]
         result = _build_one(project, label, status_box, speed_preset, used)
         if result is None:
             failed = True
@@ -155,7 +162,7 @@ def _run_generation(main, with_short: bool, speed_preset: str = DEFAULT_SPEED_PR
             else:
                 targets.append((short, warnings))
     if not failed:
-        status_box.update(label="動画の生成が完了しました 🎉", state="complete", expanded=False)
+        status_box.update(label="動画の生成が完了しました", state="complete", expanded=False)
     if items:
         names = [main.name] + ([short.name] if short is not None else [])
         st.session_state[_LAST_EXPORT_KEY] = {"names": names, "items": items}
@@ -174,12 +181,12 @@ def _build_one(project, label: str, status_box, speed_preset: str, used: list[st
     except VoicevoxConnectionError:
         status_box.update(label="VOICEVOXに接続できませんでした", state="error")
         st.error(
-            "⚠️ VOICEVOXが起動していません。VOICEVOXを起動してから再度実行してください。",
-            icon="⚠️",
+            "VOICEVOXが起動していません。VOICEVOXを起動してから再度実行してください。",
+            icon=":material/warning:",
         )
         st.caption(
             "VOICEVOXアプリ（またはVOICEVOX ENGINE）を起動した状態で、"
-            "もう一度「🚀 動画を生成する」ボタンを押してください。"
+            "もう一度「動画を生成する」ボタンを押してください。"
         )
     except VoicevoxSynthesisError as e:
         status_box.update(label="音声合成に失敗しました", state="error")
@@ -207,4 +214,4 @@ def _save_post_texts(project, output_path: Path) -> list[str]:
         except OSError:
             continue
         saved.append(info_path.name)
-    return [f"📝 投稿用の文章を保存しました: {'、'.join(saved)}（書籍解説モードで編集できます）"] if saved else []
+    return [f"投稿用の文章を保存しました: {'、'.join(saved)}（書籍解説モードで編集できます）"] if saved else []

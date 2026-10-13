@@ -21,10 +21,10 @@ from src.models import Project
 
 ROOT = Path(__file__).resolve().parents[2]
 HISTORY_PATH = ROOT / "history" / "videos.json"
-KIND_LABELS = {"book": "📖 本の解説", "research": "🔎 論文・記事の解説", "english": "🗣 英会話"}
+KIND_LABELS = {"book": "本の解説", "research": "論文・記事の解説", "english": "英会話"}
 METRIC_KEYS = ("ctr", "avg_view", "views", "comments")
 CHANNEL_PATH = ROOT / "config" / "channel.json"
-GROUP_LABELS = {"explain": "🎓 解説（本・論文記事）", "english": "🗣 英会話"}
+GROUP_LABELS = {"explain": "解説（本・論文記事）", "english": "英会話"}
 DEFAULT_CHANNEL = {
     "explain": {"arc": "ずんだもん、1年で100万円貯めるのだ計画", "rules": ""},
     "english": {"arc": "ずんだもん、3か月後に初めての海外旅行へ行く", "rules": ""},

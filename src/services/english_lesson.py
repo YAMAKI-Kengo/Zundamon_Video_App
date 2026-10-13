@@ -179,7 +179,10 @@ _linked_stamps: dict[str, str] = {}  # シーンID → 紐付けた音声ファ�
 
 
 def native_audio_items(scenes: list[Scene]) -> list[dict]:
-    """動画で使うネイティブ音声の一覧（登場順・重複なし）: {"id", "text", "voice", "ready", "path"}。"""
+    """動画で使うネイティブ音声の一覧（登場順・重複なし）: {"id", "text", "voice", "tts_voice", "ready", "path"}。
+
+    tts_voice は、読み上げAIで作った音声ならその声の名前（手作業で置いた音声・まだ無い音声は空文字）。
+    """
     manifest = load_manifest()
     items: dict[str, dict] = {}
     for scene in scenes:
@@ -190,10 +193,49 @@ def native_audio_items(scenes: list[Scene]) -> list[dict]:
             "id": scene.audio_id,
             "text": scene.text,
             "voice": manifest.get(scene.audio_id, {}).get("voice", "A"),
+            "tts_voice": (manifest.get(scene.audio_id, {}).get("tts") or {}).get("voice", "") if path else "",
             "ready": path is not None,
             "path": str(path) if path else "",
         }
     return list(items.values())
+
+
+def promo_audio_items(project) -> list[dict]:
+    """本編紹介ショートの台本（project.promo_short）にある英語の音声の一覧（native_audio_items と同じ形）。
+
+    ショートの英文は、本編と同じ英文なら同じ音声を使い回すが、ショートにしか無い英文もある。ショートはまだ
+    シーンになっていないことがあるので、台本の音声IDから一覧を作る。
+    """
+    manifest = load_manifest()
+    items: dict[str, dict] = {}
+    for block in (project.promo_short or {}).get("blocks") or []:
+        for line in (block.get("lines") or []) if isinstance(block, dict) else []:
+            audio_id = str((line or {}).get("audio") or "").strip() if isinstance(line, dict) else ""
+            if not audio_id or audio_id in items:
+                continue
+            path = find_audio_file(audio_id)
+            entry = manifest.get(audio_id, {})
+            items[audio_id] = {
+                "id": audio_id,
+                "text": entry.get("text") or str(line.get("text") or ""),
+                "voice": entry.get("voice", str(line.get("voice") or "A").upper()[:1] or "A"),
+                "tts_voice": (entry.get("tts") or {}).get("voice", "") if path else "",
+                "ready": path is not None,
+                "path": str(path) if path else "",
+            }
+    return list(items.values())
+
+
+def lesson_audio_items(project) -> list[dict]:
+    """本編と本編紹介ショートで使う英語の音声の一覧（重複なし。本編の登場順 → ショートだけの英文）。"""
+    items = native_audio_items(project.scenes)
+    known = {i["id"] for i in items}
+    return items + [i for i in promo_audio_items(project) if i["id"] not in known]
+
+
+def missing_audio_count(scenes: list[Scene]) -> int:
+    """ネイティブ音声を使う英語のセリフのうち、まだ音声が紐付いていないものの数。"""
+    return sum(1 for s in scenes if s.audio_id and not s.silent and not s.voice_path)
 
 
 def audio_script_text(items: list[dict], only_missing: bool = True) -> str:
@@ -235,7 +277,7 @@ def _week_plan_system(level: str) -> str:
 - 1週間で1つのテーマにする。テーマは文法（現在完了など）ではなく、英語の外側の悩み・欲求から入る「場面と感情」で決める（例: 海外の推しに一言コメントする、空港で固まらない、海外旅行のホテルで困らない、子どもに聞かれた英語に答える、洋画のよくあるセリフを聞き取る、カフェで注文する）。週ごとに、推し活・旅行・親子・日常・仕事などの入口を変えて、いろいろな人が「自分のことだ」と思えるようにする。1〜6日目が毎日のレッスン、7日目は1週間のまとめ（days には1〜6日目だけを書く）。
 - 1〜6日目は、同じテーマの中で場面を少しずつ変え、易しいものから順に並べる。前の日のフレーズを後の日の会話でも使えるようにつなげる（くり返し出会うことで定着する）。
 - 各日の phrases は2つ。実際の会話でよく使う、短くて応用のきく決まり文句にする（en は英語、ja は自然な日本語訳、point は使い方・言い換え・似た表現との違いを1文で）。
-- 各日の title は、その日の動画のタイトル・ショートのフックの元になる。「正しい表現」を名前にするのではなく、損失回避（「〜はNG」「実は失礼」「言いがちな間違い」「知らないと損」）か、具体的な感情と場面（「聞き取れない」「焦る」「固まる」「逃げたくなる」「沈黙が怖い」）の言葉で書く（例:「What?で聞き返すのは実は失礼」「沈黙が怖くて"えーと"連発してない？」「駅で道を聞かれて固まらない一言」）。
+- 各日の title は、その日の動画のタイトル・ショートのフックの元になる。初めて見る人にも一瞬で何の話か分かり、英語を話したい人の多くが「自分のことだ」と思う言葉にする。「正しい表現」を名前にするのではなく、損失回避（「〜はNG」「実は失礼」「言いがちな間違い」「知らないと損」）か、多くの人が感じる気持ち（「聞き取れない」「焦る」「固まる」「沈黙が怖い」）の言葉で書く（例:「What?で聞き返すのは実は失礼」「沈黙が怖くて"えーと"連発してない？」「英語が出てこない時の一言」）。細かい場面（空港の〇〇・ホテルの〇〇）や作中のカタカナ英語を見出しにしない。
 - 教科書的すぎる表現や古い表現は避け、今のネイティブが日常で使う自然なアメリカ英語にする。
 - zunda_trouble には、その日の場面で日本人がやりがちな失敗（直訳・カタカナ発音・丁寧すぎる/失礼な言い方など）を、ずんだもんがやらかす小さなエピソードとして1文で書く。
 - grammar には、その日に触れる文法か発音（音のつながり・弱く読む音など）のポイントを1つ書く。
@@ -345,6 +387,7 @@ def _lesson_schema(with_promo: bool = True) -> dict:
         "mood": {"type": "string", "enum": ["", "gloomy", "shock", "dark", "sepia", "bright"]},
         "card": _STR,
         "se": {"type": "string", "enum": [""] + [p.stem for p in list_se()]},
+        "motion": {"type": "string", "enum": ["auto", "panic", "hop", "jump", "recoil", "shiver", "slump", "lunge", "tsukkomi", "nod"]},
         "hide": {"type": "array", "items": {"type": "string", "enum": characters}},
         "board": {"type": "boolean"},
         "bullet": {"type": "integer"},
@@ -374,7 +417,7 @@ def _lesson_schema(with_promo: bool = True) -> dict:
         "tags": _STR_LIST,
         "readings": {"type": "array", "items": _obj({"word": _STR, "reading": _STR})},
         "phrases": {"type": "array", "items": _obj({"en": _STR, "ja": _STR})},
-        "thumbnail": _obj({"text": _STR, "sub": _STR, "shout": _STR, "layout": {"type": "string", "enum": ["before_after", "scene", "reaction", "duo", "big_text"]}, "zundamon": {"type": "string", "enum": expressions}, "metan": {"type": "string", "enum": expressions}, "before": _STR, "after": _STR, "before_face": {"type": "string", "enum": expressions}, "after_face": {"type": "string", "enum": expressions}, "before_shout": _STR, "after_shout": _STR, "scene": _STR, "phrase": _STR, "accent": {"type": "string", "enum": ["auto", "trouble", "town", "cafe", "solution"]}}),
+        "thumbnail": _obj({"text": _STR, "sub": _STR, "shout": _STR, "layout": {"type": "string", "enum": ["before_after", "scene", "reaction", "duo", "big_text"]}, "zundamon": {"type": "string", "enum": expressions}, "metan": {"type": "string", "enum": expressions}, "before": _STR, "after": _STR, "before_face": {"type": "string", "enum": expressions}, "after_face": {"type": "string", "enum": expressions}, "before_shout": _STR, "after_shout": _STR, "scene": _STR, "phrase": _STR, "accent": {"type": "string", "enum": ["auto", "trouble", "town", "cafe", "solution"]}, "visual": _STR}),
         "blocks": {"type": "array", "items": block},
         **({"promo_short": book_ai.promo_short_schema(block)} if with_promo else {}),
     })
@@ -404,13 +447,13 @@ def _lesson_structure(day: int, plan: dict, target_minutes: float) -> str:
         return f"""## 構成（7日目: 1週間のまとめ・約{target_minutes:g}分。blocks はこの順）
 1. intro（会話だけ・20〜30秒）: 今週のテーマ「{plan.get('theme', '')}」の1週間をふりかえる日だと伝える。ずんだもんが「全部覚えたのだ！」と調子に乗り、めたんが「じゃあテストしてあげるわ」と返す。
 2. review（1〜6日目ごとに1ブロック、計6ブロック）: 各日のフレーズで瞬発クイズ。めたんが日本語で出題（pause 4〜5、pause_text「英語で言ってみよう！」）→ めたんの英語で答え（ネイティブ音声）→ ずんだもんのリアクション（正解/間違いの小ネタ）。slide は title を「Day1：〇〇」、bullets にその日のフレーズ（「英語 ― 日本語」の形）を書き、答え合わせのセリフから board を true にする。
-3. dialog（今週のフレーズを4つ以上使った、少し長めの会話・6〜8行）: 前置きのセリフ（日本語。つむぎがいる場合は「今日は〇〇役でつむぎに来てもらったわ」と軽く紹介）→ ネイティブ音声の会話 → ずんだもんの感想（つむぎがいる場合は、最後につむぎが「じゃあね〜」と軽く挨拶して帰る）。
+3. dialog（今週のフレーズを4つ以上使った、少し長めの会話・6〜8行）: 前置きのセリフ（日本語）→ ネイティブ音声の会話 → ずんだもんの感想。
 4. summary: slide の title は「今週のフレーズ」、bullets に今週のフレーズを6〜8個（「英語 ― 日本語」）。今週できるようになったことを具体的にほめ（「1週間で〇個のフレーズが言えるようになった」）、来週のテーマ（{plan.get('next_theme_idea', '')}）を予告する。最後のセリフは、ずんだもんの「今週のフレーズ、ぜんぶ言えたのだ！」で締める。"""
     today = next((d for d in plan.get("days", []) if int(d.get("day") or 0) == day), {})
     tomorrow = next((d for d in plan.get("days", []) if int(d.get("day") or 0) == day + 1), {})
     return f"""## 構成（{day}日目・約{target_minutes:g}分。blocks はこの順）
 1. intro（会話だけ・20〜40秒）: 1セリフ目は、タイトルの場面で使う日本語を「『〇〇』って英語で何て言う？」と問いかける（答えはまだ言わない。最初の5秒でタイトルの約束に入る）→ すぐにずんだもんが自信満々に間違った英語を言う（直訳・和製英語など。lang "en"・reading にカタカナ。今日の失敗: {today.get('zunda_trouble', '')}）→ めたんが「その英語だと、ネイティブにはこう聞こえてるのよ」と、どう聞こえるかを面白く説明する（ここで笑いと「正解が知りたい」を同時に作る）→「今週のテーマ『{plan.get('theme', '')}』の{day}日目」と、前の日から続く旅の場面を一言 → めたんが「今日は〇〇で使える一言を教えてあげるわ」と予告する。
-2. dialog（ダイアログ）: めたんの前置き（日本語・「まずは会話を聞いてみて」。つむぎがいる場合は「今日は〇〇役でつむぎに来てもらったわ」と軽く紹介）→ 場面（{today.get('situation', '')}）のネイティブ音声の会話 4〜6行（voice A/B の2役。今日のフレーズ2つを必ず使う）→ ずんだもんの「速すぎて分からないのだ…」のような一言（つむぎがいる場合は、最後につむぎが「じゃあね〜」と軽く挨拶して帰る）。会話の最初のセリフに、場面のイラスト（image か image_request）を出し、会話の英語のセリフにはすべて同じイラストを付ける（英語の会話が続いている間はずっとイラストを出したままにする。アプリも自動で出したままにする）。
+2. dialog（ダイアログ）: めたんの前置き（日本語・「まずは会話を聞いてみて」）→ 場面（{today.get('situation', '')}）のネイティブ音声の会話 4〜6行（voice A/B の2役。今日のフレーズ2つを必ず使う）→ ずんだもんの「速すぎて分からないのだ…」のような一言。会話の最初のセリフに、場面のイラスト（image か image_request）を出し、会話の英語のセリフにはすべて同じイラストを付ける（英語の会話が続いている間はずっとイラストを出したままにする。アプリも自動で出したままにする）。
 3. phrase（今日のフレーズ1・2で2ブロック）: 各ブロックの slide は title を「今日のフレーズ1」「今日のフレーズ2」、bullets は「英語のフレーズ」「意味」「使い方のポイント」「言い換え・応用」の順に3〜4個。流れ: めたんがフレーズを英語で言う（ネイティブ音声）→ 日本語で意味と使い方を解説 → 例文をもう1つ英語で（ネイティブ音声）→ ずんだもんがカタカナ英語でまねする（reading にカタカナ）→ めたんが発音のコツ（{today.get('grammar', '')}など）をツッコミながら教える → ずんだもんがもう一度言って少し上手くなる。
 4. repeat（リピート練習・1ブロック）: めたん「音声のあとに、3・2・1の合図で言ってみて」→ 今日のフレーズ2つと会話の中の大事な文を合わせて3〜4文、ネイティブ音声の英語を1文ずつ（pause 3〜4、pause_style "repeat"、pause_text「リピート！」。アプリが音声のあとに「3・2・1 → リピート！」の合図を出す）→ めたん「次は音声に重ねて言ってみて」→ シャドーイングを1〜2文（その英文の行の pause_style を "shadow"、pause を 0、pause_text を「一緒に言ってみよう！」。アプリが「3・2・1」のあと同じ音声をもう一度流すので、視聴者は音声と一緒に言う）。
 5. quiz（瞬発トレーニング・1ブロック・3〜4問）: めたん「日本語を見て、すぐ英語で言ってみて」→ 問題ごとに、めたんが日本語の文を出題（「『〇〇』を英語で言うと？」。pause 4〜5、pause_style "think"、pause_text「英語で言ってみよう！」。残り秒数のタイマーが出る）→ めたんの英語で答え（ネイティブ音声）。今日のフレーズを少し言い換えて使う問題にする（例: 名詞を入れ替える）。ずんだもんの回答の小ネタを1回入れてよい。
@@ -444,32 +487,39 @@ def _lesson_system(plan: dict, day: int, level: str, speech_speed: float = DEFAU
 {_english_line_rules(level)}
 
 ## テンポ・画面
-- 日本語のセリフは10〜30字（字幕1行＝30字）。同じ話者が3セリフ以上続かない。ずんだもんのボケとめたんのツッコミで、1ブロックに1回は小さな笑いを入れる。
+- 日本語のセリフは10〜30字（字幕1行＝30字）。同じ話者が3セリフ以上続かない。ずんだもんのボケとめたんのツッコミで、1ブロックに2回以上は笑いどころを作る（楽しく学べることが一番大事）。フレーズの使い方は、思わず笑う面白いたとえや場面で説明する（例:「Could you slow down? は、早口の先生にブレーキを踏んでもらう魔法の言葉よ」）。ずんだもんが英語で大げさにやらかす面白シーン（間違った英語で店員さんを困らせる・勢いで変な注文をしてしまう など）を1本に2回以上入れる。
 - 画面の基本は2人の会話だけ（board は false、image は空文字）。黒板（board を true）は phrase・review・summary でフレーズを紹介するセリフから出し、そのブロックの最後まで出したままにする（アプリも自動で出したままにする）。黒板を出している間は、黒板の1行ごとに2〜3セリフかけて、意味・使い方・例文をじっくり話す。黒板の bullets は、話す順に1行ずつ書き足される。slide の numbered は、手順や順番があるときだけ true。
 - mood（背景の雰囲気）は、ずんだもんが英語で失敗して落ち込みがピークになる場面だけ "gloomy"（ショックの瞬間なら "shock"）にし、その場面の2〜4セリフに続けて付ける（1セリフだけ付けない）。動画の最初のセリフには付けない。1本で1〜2場面まで。それ以外は空文字。card（場面転換テロップ。例:「その日の夜…」）は導入で時間が飛ぶときだけ、text を空文字にした独立した行で使い、それ以外は空文字。
 - note（重要な表現の解説カード）: phrase ブロックで、今日のフレーズの大事な部分（例: Can I get の部分）を解説するセリフに使う（フレーズごとに1回、1本で2〜4回）。text は英文、meaning は日本語。画面に文が大きく出て、focus の部分に赤い下線が引かれ、矢印の先に meaning が表示される。
   text に文（25字・8語程度まで）、focus に赤線を引く部分（text の中にそのまま含まれる語句）、meaning にその部分の意味・使い方（25字以内。例:「〜をもらえる？ お店で注文するときの定番」）を書く。
   その部分を説明する2〜3セリフに、同じ note を続けて付ける（その間は黒板の代わりに解説カードが出る）。使わない行は text・focus・meaning をすべて空文字にする。
 - bullet（黒板のどの行の話か）: 黒板の箇条書きの行を初めて話すセリフに、その行の番号（1から）を書く（その番号の行が、そのセリフで黒板に書き足される）。それ以外のセリフは 0。瞬発トレーニング・ふりかえり（quiz・review）で黒板に答えを書く場合は、答えを言う英語のセリフにその行の番号を付ける（問題を出すセリフには付けない。先に答えが見えてしまうため）。行の番号は、話す順番どおりに1, 2, 3…と増えるようにする。まとめ（summary）は全部の行を最初から出すので、すべて 0 でよい。
-{book_ai._background_rules().replace("回想・寸劇・たとえ話などで、学校・職場・お店・駅・病院など部屋以外の場所の出来事を「その場面として見せる」ブロックだけ", "導入でずんだもんが外で英語に困る場面や、dialog の会話の場所（カフェ・空港・お店など）を見せるブロックだけ")}
+{book_ai._background_rules().replace("回想・寸劇・たとえ話などで、学校・職場・お店・駅・病院など部屋以外の場所の出来事を「その場面として見せる」ブロックだけ", "導入でずんだもんが外で英語に困る場面や、dialog の会話の場所（カフェ・空港・お店など）を見せるブロックだけ").replace("（例: ずんだもんの会社での失敗を再現する寸劇、学生時代の回想）", "（例: 空港で固まるずんだもん、カフェでの注文の会話）")}
 - 表情（expression）は、セリフの感情に合うものを次の一覧から選ぶ:
 {book_ai._character_guide()}
 - se（効果音）は、つかみ・正解・ツッコミ・オチなど3〜8回だけ。使えるのは次の名前のみ（使わないときは空文字）: {book_ai._se_guide()}
 - hide は空の配列。イラスト（image・caption・image_request・image_name）は、dialog の最初のセリフなど場面が伝わるところだけに出し、1本で2〜4枚までにする（出すセリフは board を false）。手元にあるイラスト: {', '.join(p.stem for p in list_illustrations()) or '（なし。image_request で依頼する）'}。合うものが無ければ、image_request に欲しいイラスト（検索語付き）、image_name に保存名（日本語4〜12字）を書く。caption は空文字（説明文は画面に出ない）。使わないときはすべて空文字。
+
+{book_ai.NETA_RULES}
+
+{book_ai.MOTION_RULES}
+- 英会話では特に: ずんだもんが、アニメ・漫画の決めゼリフをもじって英語の失敗を言い訳する・調子に乗る（例:「だが断るのだ！」と言ってから正しい断り方を教わる、「長男だったら英語も耐えられたのだ…」）。英語のセリフ（ネイティブ音声）にはネタを入れず、自然な英語のままにする。
 
 ## 読み方（readings・日本語の読み方辞書）
 - 日本語のセリフ（reading に書いた文の日本語の部分も含む）で、音声合成（VOICEVOX）が読み間違えそうな日本語の言葉の読み方を、readings に {{"word": 表記, "reading": ひらがな or カタカナの読み}} で書く（0〜15個）。
   対象: 人名・地名・店名、難読語、読み方が複数ある語（例: 一日→ついたち/いちにち、今日→きょう、上手→じょうず、何人→なんにん、他人事→ひとごと）、数字＋単位（例: 1杯→いっぱい、3分→さんぷん）、英語の授業でよく使う言葉（例: 例文→れいぶん、発音→はつおん）で読みがあいまいなもの。
   セリフに実際に出てくる言葉だけにし、普通に読める言葉は入れない。英語の読みは readings ではなく、各セリフの reading に書く。
 
+{book_ai.CLICK_RULES}
+
 ## 投稿用のタイトル・説明文
 - book_title には「{plan.get('theme', '')}」のような今週のテーマ名を書く。
-- title_candidates: 3つ。各40字以内。企画の中身（場面と、見たら何ができるようになるか）をタイトルの一番前に置き、シリーズ名は最後に「｜毎日英会話 Day{day}」と付ける（Day の番号が先頭にあると、初めて見る人が「Day1から見ていないから後回しにしよう」と感じてクリックを避けるため）。文法用語ではなく「場面と感情」が伝わるようにする（例:「駅で道を聞かれても逃げない英語｜毎日英会話 Day{day}」「空港で固まらない3フレーズ｜毎日英会話 Day{day}」）。内容と合っていれば「やってはいけない系・損している系」も強い（例:「Whatで聞き返すのはNG？ 失礼にならない聞き返し方｜毎日英会話 Day{day}」）。
+- title_candidates: 3つ。各40字以内。企画の中身（場面と、見たら何ができるようになるか）をタイトルの一番前に置き、シリーズ名は最後に「｜毎日英会話 Day{day}」と付ける（Day の番号が先頭にあると、初めて見る人が「Day1から見ていないから後回しにしよう」と感じてクリックを避けるため）。文法用語や今日の場面の細部ではなく、英語を話したい人なら誰でも「自分のことだ」と思う言葉にする（例:「その英語、ネイティブに通じてないかも！？｜毎日英会話 Day{day}」「英語が聞き取れない時に使える神フレーズ｜毎日英会話 Day{day}」「Whatで聞き返すのはNG？ 失礼にならない聞き返し方｜毎日英会話 Day{day}」）。
 - video_title: その中で一番クリックされそうな1つ。
 - description_lead: 説明欄の冒頭2行（改行区切り、各40字以内）。今日できるようになること。
 - pinned_comment: YouTubeのコメント欄に固定するコメント（4〜7行・全体で200字以内。改行区切り）。今日のフレーズ（英語と意味）→「このフレーズを使って、コメントに英語を1文書いてみてね」と、答えやすいお題と例文を1つ → 明日の予告。絵文字は1〜3個まで。URLは書かない。
 - hashtags: 4つ（# は付けない。「ずんだもん解説」はアプリが必ず先頭に付けるので書かない）。書名・人名などの固有名詞ではなく、多くの人が検索・フォローしていて、この動画の内容に関係する一般的な言葉にする（例: 英会話、英語学習、リスニング、TOEIC、英語、スピーキング、海外旅行）。
-- tags: 15〜25個。YouTubeのタグは、視聴者が検索したときに表記ゆれ・変換ミス・打ち間違いがあっても、この動画が見つかるようにするためのもの。動画の大事なキーワード（テーマ・悩み・書名・著者名・フレーズなど）それぞれについて、ひらがな・カタカナ・英語（ローマ字）の書き方、よくある変換ミスや打ち間違い、略称・言い換え、スペースの有無の違いを入れる（例: 英会話 → えいかいわ、English conversation／TOEIC → トーイック、toeic／睡眠 → すいみん、眠れない、寝れない／書名の略称やひらがな表記）。動画と関係のない人気ワードは入れない（スパム扱いされるため）。1つ20字以内、全部で400字以内。
+- tags: {book_ai.TAGS_RULE}
 - phrases: この動画で教えたフレーズ（en・ja）。
 - thumbnail（サムネイルの文言と見せ方）。一覧で一番に目に入るのは、上部いっぱいに出る特大の一言（text）。左に胸から上の大きなずんだもん（感情の伝わる顔。画面の30〜40%）、右に特大の一言（画面の35〜45%）、その下に答えを伏せた英語の吹き出し（例: Let me 〇〇…？）が出て、場面のイラストは背景にぼかして薄く敷かれる。スマホの一覧ではサムネイルは切手ほどの大きさなので、文字の要素は「大きな一言」と「吹き出しの英語」の2つだけにする（右下は再生時間が重なるので、アプリが何も置かない）:
   text は2行まで（改行は \\n）、1行9字以内・全体で10〜16字。見たら何ができるようになるか（得られるメリット）が、スマホの小さな画面でも一目で分かる一言にする（例:「もう聞き返されても\\n**焦らない**！」「一言で伝わる\\n**神フレーズ**」「この一言で\\n注文が**通じる**」）。文字は白で、一番大事な1語だけを **語** で囲む（赤く大きく目立つ）。==語== で囲むと黄色（多用しない）。
@@ -478,7 +528,9 @@ def _lesson_system(plan: dict, day: int, level: str, speech_speed: float = DEFAU
   phrase は、今日のフレーズのうち一番使える英語を1つ（25字以内）。答えが見えるとその場で満足してクリックされないので、アプリが吹き出しでは後半を伏せて出す（例: Let me check the map. → Let me 〇〇…？）。
   sub は空文字にする（英会話のサムネイルには左上の帯を出さない。文字の要素が増えて視線が迷うため。シリーズ名や Day の番号も入れない）。
   layout は基本 "scene"（使える場面）。感情が強い内容なら "reaction"、結論が強い一言なら "big_text"。"before_after" は使わない。
-  zundamon の表情は企画の種類で選ぶ（いつも笑顔にしない。視聴者が一番感情移入するのは「焦り・困惑・気まずさ」の共感）: 困り系（逃げない・聞き返せない・Yes連発・固まる・聞き取れない など）は焦り・パニック・ショック・困り顔、解決系（これ一言でOK・神フレーズ など）はドヤ顔・ひらめき顔。shout は吹き出しのひと言（reaction・big_text で使う。3〜8字）。before・after は空文字、before_face・after_face は zundamon と同じ表情でよい。{book_ai.promo_short_rules("english", speech_speed)}"""
+  zundamon の表情は企画の種類で選ぶ（いつも笑顔にしない。視聴者が一番感情移入するのは「焦り・困惑・気まずさ」の共感）: 困り系（逃げない・聞き返せない・Yes連発・固まる・聞き取れない など）は焦り・パニック・ショック・困り顔、解決系（これ一言でOK・神フレーズ など）はドヤ顔・ひらめき顔。shout は吹き出しのひと言（reaction・big_text で使う。3〜8字）。before・after は空文字、before_face・after_face は zundamon と同じ表情でよい。
+  visual は、画像生成AI（ChatGPT・Gemini など）にサムネイルの絵を描いてもらうための「絵の内容」（日本語1〜2文・80字以内）。キャラクターのポーズ・動き・場面・小道具を具体的に書き、一目で笑える・気になる絵にする。アニメ・漫画・ネットミームのパロディ風の構図や演出（例: ジョジョ立ち風の決めポーズに「ゴゴゴゴ」の効果文字、劇画タッチで驚愕する顔、宇宙猫顔、少年漫画の必殺技風の集中線）を入れてもよい。ただし他の作品のキャラクターそのもの・作品名・ロゴは描かせず、ずんだもんたちが「〜風」にまねする形にする。
+ {book_ai.promo_short_rules("english", speech_speed)}"""
 
 
 def generate_lesson(plan: dict, day: int, level: str = "", speech_speed: float = DEFAULT_SPEECH_SPEED,
