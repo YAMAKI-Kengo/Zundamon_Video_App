@@ -16,11 +16,9 @@ AIで台本を作った場合は、AIが提案したタイトル案（Project.ti
 """
 from __future__ import annotations
 
-import json
 import math
 import re
 from dataclasses import dataclass, field
-from pathlib import Path
 
 from src.models import SECTION_LABELS, Project, Scene
 from src.services import bgm_library
@@ -246,8 +244,6 @@ def _research_title_candidates(project: Project) -> list[str]:
             f"9割が知らない{topic}の真実 #Shorts",
         ]
         return _dedupe(ai + [_fit(t) for t in template])
-    n_points = len(_explain_points(project.scenes))
-    points_part = f"{n_points}つのポイント" if n_points else "要点"
     minutes = max(1, math.ceil(project.total_duration / 60))
     template = [
         f"{topic}、実際やったらどうなる？",

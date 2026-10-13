@@ -55,7 +55,7 @@ from src.utils.asset_loader import (
     load_se_guide,
 )
 from src.models import GUEST_CHARACTERS
-from src.services import bgm_library
+from src.services import bgm_library, staging
 from src.services.voicevox_client import DEFAULT_SPEECH_SPEED
 from src.utils.env_config import load_env
 
@@ -193,6 +193,18 @@ def _script_schema(with_promo: bool = False) -> dict:
         "image_request": _STR,
         "image_name": _STR,
         "bgm": {"type": "string", "enum": [""] + bgm_library.MOOD_CHOICES},
+        "stage": _obj({
+            "shot": {"type": "string", "enum": staging.SHOTS},
+            "camera": {"type": "string", "enum": staging.CAMERAS},
+            "fx": {"type": "string", "enum": staging.FX},
+            "cast": {"type": "array", "items": _obj({
+                "who": {"type": "string", "enum": characters},
+                "pos": {"type": "string", "enum": list(staging.POSITION_LABELS)},
+                "size": {"type": "string", "enum": [""] + list(staging.SIZES)},
+                "face": {"type": "string", "enum": [""] + list(staging.FACINGS)},
+                "move": {"type": "string", "enum": staging.MOVES},
+            })},
+        }),
     })
     guest_keys = [c for c in characters if c in GUEST_CHARACTERS]
     block = _obj({
@@ -335,12 +347,12 @@ def _illustration_guide() -> str:
 
 def _illustration_rules() -> str:
     listing = _illustration_guide() or "  （まだ1枚もありません。すべて image_request で依頼してください）"
-    return f"""## 画面に出すもの（board・image。基本は2人の会話）
-- 各ブロックの最初の2〜3セリフ（つかみ・ボケ・問いかけ）は、2人の会話だけ（board は false、image は空文字）にする。
-- 黒板（board を true）は、その場面の見出し（結果・結論）を言うセリフから出し、そのブロックの最後まで出したままにする（アプリも、一度出した黒板はブロックの最後まで自動で出したままにする）。まとめ（summary）は全セリフ true。
-- 黒板を出している間は、黒板に書いてある内容を会話でじっくり話す。箇条書きの1行ごとに2〜3セリフかける（めたんが黒板の文を言う → その理由・具体例・たとえ → ずんだもんの反応や質問・言い換え）。1行を1セリフで流して次へ進まない。黒板の文章を読み終える前に次の話題へ移らない。
+    return f"""## 画面に出すもの（board・image。主役はキャラクターの動き、黒板は結果発表）
+- 画面の主役は、キャラクターが動いて演じる場面（stage）。黒板は「結果・数字・結論を見せる」ときだけの道具にする。黒板の文字を読み上げる時間が長いと、講義を受けているようで面白くない。
+- 黒板（board を true）は、各ブロックで結果・数字・結論を見せる2〜4セリフだけ、続けて出す。それ以外のセリフ（場面・ボケ・リアクション・寸劇）は board を false にして、stage でキャラクターの動きとして見せる。まとめ（summary）は全セリフ true。
+- 黒板を出したら、書いてある内容を短く伝える（1行につき1〜2セリフ）。黒板の文をそのまま読み上げるだけのセリフにしない。
 - イラスト（image か image_request）を出すのは、具体例・たとえ話・やってしまいがちな行動・おすすめの行動など、絵があるとイメージが付きやすいセリフだけ。イラストを出すセリフは board を false にする。
-- 黒板は1セリフごとに出したり消したりしない（画面がチカチカする）。イラストは1〜2セリフだけ出す（そのあとは黒板に戻る）。
+- 黒板は1セリフだけ出してすぐ消すのを繰り返さない（画面がチカチカする）。出すときは続けて2〜4セリフ。イラストは1〜2セリフだけ出す。
 - 黒板の箇条書きが手順・順番・ランキング・「〇つの〜」のように順序や数に意味があるときは、slide の numbered を true にする（1. 2. 3. の番号付きで表示される）。それ以外は false（「・」で表示）。
 - 手元にあるイラストは次のとおり（ファイル名から推測して選ぶ）:
 {listing}
@@ -560,6 +572,30 @@ SCENE_MOVE_RULES = """- 場所の移り変わりは、アニメのように自�
   戻るときも、戻ったことが分かる一言（めたん「…で、部屋に帰ってきて落ち込んでるわけね」）や card を入れる。アプリは、場所が変わるとき背景を横に流し、2人が歩いて入ってくる。
 - 画面から一時的に外れるキャラクター（hide）は、外れる理由が分かるようにする（「ちょっと様子を見てるわね」と言って外れる、「待ちなさい！」と言って戻ってくる）。アプリは、外れるときは横へ歩いて出ていき、戻るときは横から歩いて入ってくる。"""
 
+STAGE_RULES = """## 立ち位置・動き・カメラ・効果（stage。キャラクターが場所にとらわれず動き回る寸劇にする）
+2人を左右に立たせて話させるだけの画面にしない。セリフの意味と前後の展開に合わせて、キャラクターを動かして演じさせる。
+stage に書いたことは次のセリフにも引き継がれる（書かなければ、前のセリフの立ち位置のまま）。変えたいセリフにだけ書き、それ以外は shot・camera・fx を空文字、cast を空の配列にする。
+- cast（キャラクターごとの指定。動かす人だけ書く）:
+  - who: キャラクター。pos: 立ち位置（far_left・left・center_left・center・center_right・right・far_right。画面の外は out_left・out_right。home はいつもの立ち位置。空なら今の位置）。
+  - size: small（遠く・小さく）/ normal / large（手前・大きく）。空なら今のまま。face: left / right（向き。空なら一番近い相手の方を自動で向く）。
+  - move: 動き方。walk（歩く）・run（走る）・jump（跳んで移動）・step_back（向きはそのまま後ずさる）・approach（相手に近づく。pos は空）・retreat（相手から離れる）・chase（追いかける。走る）・turn（振り向く）・enter（画面の外から入ってくる）・exit（画面の外へ出ていく）。空なら位置が変わるときは歩く。
+- shot（画面の構図）: talk（いつもの2人の会話の定位置に戻る）・solo（話者1人だけを中央に大きく。他は画面の外へ）・closeup（話者の顔のアップ）・group（全員が中央に集まる）・wide（全員を小さく引きで見せる。場所の背景が見える）。
+- camera: pan_left / pan_right（横にパン）・zoom_in（ゆっくり寄る）・zoom_out（寄った状態から引く）・follow（動く話者を追う）。
+- fx（効果）: focus_lines（集中線。衝撃の瞬間）・speed_lines（スピード線。走る・急展開）・flash（フラッシュ。ひらめき・大発表）・gloom（どんより縦線。落ち込み）・exclaim（「！」）・question（「？」）・sweat（汗）・anger（怒りマーク）・sparkle（キラキラ）。
+動きの例（セリフの意味に合わせる。ランダムに動かさない）:
+  - 調子に乗って画面の中央へ躍り出る: ずんだもん pos center, move run, size large ＋ fx sparkle
+  - めたんがツッコミながら詰め寄る: めたん move approach ＋ motion tsukkomi
+  - 衝撃の事実に後ずさる: ずんだもん move step_back ＋ fx focus_lines
+  - 逃げるずんだもんをめたんが追いかける: ずんだもん pos out_right, move run ／ めたん pos right, move chase
+  - 落ち込んで画面の端で小さくなる: ずんだもん pos far_left, size small ＋ fx gloom
+  - 何かを見つける: 振り向いて（move turn）「！」（fx exclaim）
+  - 1人で語る・ひらめく場面: shot solo / shot closeup
+  - 3人で相談する・作戦会議: shot group
+  - 黒板で結果を見せるセリフ（board true）では、キャラクターは自動で左右に戻るので stage は空でよい。
+- 1ブロックの中で、立ち位置・ショットを2〜4回変える。同じ構図を長く続けない（目安: 3〜5セリフごとに画面の何かが変わる）。
+- 場所の背景（background）と組み合わせると、寸劇がその場所で起きているように見える（例: 会社の背景で、ずんだもんが上司（めたん）から逃げ回る）。"""
+
+
 SHORT_TEMPO_RULES = """- 1セリフは8〜17字（縦画面の字幕1行）。長くても34字まで。1つのセリフで言うことは1つだけにし、同じことを言い換えて繰り返さない。
 - 相づちだけのセリフ（「えっ」「なるほど」「そうなのだ」）を単独で置かない（話が進まない時間になり、テンポが落ちる）。リアクションは中身と一緒に1セリフで言う（例:「えっ、9割も！？」）。
 - 前置き・つなぎの言葉（「実はね」「それでね」「じゃあ説明するわ」）は書かない。問いかけの次のセリフで、すぐ答える。
@@ -645,6 +681,8 @@ def _normal_system(target_minutes: float, speech_speed: float = DEFAULT_SPEECH_S
 
 {MOTION_RULES}
 
+{STAGE_RULES}
+
 ## 最後まで見たくなる工夫（必ず入れる）
 授業のような「小テスト」「おさらい」ではなく、物語の続きが気になる仕掛けで最後まで見てもらう。
 1. 引き: 最後のブロック以外は、ブロックの最後に次への引き（「でも、本当の地獄はここからなのよ」「このあと、ずんだもんの口座に信じられないことが起きるわ」）を入れる。
@@ -660,8 +698,8 @@ def _normal_system(target_minutes: float, speech_speed: float = DEFAULT_SPEECH_S
 
 ## 黒板スライド（explain と summary の slide）
 - title は20字以内。その場面で起きたこと・分かったことが一目で分かる見出しにする（例:「1か月後：口座は18万円に」「ずんだもん vs めたん 途中結果」「勝ち残る人の3つのルール」「第3位：〜」）。「真実1」「ポイント1」「失敗の理由1」「Q1」のような、授業っぽい番号付きの見出しは使わない（時間の経過・順位・対決の途中経過など、物語の中で意味のある区切りだけ「：」で区切ってよい）。summary は「結論」など。
-- bullets は3〜5個。一言のキーワードではなく、黒板を読んだだけで要点が伝わる短い文（各15〜28字）にする。1つの文は黒板の1行に収めて表示するので、28字を超えない。
-  1つ目はその場面の結果（数字）、続けて理由・具体例・やり方を書く（例:「30万円 → 1か月後 18万円」「負けを取り返そうと賭け金を増やした」）。
+- bullets は2〜4個。一言のキーワードではなく、黒板を読んだだけで要点が伝わる短い文（各15〜28字）にする。1つの文は黒板の1行に収めて表示するので、28字を超えない。
+  1つ目はその場面の結果（数字）、続けて理由・具体例・やり方を書く（例:「1か月で30万円が18万円に」「負けを取り返そうと賭け金を増やした」）。黒板では「→」などの矢印記号を使わず、言葉で書く（黒板の文字では矢印がきれいに出ないため）。
   最も大事な語句を1〜2か所 **語句** の形で強調してよい。
 - summary の bullets は、問いへの答えと、うまくいくための条件を1文ずつ（各15〜28字。5つまで）。
 - 黒板の箇条書きはセリフの進行に合わせて上から順に書き足されるので、セリフで話す順番に並べる。
@@ -709,6 +747,8 @@ def _short_system(speech_speed: float = DEFAULT_SPEECH_SPEED) -> str:
 {NETA_RULES}
 
 {MOTION_RULES}
+
+{STAGE_RULES}
 
 ## 最後まで見る理由（ショート）
 - 答えを言う前に1回だけ、めたんがずんだもんに「どっちだと思う？」と問いかけ、ずんだもんがすぐ答えて外す（最後まで見る理由を作る）。無音の間は入れない。
@@ -959,6 +999,13 @@ def tidy_script_lines(data: dict, source_kind: str = "book") -> None:
                     line.pop(key, None)
             if not (line.get("note") or {}).get("text"):
                 line.pop("note", None)
+            stage = line.get("stage") or {}
+            if isinstance(stage, dict):
+                stage = {k: v for k, v in stage.items() if v}
+            if stage:
+                line["stage"] = stage
+            else:
+                line.pop("stage", None)
             if not line.get("bullet"):
                 line.pop("bullet", None)
         for key in ("background", "background_request", "background_name"):

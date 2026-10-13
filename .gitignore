@@ -6,6 +6,7 @@ tmp/audio/*
 !tmp/audio/.gitkeep
 tmp/slides/
 tmp/preview_audio/
+tmp/bgm_loudness.json
 assets/backgrounds/uploaded_*
 assets/content_media/uploaded_*
 .streamlit/secrets.toml

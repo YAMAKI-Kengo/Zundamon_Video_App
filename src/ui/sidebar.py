@@ -237,6 +237,10 @@ def _render_motion_section(project: Project) -> None:
         project.char_slide_in = st.checkbox(
             "非表示だったキャラクターが横から入ってくる", value=project.char_slide_in, key="motion_char_slide_in",
         )
+        project.auto_fx = st.checkbox(
+            "表情に合わせて漫画風の効果を付ける（驚き→「！」、ショック→集中線、焦り→汗、落ち込み→どんより線 など）",
+            value=project.auto_fx, key="motion_auto_fx",
+        )
         options = list(TRANSITION_LABELS)
         project.slide_transition = st.selectbox(
             "黒板が切り替わるときのトランジション", options=options,

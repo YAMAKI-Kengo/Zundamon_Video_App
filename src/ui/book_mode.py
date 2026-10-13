@@ -439,9 +439,15 @@ def _preview_resolution(resolution: tuple[int, int]) -> tuple[int, int]:
     return max(1, round(resolution[0] * scale)), max(1, round(resolution[1] * scale))
 
 
-def _render_group_preview(project: Project, group: book_script.SceneGroup) -> None:
+def _render_group_preview(project: Project, group: book_script.SceneGroup, ctx=None) -> None:
     """ブロック先頭のシーンを、実際の動画と同じレイアウトで縮小プレビューする。"""
     scene = group.scenes[0]
+    if ctx is not None and ctx.stage is not None and not scene.card_text:
+        try:
+            st.image(motion.staged_still(project, scene, ctx, _preview_resolution(project.resolution)), width="stretch")
+            return
+        except Exception:  # noqa: BLE001 - 失敗したら、いつもの画面のプレビューにする
+            pass
     try:
         media = slide_renderer.resolve_scene_content_media(scene, project.resolution)
         show_label = project.show_chapter_label and not video_metadata.is_short(project) and scene.section != "ending"
@@ -516,7 +522,7 @@ def _render_overview(project: Project) -> None:
 
     # 縦画面では、プレビュー画像が縦長になるため画像列を細めにする
     image_ratio = 1.2 if project.resolution[0] >= project.resolution[1] else 0.6
-    contexts = motion.build_contexts(project.scenes)
+    contexts = motion.build_contexts(project.scenes, project=project)
     pages = max(1, -(-len(groups) // OVERVIEW_BLOCKS_PER_PAGE))
     page = 1
     if pages > 1:
@@ -529,16 +535,17 @@ def _render_overview(project: Project) -> None:
         ) or 1
     first = (page - 1) * OVERVIEW_BLOCKS_PER_PAGE
     scene_no = 1 + sum(len(g.scenes) for g in groups[:first])
+    bgm_paths = bgm_library.scene_bgm_paths(project)
     for group_no, group in enumerate(groups[first:first + OVERVIEW_BLOCKS_PER_PAGE], start=first + 1):
         icon = _SECTION_ICONS.get(group.section, ":material/movie:")
         label = group.label
         title = group.slide_title or "（スライドなし）"
-        bgm = bgm_library.scene_bgm_path(project, group.scenes[0])
+        bgm = bgm_paths[scene_no - 1] if scene_no - 1 < len(bgm_paths) else None
         with st.container(border=True):
             st.markdown(f"**{icon} ブロック{group_no}：{label}**　—　{title}")
             col_img, col_lines = st.columns([image_ratio, 2])
             with col_img:
-                _render_group_preview(project, group)
+                _render_group_preview(project, group, contexts[scene_no - 1] if scene_no - 1 < len(contexts) else None)
             with col_lines:
                 for scene in group.scenes:
                     if scene.card_text:

@@ -845,7 +845,7 @@ def build_video(
     scene_clips = []
     extra_clips: list = []  # 背景動画クリップなど、scene_clips自身の.close()では閉じられない付随リソース
     try:
-        motion_contexts = motion.build_contexts(project.scenes)
+        motion_contexts = motion.build_contexts(project.scenes, project=project)
         for i, scene in enumerate(project.scenes):
             clip = _build_scene_clip(
                 scene, i, project.resolution, fps, font_path, warnings, progress, extra_clips,

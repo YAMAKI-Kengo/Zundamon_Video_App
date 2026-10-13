@@ -200,6 +200,9 @@ class Scene:
     # BGMの雰囲気（src.services.bgm_library.MOOD_CHOICES のキー。空なら前のシーンの雰囲気を引き継ぐ）。
     # 台本の "bgm"。雰囲気が変わるセリフにだけ書き、その気分のフォルダ（assets/bgm/<気分>/）の曲に切り替える
     bgm_mood: str = ""
+    # 立ち位置・移動・ショット・カメラ・効果（台本の "stage"。src.services.staging）。空なら前のセリフの状態のまま
+    # {"shot": "solo", "camera": "", "fx": "exclaim", "cast": [{"who": "zundamon", "pos": "center", "size": "", "face": "", "move": "run"}]}
+    stage: dict = field(default_factory=dict)
 
     @property
     def has_slide(self) -> bool:
@@ -261,6 +264,7 @@ class Project:
     book_title: str = ""  # 書籍解説モードで扱っている本のタイトル（表示・スライド生成用）
     book_author: str = ""  # 本の著者名（説明文・タグに使う）
     book_cover_path: Optional[str] = None  # 本の表紙画像（本を紹介するシーンで画面中央に表示する）
+    auto_fx: bool = True  # 表情に合わせて「！」「？」・汗・集中線などの効果を自動で付ける（src.services.staging.AUTO_FX）
     voice_emotion: bool = True  # セリフの表情に合わせて声色（なみだめ・ツンツン等）と話し方を変える（src.services.voice_tone）
     speech_speed: float = 1.2  # 話す速さ（1.0=VOICEVOXの等速。解説動画はテンポよく1.2倍が既定）
     # 動画の動き（src.services.motion）の自動演出の設定
@@ -350,6 +354,7 @@ class Project:
             "book_cover_path": self.book_cover_path,
             "speech_speed": self.speech_speed,
             "voice_emotion": self.voice_emotion,
+            "auto_fx": self.auto_fx,
             "auto_camera": self.auto_camera,
             "auto_shake": self.auto_shake,
             "char_bob": self.char_bob,
@@ -397,6 +402,7 @@ class Project:
             book_cover_path=data.get("book_cover_path"),
             speech_speed=data.get("speech_speed", 1.2),
             voice_emotion=bool(data.get("voice_emotion", True)),
+            auto_fx=bool(data.get("auto_fx", True)),
             auto_camera=data.get("auto_camera", True),
             auto_shake=data.get("auto_shake", True),
             char_bob=data.get("char_bob", True),

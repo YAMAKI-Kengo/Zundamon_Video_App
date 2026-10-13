@@ -60,6 +60,8 @@ def _system(role: str, speech_speed: float) -> str:
 
 {book_ai.MOTION_RULES}
 
+{book_ai.STAGE_RULES if role != "english" else ""}
+
 {book_ai.CLICK_RULES}
 
 ## 表情・効果音・使わない項目

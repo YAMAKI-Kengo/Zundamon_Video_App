@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Optional
 
 from src.models import NO_BGM, Project, Scene
+from src.utils.asset_loader import _short_cache
 
 ROOT = Path(__file__).resolve().parents[2]
 BGM_DIR = ROOT / "assets" / "bgm"
@@ -89,6 +90,12 @@ def library_key(path: Path | str) -> str:
 
 def list_tracks(mood: Optional[str] = None) -> list[Track]:
     """assets/bgm/ の曲（気分のフォルダの中も含む）。mood を指定すると、その気分のフォルダの曲だけ。"""
+    return [t for t in _all_tracks() if mood is None or t.mood == mood]
+
+
+@_short_cache(3.0)
+def _all_tracks() -> list[Track]:
+    mood = None
     if not BGM_DIR.exists():
         return []
     library = load_library()
@@ -113,7 +120,7 @@ def list_tracks(mood: Optional[str] = None) -> list[Track]:
 
 def track_for_path(path: str | Path) -> Track:
     key = library_key(path)
-    for track in list_tracks():
+    for track in _all_tracks():
         if track.key == key:
             return track
     p = Path(path)
