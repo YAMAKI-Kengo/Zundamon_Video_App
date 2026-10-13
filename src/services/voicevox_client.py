@@ -26,6 +26,9 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from src.services import voice_tone
+from src.services.voice_tone import VoiceTone
+
 # --- 設定（話者IDなど） -------------------------------------------------
 
 # "localhost" だと Windows では先に IPv6（::1）へつなごうとして失敗し、IPv4 へ切り替わるまで毎回待たされる。
@@ -34,9 +37,8 @@ from urllib3.util.retry import Retry
 VOICEVOX_BASE_URL = "http://127.0.0.1:50021"
 
 # VOICEVOXの話者ID（「ノーマル」スタイル）。
-# 他のスタイル（あまあま・ツンツン等）を使いたい場合は、VOICEVOXを起動した状態で
-# ブラウザから http://localhost:50021/docs を開き、/speakers エンドポイントで
-# 該当キャラクターの style.id を確認してここを書き換える。
+# 表情に合わせた別のスタイル（なみだめ・ツンツン等）は、起動中のVOICEVOXの /speakers から
+# スタイル名でIDを自動で調べて使う（voice_for()・src.services.voice_tone）。
 VOICEVOX_SPEAKER_IDS: dict[str, int] = {
     "zundamon": 3,        # ずんだもん（ノーマル）
     "shikoku_metan": 2,   # 四国めたん（ノーマル）
@@ -273,6 +275,34 @@ def _apply_tempo(query_json: dict, speech_speed: float) -> dict:
     return query_json
 
 
+_speakers_cache: dict[str, list[dict]] = {}
+
+
+def _speakers(base_url: str) -> list[dict]:
+    """起動中のVOICEVOXの話者・スタイル一覧（/speakers。1回だけ取得して覚えておく）。取れなければ空。"""
+    if base_url not in _speakers_cache:
+        try:
+            resp = _http_quick.get(f"{base_url}/speakers", timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT))
+            _speakers_cache[base_url] = resp.json() if resp.status_code == 200 else []
+        except (requests.exceptions.RequestException, ValueError):
+            return []  # 次の呼び出しでもう一度試す
+    return _speakers_cache[base_url]
+
+
+def voice_for(character_key: str, expression: str = "", base_url: str = VOICEVOX_BASE_URL) -> tuple[int, VoiceTone]:
+    """表情に合う声（VOICEVOXのスタイルID）と話し方の調整。表情の声色を使わないときは expression を空にする。
+
+    スタイル（なみだめ・ツンツン等）が今のVOICEVOXに無いときは、ノーマルの声のまま話し方の調整だけを効かせる。
+    """
+    tone = voice_tone.tone_for(character_key, expression)
+    speaker_id = get_speaker_id(character_key)
+    if tone.style:
+        found = voice_tone.style_id(_speakers(base_url), character_key, tone.style)
+        if found is not None:
+            speaker_id = found
+    return speaker_id, tone
+
+
 def get_speaker_id(character_key: str) -> int:
     """キャラクターキーからVOICEVOXの話者IDを取得する。未定義の場合は例外を送出する。"""
     speaker_id = VOICEVOX_SPEAKER_IDS.get(character_key)
@@ -359,6 +389,7 @@ def measure_natural_duration(
     base_url: str = VOICEVOX_BASE_URL,
     reading_dict: Optional[list[dict]] = None,
     speech_speed: float = DEFAULT_SPEECH_SPEED,
+    expression: str = "",
 ) -> float:
     """話す速さ speech_speed で読み上げたときの秒数を、音声を合成せずに求める。
 
@@ -371,10 +402,11 @@ def measure_natural_duration(
     """
     if not text or not text.strip():
         return 0.0
+    speaker_id, tone = voice_for(character_key, expression, base_url)
     try:
         resp = _http.post(
             f"{base_url}/audio_query",
-            params={"speaker": get_speaker_id(character_key), "text": speech_text(text, reading_dict)},
+            params={"speaker": speaker_id, "text": speech_text(text, reading_dict)},
             timeout=(CONNECT_TIMEOUT, QUERY_TIMEOUT),
         )
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
@@ -383,7 +415,7 @@ def measure_natural_duration(
         ) from e
     if resp.status_code != 200:
         raise VoicevoxSynthesisError(f"VOICEVOXの音声クエリ生成に失敗しました（ステータスコード: {resp.status_code}）。")
-    query_json = _apply_tempo(resp.json(), speech_speed)
+    query_json = voice_tone.apply_tone(_apply_tempo(resp.json(), speech_speed), tone)
     return _estimate_base_duration(query_json) / query_json["speedScale"]
 
 
@@ -414,6 +446,7 @@ def synthesize_voice(
     base_url: str = VOICEVOX_BASE_URL,
     reading_dict: Optional[list[dict]] = None,
     speech_speed: float = DEFAULT_SPEECH_SPEED,
+    expression: str = "",
 ) -> SynthesisResult:
     """指定テキストをVOICEVOXで音声合成し、wavファイルとして保存する。
 
@@ -430,6 +463,7 @@ def synthesize_voice(
         reading_dict: 読み方辞書（Project.reading_dict）。指定した場合、audio_queryに渡す直前の
             テキストにだけ word→reading の置換を適用する（テロップ表示には影響しない）。
         speech_speed: 話す速さ（1.0=VOICEVOXの等速）。表示秒数に収まらない場合は、ここから自動で引き上げる。
+        expression: セリフの表情。指定すると、表情に合う声色（なみだめ・ツンツン等）と話し方で読む（voice_tone）。
 
     Returns:
         SynthesisResult
@@ -442,7 +476,7 @@ def synthesize_voice(
         # テキスト未入力のシーンはエラーにせず、無音として扱う
         return SynthesisResult(audio_path=None, duration_sec=1.0, is_silent=True)
 
-    speaker_id = get_speaker_id(character_key)
+    speaker_id, tone = voice_for(character_key, expression, base_url)
     query_text = speech_text(text, reading_dict)
 
     # 1. /audio_query
@@ -466,7 +500,7 @@ def synthesize_voice(
             f"VOICEVOXの音声クエリ生成に失敗しました（ステータスコード: {query_resp.status_code}）。"
             f"テキストの内容や話者IDを確認してください。"
         )
-    query_json = _apply_tempo(query_resp.json(), speech_speed)
+    query_json = voice_tone.apply_tone(_apply_tempo(query_resp.json(), speech_speed), tone)
 
     # 話速の自動調整（指定秒数が渡されている場合のみ）
     speed_scale = query_json.get("speedScale") or 1.0
@@ -523,7 +557,7 @@ def list_available_speakers(base_url: str = VOICEVOX_BASE_URL) -> list[dict]:
     """（任意の補助関数）現在起動中のVOICEVOXが持つ話者一覧を取得する。
 
     他のスタイル（あまあま・ツンツン等）のIDを調べたいときに使う。
-    VOICEVOX_SPEAKER_IDS の値を決める際の参考用で、アプリ本体からは呼ばれない。
+    VOICEVOX_SPEAKER_IDS の値を決める際の参考用（表情ごとのスタイルIDは voice_for() が自動で調べる）。
     """
     try:
         resp = _http.get(f"{base_url}/speakers", timeout=CONNECT_TIMEOUT)

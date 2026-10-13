@@ -197,6 +197,12 @@ class Scene:
     note_meaning: str = ""            # その部分の意味・使い方（例: 「〜をもらえる？ 注文の定番」）
     bullet_ref: int = 0               # このセリフで初めて話す黒板の行の番号（1から。台本の "bullet"。0なら指定なし）
     board_hold: float = 0.0           # 黒板に新しく書いた文字を読む時間として、セリフのあとに足している秒数（duration に含む）
+    # BGMの雰囲気（src.services.bgm_library.MOOD_CHOICES のキー。空なら前のシーンの雰囲気を引き継ぐ）。
+    # 台本の "bgm"。雰囲気が変わるセリフにだけ書き、その気分のフォルダ（assets/bgm/<気分>/）の曲に切り替える
+    bgm_mood: str = ""
+    # 立ち位置・移動・ショット・カメラ・効果（台本の "stage"。src.services.staging）。空なら前のセリフの状態のまま
+    # {"shot": "solo", "camera": "", "fx": "exclaim", "cast": [{"who": "zundamon", "pos": "center", "size": "", "face": "", "move": "run"}]}
+    stage: dict = field(default_factory=dict)
 
     @property
     def has_slide(self) -> bool:
@@ -252,10 +258,14 @@ class Project:
     # テロップの表示テキスト(Scene.text)はそのままに、VOICEVOXへ渡す読み上げテキストの中だけ
     # word→readingの単純な文字列置換を行う（voicevox_client.apply_reading_dict）。
     section_bgm: dict[str, str] = field(default_factory=dict)
+    # 雰囲気ごとに流す曲（利用者が自動選択から変えたもの）。{"tense": "assets/bgm/tense/xxx.mp3"}。無ければ自動で選ぶ
+    mood_bgm: dict[str, str] = field(default_factory=dict)
     # 場面ごとのBGM。{"intro": "assets/bgm/xxx.mp3", ...} の形式（Scene.sectionのキーに対応）。
     book_title: str = ""  # 書籍解説モードで扱っている本のタイトル（表示・スライド生成用）
     book_author: str = ""  # 本の著者名（説明文・タグに使う）
     book_cover_path: Optional[str] = None  # 本の表紙画像（本を紹介するシーンで画面中央に表示する）
+    auto_fx: bool = True  # 表情に合わせて「！」「？」・汗・集中線などの効果を自動で付ける（src.services.staging.AUTO_FX）
+    voice_emotion: bool = True  # セリフの表情に合わせて声色（なみだめ・ツンツン等）と話し方を変える（src.services.voice_tone）
     speech_speed: float = 1.2  # 話す速さ（1.0=VOICEVOXの等速。解説動画はテンポよく1.2倍が既定）
     # 動画の動き（src.services.motion）の自動演出の設定
     auto_camera: bool = True      # 驚き系の表情で話者にアップ・解説中はゆっくりズームイン
@@ -338,10 +348,13 @@ class Project:
             "pr_label_text": self.pr_label_text,
             "reading_dict": self.reading_dict,
             "section_bgm": self.section_bgm,
+            "mood_bgm": self.mood_bgm,
             "book_title": self.book_title,
             "book_author": self.book_author,
             "book_cover_path": self.book_cover_path,
             "speech_speed": self.speech_speed,
+            "voice_emotion": self.voice_emotion,
+            "auto_fx": self.auto_fx,
             "auto_camera": self.auto_camera,
             "auto_shake": self.auto_shake,
             "char_bob": self.char_bob,
@@ -383,10 +396,13 @@ class Project:
             pr_label_text=data.get("pr_label_text", "PR"),
             reading_dict=data.get("reading_dict", []),
             section_bgm=data.get("section_bgm", {}),
+            mood_bgm=data.get("mood_bgm", {}) or {},
             book_title=data.get("book_title", ""),
             book_author=data.get("book_author", ""),
             book_cover_path=data.get("book_cover_path"),
             speech_speed=data.get("speech_speed", 1.2),
+            voice_emotion=bool(data.get("voice_emotion", True)),
+            auto_fx=bool(data.get("auto_fx", True)),
             auto_camera=data.get("auto_camera", True),
             auto_shake=data.get("auto_shake", True),
             char_bob=data.get("char_bob", True),

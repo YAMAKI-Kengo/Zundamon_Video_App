@@ -16,19 +16,17 @@ AIで台本を作った場合は、AIが提案したタイトル案（Project.ti
 """
 from __future__ import annotations
 
-import json
 import math
 import re
 from dataclasses import dataclass, field
-from pathlib import Path
 
 from src.models import SECTION_LABELS, Project, Scene
+from src.services import bgm_library
 from src.utils.asset_loader import get_character_display_name, load_character_config
 
 TITLE_MAX_CHARS = 100          # YouTubeのタイトルの文字数上限
 TITLE_VISIBLE_CHARS = 32       # スマホの一覧で省略されずに見える文字数の目安
 CHAPTER_MIN_SECONDS = 10.0     # YouTubeのチャプターとして認識される1区間の最短秒数
-BGM_CREDITS_PATH = Path(__file__).resolve().parents[2] / "config" / "bgm_credits.json"
 
 _EMPHASIS = re.compile(r"\*\*(.+?)\*\*")
 _HASHTAG_UNSAFE = re.compile(r"[\s　・「」『』【】（）()！!？?、。,.:：/／\-－~〜#＃]")
@@ -246,8 +244,6 @@ def _research_title_candidates(project: Project) -> list[str]:
             f"9割が知らない{topic}の真実 #Shorts",
         ]
         return _dedupe(ai + [_fit(t) for t in template])
-    n_points = len(_explain_points(project.scenes))
-    points_part = f"{n_points}つのポイント" if n_points else "要点"
     minutes = max(1, math.ceil(project.total_duration / 60))
     template = [
         f"{topic}、実際やったらどうなる？",
@@ -386,44 +382,9 @@ def build_tags(project: Project) -> list[str]:
     return result
 
 
-def _load_bgm_credits() -> dict[str, str]:
-    """BGMの曲名 → 説明文に出す表記（作者名つき）。config/bgm_credits.json から読む。"""
-    try:
-        data = json.loads(BGM_CREDITS_PATH.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {}
-    return {str(k): str(v) for k, v in data.items() if not str(k).startswith("_") and str(v).strip()}
-
-
-def _normalize_title(text: str) -> str:
-    return re.sub(r"\s+", " ", text.replace("_", " ")).strip().lower()
-
-
-def bgm_credit(path: str, credits: dict[str, str]) -> str:
-    """BGMファイルのクレジット表記。ファイル名は「場面_曲名」の形なので、曲名の部分で表記を探す。"""
-    stem = Path(path).stem
-    title = stem.split("_", 1)[1] if "_" in stem else stem
-    normalized = _normalize_title(title)
-    for key, credit in credits.items():
-        if _normalize_title(key) == normalized:
-            return _with_honorific(credit)
-    return f"{title.replace('_', ' ')}（作者名を config/bgm_credits.json に登録してください）"
-
-
-def _with_honorific(credit: str) -> str:
-    """「曲名 / 作者」「曲名 by 作者」の表記を、作者名に「様」を付けた「曲名 / 作者 様」にそろえる。"""
-    credit = credit.strip()
-    if credit.endswith("様"):
-        return credit
-    match = re.match(r"^(.*?)\s*(?:/|／|\bby\b)\s*([^/／]+)$", credit)
-    if not match or not match.group(1).strip():
-        return credit
-    return f"{match.group(1).strip()} / {match.group(2).strip()} 様"
-
-
 def _credits(project: Project) -> list[str]:
     speakers = _dedupe([s.speaker for s in project.scenes if s.text.strip()])
-    bgm_paths = _dedupe([p for p in (project.resolve_bgm_path(s) for s in project.scenes) if p])
+    bgm_paths = used_bgm_paths(project)
     lines = ["■ クレジット・使用素材"]
     if speakers:
         lines.append("・音声：" + "、".join(f"VOICEVOX:{get_character_display_name(s)}" for s in speakers))
@@ -440,10 +401,18 @@ def _credits(project: Project) -> list[str]:
         lines.append(f"・立ち絵（{'・'.join(chars)}）：{name}")
     lines.append("・効果音：効果音ラボ（https://soundeffect-lab.info/sound/anime/）")
     if bgm_paths:
-        credits = _load_bgm_credits()
-        lines.append("・BGM：OpenTracks（https://opentracks.com/）")
-        lines += [f"　{bgm_credit(p, credits)}" for p in bgm_paths]
+        lines += bgm_library.credit_lines(bgm_paths)[0]
     return lines
+
+
+def used_bgm_paths(project: Project) -> list[str]:
+    """この動画で実際に流すBGM（使った順・重複なし）。説明文のクレジットには、この曲だけを載せる。"""
+    return _dedupe([p for p in bgm_library.scene_bgm_paths(project) if p])
+
+
+def bgm_credit_warnings(project: Project) -> list[str]:
+    """使ったBGMのうち、クレジットに必要な情報（作者名・配布元）が登録されていない曲の注意。"""
+    return bgm_library.credit_lines(used_bgm_paths(project))[1]
 
 
 def refresh_credits(description: str, project: Project) -> str:

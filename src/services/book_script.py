@@ -215,6 +215,59 @@ def _normalize_phase(section: str, value) -> str:
 CARD_DEFAULT_SECONDS = 2.0  # 場面転換テロップの表示秒数の既定値
 
 
+# 台本の "bgm"（BGMの雰囲気）の書き方のゆれ → src.services.bgm_library.MOOD_CHOICES のキー
+_BGM_MOOD_ALIASES = {
+    "calm": "calm", "daily": "calm", "日常": "calm", "解説": "calm", "落ち着いた": "calm", "普通": "calm",
+    "bright": "bright", "happy": "bright", "fun": "bright", "楽しい": "bright", "明るい": "bright",
+    "comedy": "comedy", "comic": "comedy", "コミカル": "comedy", "ギャグ": "comedy",
+    "tense": "tense", "tension": "tense", "緊張": "tense", "ピンチ": "tense", "焦り": "tense",
+    "serious": "serious", "シリアス": "serious", "深刻": "serious",
+    "emotional": "emotional", "sad": "emotional", "感動": "emotional", "悲しい": "emotional", "しんみり": "emotional",
+    "mysterious": "mysterious", "mystery": "mysterious", "謎": "mysterious", "不思議": "mysterious",
+    "none": "none", "silence": "none", "無音": "none", "なし": "none",
+}
+
+
+def _parse_stage(value, label_map: dict) -> dict:
+    """台本の "stage"（立ち位置・移動・ショット・カメラ・効果）を、使える値だけにして取り込む（src.services.staging）。"""
+    from src.services import staging
+
+    if not isinstance(value, dict):
+        return {}
+    stage = {}
+    for key, choices in (("shot", staging.SHOTS), ("camera", staging.CAMERAS), ("fx", staging.FX)):
+        v = str(value.get(key) or "").strip()
+        if v in choices and v:
+            stage[key] = v
+    cast = []
+    for item in value.get("cast") or []:
+        if not isinstance(item, dict):
+            continue
+        who = _resolve_speaker(item.get("who"), label_map)
+        if who is None:
+            continue
+        entry = {"who": who}
+        pos = str(item.get("pos") or "").strip()
+        if pos in staging.POSITION_LABELS and pos:
+            entry["pos"] = pos
+        for field_name, choices in (("size", staging.SIZES), ("face", staging.FACINGS)):
+            v = str(item.get(field_name) or "").strip()
+            if v in choices:
+                entry[field_name] = v
+        move = str(item.get("move") or "").strip()
+        if move in staging.MOVES and move:
+            entry["move"] = move
+        if len(entry) > 1:
+            cast.append(entry)
+    if cast:
+        stage["cast"] = cast
+    return stage
+
+
+def _parse_bgm_mood(value) -> str:
+    return _BGM_MOOD_ALIASES.get(str(value or "").strip().lower(), "")
+
+
 def _parse_card_seconds(value) -> float:
     try:
         seconds = float(value or CARD_DEFAULT_SECONDS)
@@ -560,11 +613,21 @@ def keep_dialog_illustration(block_scenes: list[Scene]) -> None:
 
 
 def keep_board_shown(block_scenes: list[Scene]) -> None:
-    """黒板は、一度出したらそのブロック（1つのポイント）の最後まで出したままにする。
+    """黒板は、一度出したらそのブロック（1つのポイント）の最後まで出したままにする（演出 stage の無いブロック）。
 
     セリフごとに黒板が消えたり出たりすると、すぐ流れて読めないため。黒板を出したあとの会話だけのセリフも
     黒板を出す（イラストを出すセリフはイラストが優先され、そのあと黒板に戻る）。
     """
+    if any(scene.stage for scene in block_scenes):
+        # 立ち位置・移動の演出（stage）を使うブロックは、黒板は結果を見せるセリフの間だけにする
+        # （黒板を出したセリフにはさまれた、演出の指定の無いセリフだけ黒板を出したままにして、チカチカを防ぐ）
+        board_lines = [i for i, sc in enumerate(block_scenes) if not sc.card_text and sc.has_slide and sc.show_board]
+        if board_lines:
+            for i in range(board_lines[0], board_lines[-1] + 1):
+                scene = block_scenes[i]
+                if not scene.card_text and scene.has_slide and not scene.stage:
+                    scene.show_board = True
+        return
     shown = False
     for scene in block_scenes:
         if scene.card_text or not scene.has_slide:
@@ -748,6 +811,7 @@ def build_scenes(
         slide_title, slide_bullets = _parse_slide(block.get("slide"), block_no, warnings)
         slide_numbered = isinstance(block.get("slide"), dict) and block["slide"].get("numbered") is True
         block_mood = _parse_mood(block.get("mood"))
+        pending_bgm = _parse_bgm_mood(block.get("bgm"))  # ブロックの "bgm" は、そのブロックの最初のセリフから
         block_hidden = _parse_hidden(block.get("hide"), label_map, f"ブロック{block_no}", warnings)
         lines = block.get("lines") or []
         if not isinstance(lines, list) or not lines:
@@ -825,8 +889,11 @@ def build_scenes(
                     illustration_name=_clean_illustration_name(line.get("image_name")),
                     **_parse_note(line.get("note")),
                     bullet_ref=_parse_bullet_ref(line.get("bullet")),
+                    bgm_mood=_parse_bgm_mood(line.get("bgm")) or pending_bgm,
+                    stage=_parse_stage(line.get("stage"), label_map),
                 )
             )
+            pending_bgm = ""
             # "pause": 秒数 … セリフのあとに、視聴者がリピート・回答する間（音声なし。字幕と見出しは出したまま）
             pause = _parse_pause(line.get("pause"))
             style = _parse_pause_style(line.get("pause_style"), section)
@@ -943,7 +1010,7 @@ def promo_short_data(data: dict) -> dict:
 _PROMO_INHERITED = (
     "speech_speed", "reading_dict", "bgm_path", "bgm_volume", "se_volume", "section_bgm",
     "pr_label_enabled", "pr_label_text", "book_cover_path", "auto_camera", "auto_shake", "char_bob",
-    "auto_jump", "char_slide_in", "slide_transition", "background_blur",
+    "auto_jump", "char_slide_in", "slide_transition", "background_blur", "mood_bgm", "voice_emotion",
 )
 
 
@@ -1031,7 +1098,8 @@ def _fit_durations_with_voicevox(
             continue  # ネイティブ音声を使う英語のセリフ（音声が届いたらその長さに合わせる）
         try:
             natural = voicevox_client.measure_natural_duration(
-                scene.reading.strip() or scene.text, scene.speaker, reading_dict=reading_dict, speech_speed=speech_speed
+                scene.reading.strip() or scene.text, scene.speaker, reading_dict=reading_dict, speech_speed=speech_speed,
+                expression=scene.expression,
             )
             scene.duration = max(min_seconds, round(natural + line_gap, 2))
         except (VoicevoxConnectionError, VoicevoxSynthesisError) as e:

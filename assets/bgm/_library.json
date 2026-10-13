@@ -1,1 +1,391 @@
-{}
+{
+  "_説明": "BGMの曲情報。キーは assets/bgm/ からのファイルの場所。動画の説明文のクレジットには、その動画で実際に使った曲だけを、ここの title（曲名）・artist（作者）・source（配布元）・source_url（曲のページ）・license（必要なライセンス表記）で載せる。新しい曲を置くと、曲ファイルのタグから曲名・作者を読んで自動で追記する（info_from に情報の出どころ）。分からない項目は空のままにし、推測で埋めないこと（artist が空の曲は、説明文に「作者名未登録」と出る）。",
+  "bright/Cat_life.mp3": {
+    "title": "Cat life",
+    "artist": "GT-K",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）",
+    "credit": "BGM：GT-K（DOVA-SYNDROME）",
+    "conditions": "利用条件あり（概要欄に「BGM：GT-K（DOVA-SYNDROME）」の表記をお願いしています）"
+  },
+  "bright/Morning.mp3": {
+    "title": "Morning",
+    "artist": "しゃろう",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "bright/SUMMER_TRIANGLE.mp3": {
+    "title": "SUMMER TRIANGLE",
+    "artist": "しゃろう",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "bright/Stream.mp3": {
+    "title": "Stream",
+    "artist": "Kyaai",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）",
+    "conditions": "利用条件あり（クレジットは任意。書く場合は「Kyaai」）"
+  },
+  "bright/おどれグロッケンシュピール.mp3": {
+    "title": "おどれグロッケンシュピール",
+    "artist": "しゃろう",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "bright/しゅわしゅわハニーレモン350ml.mp3": {
+    "title": "しゅわしゅわハニーレモン350ml",
+    "artist": "しゃろう",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "bright/ちょっと楽しい.mp3": {
+    "title": "ちょっと楽しい",
+    "artist": "天野 七祈",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "bright/わくわくクッキングタイム的なBGM.mp3": {
+    "title": "わくわくクッキングタイム的なBGM",
+    "artist": "鷹尾まさき(タカオマサキ)",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "bright/パステルハウス.mp3": {
+    "title": "パステルハウス",
+    "artist": "かずち",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）",
+    "conditions": "利用条件あり（成人向け作品でも使用可。通常の動画は問題なし）"
+  },
+  "bright/夏はsummer!!.mp3": {
+    "title": "夏はsummer!!",
+    "artist": "Keyta",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "bright/少年達の夏休み的なBGM.mp3": {
+    "title": "少年達の夏休み的なBGM",
+    "artist": "鷹尾まさき(タカオマサキ)",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "bright/春のキッチン.mp3": {
+    "title": "春のキッチン",
+    "artist": "もっぴーさうんど",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "bright/極東の羊、テレキャスターと踊る.mp3": {
+    "title": "極東の羊、テレキャスターと踊る",
+    "artist": "しゃろう",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "bright/野良猫は宇宙を目指した.mp3": {
+    "title": "野良猫は宇宙を目指した",
+    "artist": "しゃろう",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "calm/10℃.mp3": {
+    "title": "10℃",
+    "artist": "しゃろう",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "calm/2_23_AM.mp3": {
+    "title": "2:23 AM",
+    "artist": "しゃろう",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "calm/Cassette_Tape_Dream.mp3": {
+    "title": "Cassette Tape Dream",
+    "artist": "しゃろう",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "calm/Recollections.mp3": {
+    "title": "Recollections",
+    "artist": "GT-K",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）",
+    "credit": "BGM：GT-K（DOVA-SYNDROME）",
+    "conditions": "利用条件あり（概要欄に「BGM：GT-K（DOVA-SYNDROME）」の表記をお願いしています）"
+  },
+  "calm/You_and_Me.mp3": {
+    "title": "You and Me",
+    "artist": "しゃろう",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "calm/ensolarado.mp3": {
+    "title": "ensolarado",
+    "artist": "Kyaai",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）",
+    "conditions": "利用条件あり（クレジットは任意。書く場合は「Kyaai」）"
+  },
+  "calm/いつもの風景.mp3": {
+    "title": "いつもの風景",
+    "artist": "KK",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "calm/のんきな日常.mp3": {
+    "title": "のんきな日常",
+    "artist": "Regu",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）",
+    "conditions": "利用条件あり（アダルトコンテンツでの使用は不可）"
+  },
+  "calm/アトリエと電脳世界.mp3": {
+    "title": "アトリエと電脳世界",
+    "artist": "しゃろう",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "calm/日曜の午後.mp3": {
+    "title": "日曜の午後",
+    "artist": "KK",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "calm/昼下がり気分.mp3": {
+    "title": "昼下がり気分",
+    "artist": "KK",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "calm/自宅にて.mp3": {
+    "title": "自宅にて",
+    "artist": "KK",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "calm/週末京都現実逃避.mp3": {
+    "title": "週末京都現実逃避",
+    "artist": "しゃろう",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "comedy/Pappa_Parappa.mp3": {
+    "title": "Pappa Parappa",
+    "artist": "Phalene",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）",
+    "conditions": "利用条件あり（R-18コンテンツでの使用は不可）"
+  },
+  "comedy/shuffle_shuffle.mp3": {
+    "title": "shuffle shuffle",
+    "artist": "KK",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "comedy/かえるのピアノ.mp3": {
+    "title": "かえるのピアノ",
+    "artist": "こおろぎ",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "comedy/かけっこ競争.mp3": {
+    "title": "かけっこ競争",
+    "artist": "ハヤシユウ",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "comedy/ぐだぐだな感じ.mp3": {
+    "title": "ぐだぐだな感じ",
+    "artist": "yuki",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "comedy/ほんわかぷっぷー.mp3": {
+    "title": "ほんわかぷっぷー",
+    "artist": "もっぴーさうんど",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "comedy/クレイジークッキング.mp3": {
+    "title": "クレイジークッキング",
+    "artist": "稿屋 隆",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "comedy/追いかけっこキャッハー.mp3": {
+    "title": "追いかけっこキャッハー",
+    "artist": "今川彰人オーケストラ",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）",
+    "conditions": "利用条件あり（18禁作品での使用は不可）"
+  },
+  "emotional/Escort.mp3": {
+    "title": "Escort",
+    "artist": "もっぴーさうんど",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "emotional/Parade.mp3": {
+    "title": "Parade",
+    "artist": "しゃろう",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "emotional/ゆりかご.mp3": {
+    "title": "ゆりかご",
+    "artist": "もっぴーさうんど",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "emotional/ワスレナグサ.mp3": {
+    "title": "ワスレナグサ",
+    "artist": "まんぼう二等兵",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "emotional/神隠しの真相.mp3": {
+    "title": "神隠しの真相",
+    "artist": "しゃろう",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "mysterious/なんでしょう？.mp3": {
+    "title": "なんでしょう？",
+    "artist": "KK",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "serious/全てを創造する者「Dominus_Deus」.mp3": {
+    "title": "全てを創造する者「Dominus Deus」",
+    "artist": "KK",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "serious/情動カタルシス.mp3": {
+    "title": "情動カタルシス",
+    "artist": "まんぼう二等兵",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "tense/8-bit_Aggressive1.mp3": {
+    "title": "8-bit Aggressive1",
+    "artist": "もっぴーさうんど",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "tense/コールドフィッシュ.mp3": {
+    "title": "コールドフィッシュ",
+    "artist": "かずち",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）",
+    "conditions": "利用条件あり（成人向け作品でも使用可。通常の動画は問題なし）"
+  },
+  "tense/不穏.mp3": {
+    "title": "不穏",
+    "artist": "こっけ",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）"
+  },
+  "tense/残滓念.mp3": {
+    "title": "残滓念",
+    "artist": "かずち",
+    "source": "OpenTracks",
+    "source_url": "",
+    "license": "",
+    "info_from": "OpenTracksの曲ページ（利用者が確認）",
+    "conditions": "利用条件あり（成人向け作品でも使用可。通常の動画は問題なし）"
+  }
+}

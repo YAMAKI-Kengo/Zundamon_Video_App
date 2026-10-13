@@ -335,11 +335,11 @@ BGM_EXTS = {".mp3", ".wav", ".m4a", ".ogg"}
 
 @_short_cache()
 def list_bgm() -> list[Path]:
-    """assets/bgm/ 配下の音楽ファイル一覧を返す（場面ごと・シーンごとのBGM選択肢）。"""
+    """assets/bgm/ 配下の音楽ファイル一覧を返す（気分ごとのフォルダの中も含む。場面ごと・シーンごとのBGM選択肢）。"""
     bgm_dir = ASSETS_DIR / "bgm"
     if not bgm_dir.exists():
         return []
-    return sorted(p for p in bgm_dir.iterdir() if p.is_file() and p.suffix.lower() in BGM_EXTS)
+    return sorted(p for p in bgm_dir.rglob("*") if p.is_file() and p.suffix.lower() in BGM_EXTS)
 
 
 @_short_cache()

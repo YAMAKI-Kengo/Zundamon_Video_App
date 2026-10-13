@@ -32,7 +32,7 @@ from moviepy import VideoClip
 from PIL import Image, ImageChops
 
 from src.models import Project, Scene
-from src.services import slide_renderer
+from src.services import slide_renderer, stage_fx, staging
 from src.utils.asset_loader import is_video_path, load_se_guide
 from src.services.compositor import (
     _partner_expression,
@@ -93,6 +93,15 @@ SLUMP_DEPTH_RATIO = 0.08                         # しょんぼり沈む深さ
 SLUMP_SECONDS = 0.35
 NOD_SECONDS = 0.28                               # うなずき1回の時間（2回うなずく）
 NOD_DEPTH_RATIO = 0.012
+# 立ち位置の演出（staging）のカメラ・動き
+CLOSEUP_SCALE = {False: 1.6, True: 1.4}           # 顔のアップの倍率（キー: 縦画面か）
+PAN_SCALE = 1.18                                 # パンするときの拡大率（端が見えないように）
+PAN_DISTANCE_RATIO = 0.12                        # パンで動く幅
+STAGE_ZOOM_GAIN = 0.2                            # ゆっくり寄る: シーンの最後で+20%
+ZOOM_OUT_FROM = 1.35                             # 引く: この倍率から1倍へ
+ZOOM_OUT_SECONDS = 0.9
+FOLLOW_SCALE = 1.2                               # 話者を追うときの拡大率
+STAGE_JUMP_HEIGHT_RATIO = 0.12                   # 跳んで移動するときの高さ
 
 
 def _ease(p: float) -> float:
@@ -138,10 +147,15 @@ class SceneContext:
     block_offset: float     # 同じ黒板（ブロック）が始まってから、このシーンの開始までの秒数
     block_duration: float   # 同じ黒板（ブロック）全体の秒数
     next: Optional[Scene] = None
+    stage: Optional["staging.StagePlan"] = None  # 立ち位置・移動・ショット・効果（None ならいつもの左右の定位置）
 
 
-def build_contexts(scenes: list[Scene], durations: Optional[list[float]] = None) -> list[SceneContext]:
-    """全シーンの SceneContext を作る。ブロック = 場面と黒板の内容が同じシーンの連続。"""
+def build_contexts(scenes: list[Scene], durations: Optional[list[float]] = None,
+                   project: Optional[Project] = None) -> list[SceneContext]:
+    """全シーンの SceneContext を作る。ブロック = 場面と黒板の内容が同じシーンの連続。
+
+    project を渡すと、立ち位置・移動などの演出（staging.plan_stages）も各シーンに付ける。
+    """
     durations = durations or [s.duration for s in scenes]
     blocks: list[list[int]] = []
     for i, scene in enumerate(scenes):
@@ -160,6 +174,10 @@ def build_contexts(scenes: list[Scene], durations: Optional[list[float]] = None)
             contexts[i] = SceneContext(scenes[i - 1] if i else None, offset, max(total, 1e-3),
                                        scenes[i + 1] if i + 1 < len(scenes) else None)
             offset += durations[i]
+    if project is not None and project.scenes is scenes:
+        for ctx, plan in zip(contexts, staging.plan_stages(project)):
+            if ctx is not None:
+                ctx.stage = plan
     return contexts  # type: ignore[return-value]
 
 
@@ -296,7 +314,8 @@ def board_change(project: Project, scene: Scene, prev: Optional[Scene]) -> Optio
 
 def needs_motion(project: Project, scene: Scene, ctx: SceneContext) -> bool:
     return (
-        resolve_camera(project, scene) != "none"
+        ctx.stage is not None
+        or resolve_camera(project, scene) != "none"
         or resolve_shake(project, scene)
         or bool(resolve_char_motion(project, scene, ctx.prev))
         or bool(entering_characters(project, scene, ctx.prev))
@@ -425,6 +444,68 @@ def build_motion_clip(
                        and _action(project, ctx.next, scene) == "slump")
     mirrored: dict[int, Image.Image] = {}  # 走り回るときの左右反転の立ち絵（画像のidごとに作って使い回す）
     total_frames = len(mouth_flags)
+
+    # --- 立ち位置・移動の演出（staging）。指定があるシーンは、定位置ではなく計画した位置に描く ---
+    plan = ctx.stage
+    staged: dict[str, dict[bool, tuple[Image.Image, tuple[int, int]]]] = {}
+    if plan is not None:
+        entering, leaving, partner = set(), {}, None  # 登場・退場・ツッコミの相手は、計画した位置の動きで表す
+        for key in plan.chars:
+            if key == scene.speaker:
+                staged[key] = {m: character_sprite(key, scene.expression, m, resolution) for m in (False, True)}
+            else:
+                if prev is not None and prev.speaker == key and key in scene.render_hidden:
+                    expression = prev.expression  # 出ていくキャラクターは、前のセリフの表情のまま
+                else:
+                    expression = _partner_expression(key, scene.partner_expression)
+                closed = character_sprite(key, expression, False, resolution)
+                staged[key] = {False: closed, True: closed}
+        partner = _staged_partner(project, scene, prev, plan)
+        speaker_track = plan.chars.get(scene.speaker)
+        if speaker_track is not None and speaker_track.duration > 0 and scene.char_motion in ("", "auto"):
+            # 立ち位置の移動（歩く・走る）がある話者には、表情からの自動の動き（走り回る等）を重ねない
+            motions = motions & {"bob"}
+            action = ""
+    draw_order = sorted(staged, key=lambda k: (plan.chars[k].end.scale if plan else 1.0,
+                                               ("kasukabe_tsumugi", "shikoku_metan", "zundamon").index(k)
+                                               if k in ("kasukabe_tsumugi", "shikoku_metan", "zundamon") else 0))
+    scaled: dict[tuple, Image.Image] = {}
+
+    def staged_sprite(key: str, mouth_open: bool, t: float):
+        """計画した位置の立ち絵: (画像, 左上x, 左上y, 中心x, 頭のy, 体の内側の向き)。"""
+        track = plan.chars[key]
+        placement, progress_ = track.at(t)
+        img, (_x0, y0) = staged[key][mouth_open if key == scene.speaker else False]
+        bottom_gap = height - (y0 + img.height)
+        q = round(placement.scale / 0.02) * 0.02
+        facing = placement.facing
+        moving = 0 < progress_ < 1
+        if moving and track.move in ("walk", "run", "jump") and abs(track.end.x - track.start.x) > 0.01:
+            facing = 1 if track.end.x > track.start.x else -1  # 歩いている間は進む方を向く
+        elif track.move == "turn":
+            facing = track.start.facing if t < track.delay + track.duration / 2 else track.end.facing
+        elif track.move == "step_back" and moving:
+            facing = track.start.facing or track.end.facing  # 後ずさりは前を向いたまま下がる
+        flip = facing != 0 and facing != staging.native_facing(key)
+        cache_key = (id(img), q, flip)
+        if cache_key not in scaled:
+            w2, h2 = max(1, round(img.width * q)), max(1, round(img.height * q))
+            resized = img if (w2, h2) == img.size else img.resize((w2, h2), Image.BILINEAR)
+            scaled[cache_key] = resized.transpose(Image.FLIP_LEFT_RIGHT) if flip else resized
+        out = scaled[cache_key]
+        cx = placement.x * width
+        x = cx - out.width / 2
+        y = height - out.height - bottom_gap
+        if moving and track.move in ("walk", "step_back"):
+            y -= height * STEP_HEIGHT_RATIO * abs(math.sin(math.pi * (t - track.delay) / STEP_SECONDS))
+        elif moving and track.move == "run":
+            y -= height * STEP_HEIGHT_RATIO * 1.8 * abs(math.sin(math.pi * (t - track.delay) / (STEP_SECONDS * 0.7)))
+        elif moving and track.move == "jump":
+            y -= height * STAGE_JUMP_HEIGHT_RATIO * math.sin(math.pi * progress_)
+        others = [plan.chars[k].at(t)[0].x for k in plan.chars if k != key and plan.chars[k].at(t)[0].on_screen]
+        target_x = min(others, key=lambda ox: abs(ox - placement.x)) if others else 0.5
+        inward = 1 if target_x * width > cx else -1
+        return out, x, y, cx, y + out.height * 0.2, inward
 
     # --- カメラ ---
     camera = resolve_camera(project, scene)
@@ -562,10 +643,36 @@ def build_motion_clip(
         dy = -height * STEP_HEIGHT_RATIO * abs(math.sin(math.pi * t / STEP_SECONDS))
         return round(dx), round(dy)
 
+    def staged_focus(t: float) -> tuple[float, float]:
+        """演出のあるシーンの焦点（話者の顔のあたり。話者がいなければ画面の中央）。"""
+        if plan is not None and scene.speaker in staged:
+            _, _, _, cx, head_y, _ = staged_sprite(scene.speaker, False, t)
+            return cx, head_y
+        return focus
+
     def camera_box(t: float) -> Optional[tuple[float, float, float, float]]:
         scale, progress = 1.0, 0.0  # progress: 焦点へどれだけ寄せるか（0=画面中央、1=焦点）
-        center_focus = focus
-        if camera == "zoom_speaker":
+        center_focus = staged_focus(t) if plan is not None else focus
+        stage_camera = plan.camera if plan is not None else ""
+        if plan is not None and plan.shot == "closeup":
+            progress = _ease(t / ZOOM_IN_SECONDS)
+            scale = 1 + (CLOSEUP_SCALE[is_portrait] - 1) * progress
+        elif stage_camera in ("pan_left", "pan_right"):
+            scale, progress = PAN_SCALE, 0.0
+            direction = -1 if stage_camera == "pan_left" else 1
+            p = _ease(t / max(duration, 1e-3))
+            center_focus = (width / 2 + direction * width * PAN_DISTANCE_RATIO * (p - 0.5), height * 0.45)
+            progress = 1.0
+        elif stage_camera == "zoom_in":
+            progress = min(1.0, t / max(duration, 1e-3))
+            scale = 1 + STAGE_ZOOM_GAIN * _ease(progress)
+        elif stage_camera == "zoom_out":
+            p = _ease(t / ZOOM_OUT_SECONDS)
+            scale = ZOOM_OUT_FROM - (ZOOM_OUT_FROM - 1) * p
+            progress = 1 - p
+        elif stage_camera == "follow":
+            scale, progress = FOLLOW_SCALE, 1.0
+        elif camera == "zoom_speaker":
             progress = _ease(t / ZOOM_IN_SECONDS)
             scale = 1 + (zoom_max - 1) * progress
         elif camera == "slow_zoom_speaker":
@@ -603,11 +710,32 @@ def build_motion_clip(
         else:
             canvas = bg.copy()
         board_layer(canvas, t)
+        if plan is not None:
+            for key in draw_order:
+                img, x, y, cx, head_y, inward = staged_sprite(key, mouth_open, t)
+                dx = dy = 0.0
+                if key == scene.speaker:
+                    if "bob" in motions:
+                        dy += height * BOB_AMPLITUDE_RATIO * math.sin(2 * math.pi * t / BOB_PERIOD)
+                    if "jump" in motions and t < JUMP_SECONDS:
+                        dy -= height * JUMP_HEIGHT_RATIO * math.sin(math.pi * t / JUMP_SECONDS)
+                    adx, ady, aflip = action_offset(t, inward)
+                    dx, dy = dx + adx, dy + ady
+                    if aflip:
+                        img = img.transpose(Image.FLIP_LEFT_RIGHT)
+                elif key == partner:
+                    amount = _pulse(max(0.0, t - 0.08), 0.1, 0.3, 0.45)
+                    dx -= inward * width * RECOIL_DISTANCE_RATIO * amount
+                    if 0.08 < t < 0.6:
+                        dx += width * SHIVER_AMPLITUDE_RATIO * math.sin(2 * math.pi * 20 * t)
+                canvas.paste(img, (round(x + dx), round(y + dy)), img)
+                if plan.fx in stage_fx.CHARACTER_FX and key == plan.fx_target:
+                    stage_fx.draw_character_fx(canvas, plan.fx, t, (cx + dx, head_y + dy), img.size, -inward)
         for key, (img, (x, y)) in leaving.items():
             offset = leaving_offset(key, img, t)
             if offset is not None:
                 canvas.paste(img, (x + offset[0], y + offset[1]), img)
-        for key, variants in sprites.items():
+        for key, variants in ({} if plan is not None else sprites).items():
             img, (x, y) = variants[mouth_open if key == scene.speaker else False]
             dx, dy, flip = character_offset(key, img, t)
             if flip:
@@ -618,11 +746,56 @@ def build_motion_clip(
         box = camera_box(t)
         if box is not None:
             canvas = canvas.resize((width, height), Image.BILINEAR, box=box)
+        if plan is not None and plan.fx in stage_fx.SCREEN_FX:
+            fx_focus = staged_focus(t)
+            if box is not None:
+                fx_focus = ((fx_focus[0] - box[0]) * width / (box[2] - box[0]),
+                            (fx_focus[1] - box[1]) * height / (box[3] - box[1]))
+            canvas = stage_fx.apply_screen_fx(canvas, plan.fx, t, fx_focus, duration)
         if fixed_overlay is not None:
             canvas.paste(fixed_overlay[0], fixed_overlay[1], fixed_overlay[0])
         return np.asarray(canvas)
 
+    # 何も動かないシーン（立ち位置を変えただけ等）は、口の開閉の2枚だけ作って使い回す（1フレームずつ合成しない）
+    still = (
+        (plan is None or not plan.animated) and not motions and not entering
+        and not leaving and change is None and bg_before is None and camera == "none" and not shake
+    )
+    if still:
+        frames: dict[bool, np.ndarray] = {}
+
+        def make_still_frame(t: float):
+            frame_idx = min(int(round(t * fps)), max(total_frames - 1, 0))
+            mouth_open = bool(mouth_flags[frame_idx]) if mouth_flags else False
+            if mouth_open not in frames:
+                frames[mouth_open] = make_frame(t)
+            return frames[mouth_open]
+
+        return VideoClip(frame_function=make_still_frame, duration=duration).with_fps(fps)
     return VideoClip(frame_function=make_frame, duration=duration).with_fps(fps)
+
+
+def staged_still(project: Project, scene: Scene, ctx: SceneContext, resolution: tuple[int, int],
+                 at_end: bool = True) -> Image.Image:
+    """立ち位置の演出があるシーンの、動きの始め（at_end=False）か終わりの1コマ（画面の確認用のプレビュー）。"""
+    from src.services import book_script
+    from src.services.compositor import load_background_image
+
+    background = load_background_image(book_script.effective_background_path(project, scene), resolution,
+                                       project.background_blur, scene.mood)
+    duration = max(scene.duration, 0.5)
+    clip = build_motion_clip(project, scene, ctx, resolution, 10, duration, [False] * int(duration * 10 + 1), background)
+    t = duration - 0.05 if at_end else 0.0
+    return Image.fromarray(clip.get_frame(t))
+
+
+def _staged_partner(project: Project, scene: Scene, prev: Optional[Scene], plan: "staging.StagePlan") -> Optional[str]:
+    """ツッコミを受けてのけぞる相手（演出のあるシーン。話者に一番近い、画面にいるキャラクター）。"""
+    if _action(project, scene, prev) != "tsukkomi" or scene.speaker not in plan.chars:
+        return None
+    speaker_x = plan.chars[scene.speaker].end.x
+    others = [(abs(t.end.x - speaker_x), k) for k, t in plan.chars.items() if k != scene.speaker and t.end.on_screen]
+    return min(others)[1] if others else None
 
 
 def describe_motion(project: Project, scene: Scene, ctx: SceneContext) -> list[str]:
@@ -630,6 +803,21 @@ def describe_motion(project: Project, scene: Scene, ctx: SceneContext) -> list[s
     from src.models import CAMERA_LABELS, TRANSITION_LABELS
 
     items = []
+    plan = ctx.stage
+    if plan is not None:
+        from src.utils.asset_loader import get_character_display_name
+
+        if plan.shot:
+            items.append(staging.SHOT_LABELS.get(plan.shot, plan.shot))
+        for key, track in plan.chars.items():
+            if track.duration > 0:
+                verb = {"run": "走る", "jump": "跳ぶ", "step_back": "後ずさる", "turn": "振り向く"}.get(track.move, "歩く")
+                where = "画面の外へ" if not track.end.on_screen else ("登場" if not track.start.on_screen else "移動")
+                items.append(f"{get_character_display_name(key)}が{verb}（{where}）")
+        if plan.camera:
+            items.append(f"カメラ（{staging.CAMERA_LABELS.get(plan.camera, plan.camera)}）")
+        if plan.fx:
+            items.append(f"効果（{staging.FX_LABELS.get(plan.fx, plan.fx)}）")
     camera = resolve_camera(project, scene)
     if camera != "none":
         items.append(f"カメラ（{CAMERA_LABELS[camera]}）")

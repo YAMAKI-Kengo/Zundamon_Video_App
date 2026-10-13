@@ -32,7 +32,7 @@ from src.models import (
     Scene,
     VideoFormat,
 )
-from src.services import book_script, motion, script_import, slide_renderer, telop, voicevox_client
+from src.services import bgm_library, book_script, motion, staging, script_import, slide_renderer, telop, voicevox_client
 from src.ui.preview_cache import scene_preview
 from src.services.voicevox_client import (
     VoicevoxConnectionError,
@@ -95,6 +95,53 @@ def _save_uploaded_content_media(uploaded_file, scene_id: str) -> Path:
     return save_path
 
 
+def _render_stage_editor(scene: Scene) -> None:
+    """立ち位置・移動・ショット・カメラ・効果（Scene.stage）の編集。指定しない項目は前のシーンの状態のまま。"""
+    stage = dict(scene.stage or {})
+    st.markdown("**立ち位置・ショット・効果**（空欄は前のシーンのまま）")
+    col_shot, col_cam, col_fx = st.columns(3)
+    for col, key, choices, labels, title in (
+        (col_shot, "shot", staging.SHOTS, staging.SHOT_LABELS, "ショット"),
+        (col_cam, "camera", staging.CAMERAS, staging.CAMERA_LABELS, "カメラの動き"),
+        (col_fx, "fx", staging.FX, staging.FX_LABELS, "効果"),
+    ):
+        current = stage.get(key, "")
+        value = col.selectbox(title, options=choices, index=choices.index(current) if current in choices else 0,
+                              format_func=lambda v, labels=labels: labels.get(v, v), key=f"stage_{key}_{scene.id}")
+        if value:
+            stage[key] = value
+        else:
+            stage.pop(key, None)
+    cast = {str(c.get("who")): dict(c) for c in stage.get("cast") or [] if isinstance(c, dict)}
+    new_cast = []
+    for character in [c for c in staging.CHARACTER_ORDER if c in list_characters()]:
+        entry = cast.get(character, {"who": character})
+        cols = st.columns([1.1, 1.2, 1, 1, 1.4])
+        cols[0].caption(get_character_display_name(character))
+        for col, field_name, labels in (
+            (cols[1], "pos", staging.POSITION_LABELS), (cols[2], "size", staging.SIZE_LABELS),
+            (cols[3], "face", staging.FACE_LABELS), (cols[4], "move", staging.MOVE_LABELS),
+        ):
+            options = list(labels)
+            current = entry.get(field_name, "")
+            value = col.selectbox(
+                {"pos": "立ち位置", "size": "大きさ", "face": "向き", "move": "動き方"}[field_name], options=options,
+                index=options.index(current) if current in options else 0, format_func=labels.get,
+                key=f"stage_{field_name}_{character}_{scene.id}", label_visibility="collapsed",
+            )
+            if value:
+                entry[field_name] = value
+            else:
+                entry.pop(field_name, None)
+        if len(entry) > 1:
+            new_cast.append(entry)
+    if new_cast:
+        stage["cast"] = new_cast
+    else:
+        stage.pop("cast", None)
+    scene.stage = stage
+
+
 def _render_voice_preview(scene: Scene, project: Project) -> None:
     """動画全体を生成する前に、そのシーンの声だけをVOICEVOXで試聴できるようにする。"""
     if not scene.text or not scene.text.strip():
@@ -111,6 +158,7 @@ def _render_voice_preview(scene: Scene, project: Project) -> None:
                 target_duration=scene.duration,
                 reading_dict=project.reading_dict,
                 speech_speed=book_script.effective_speech_speed(project),
+                expression=scene.expression if project.voice_emotion else "",
             )
         except VoicevoxConnectionError:
             st.error(
@@ -271,7 +319,7 @@ def render_scene_editor() -> None:
     _render_bulk_script_import(project, characters)
     st.divider()
 
-    motion_contexts = motion.build_contexts(project.scenes)
+    motion_contexts = motion.build_contexts(project.scenes, project=project)
     page_start, page_end = _render_page_selector(project)
     for i, scene in enumerate(project.scenes):
         if not page_start <= i < page_end:
@@ -385,12 +433,20 @@ def render_scene_editor() -> None:
                     else:
                         scene.phase = ""
                 with col_bgm:
-                    scene.bgm_path = bgm_selectbox(
-                        "このシーンのBGM", scene.bgm_path, key=f"scene_bgm_{scene.id}",
-                        inherit_label="(場面・全体の設定に従う)",
+                    mood_keys = [""] + bgm_library.MOOD_CHOICES
+                    scene.bgm_mood = st.selectbox(
+                        "BGMの雰囲気（ここから切り替え）", options=mood_keys,
+                        index=mood_keys.index(scene.bgm_mood) if scene.bgm_mood in mood_keys else 0,
+                        format_func=lambda k: bgm_library.MOOD_LABELS.get(k, "(前のシーンのまま)"),
+                        key=f"scene_bgm_mood_{scene.id}",
+                        help="このシーンから、BGMをこの雰囲気の曲に切り替えます（気分ごとの曲はサイドバーで変えられます）。",
                     )
-                    resolved_bgm = project.resolve_bgm_path(scene)
-                    st.caption(f"→ 流れる曲: {Path(resolved_bgm).stem if resolved_bgm else 'なし'}")
+                    scene.bgm_path = bgm_selectbox(
+                        "このシーンだけの曲", scene.bgm_path, key=f"scene_bgm_{scene.id}",
+                        inherit_label="(雰囲気・場面の設定に従う)",
+                    )
+                    resolved_bgm = bgm_library.scene_bgm_path(project, scene)
+                    st.caption(f"→ 流れる曲: {bgm_library.track_for_path(resolved_bgm).title if resolved_bgm else 'なし'}")
                 with col_se:
                     scene.se_path = se_selectbox("効果音（セリフの頭で鳴る）", scene.se_path, key=f"se_{scene.id}")
                     if scene.se_path and Path(scene.se_path).exists():
@@ -592,6 +648,7 @@ def render_scene_editor() -> None:
                         if scene.char_motion in CHAR_MOTION_LABELS else 0,
                         format_func=CHAR_MOTION_LABELS.get, key=f"char_motion_{scene.id}",
                     )
+                    _render_stage_editor(scene)
                     effects = motion.describe_motion(project, scene, motion_contexts[i])
                     st.caption("このシーンの動き: " + ("　".join(effects) if effects else "なし（静止）"))
 
@@ -618,7 +675,16 @@ def render_scene_editor() -> None:
                     st.warning(f"スライドの生成に失敗しました（{e}）")
                     preview_media_path = scene.content_media_path
                 p1, p2 = st.columns(2)
-                for col, mouth_open, caption in ((p1, False, "話者の口:閉"), (p2, True, "話者の口:開")):
+                if motion_contexts[i].stage is not None and not scene.card_text:
+                    # 立ち位置の演出があるシーンは、動きの始めと終わりの画面を出す（口パクのプレビューの代わり）
+                    for col, at_end, caption in ((p1, False, "動きの始め"), (p2, True, "動きの終わり")):
+                        try:
+                            col.image(motion.staged_still(project, scene, motion_contexts[i], preview_res, at_end),
+                                      caption=caption, width="stretch")
+                        except Exception as e:  # noqa: BLE001 - プレビューの失敗で編集画面全体を落とさない
+                            col.warning(f"プレビューを作成できませんでした（{e}）")
+                for col, mouth_open, caption in (() if motion_contexts[i].stage is not None and not scene.card_text
+                                                 else ((p1, False, "話者の口:閉"), (p2, True, "話者の口:開"))):
                     col.image(
                         scene_preview(
                             scene.speaker, scene.expression, mouth_open, effective_background_path, preview_res,
