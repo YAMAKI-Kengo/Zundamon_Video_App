@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
@@ -451,6 +452,34 @@ def render_chapter_label(text: str, resolution: tuple[int, int], font_path: Opti
         canvas.alpha_composite(row, (x0 + accent_w + pad_x, y))
         y += row.height + gap
     return canvas
+
+
+@lru_cache(maxsize=8)
+def telop_band(resolution: tuple[int, int], font_path: Optional[str] = None, lines: int = TELOP_MAX_LINES,
+               sub_lines: int = 2) -> tuple[int, int]:
+    """字幕のボックスが出うる縦の範囲（上端, 下端）。字幕が一番長いとき（lines 行＋訳 sub_lines 行）で見積もる。
+
+    キャラクターのマークなど、字幕に隠れてはいけないものの置き場所を決めるのに使う。
+    """
+    width, height = resolution
+    max_text_width = round(width * TELOP_MAX_WIDTH_RATIO)
+    font_size = min(round(min(width, height) * TELOP_FONT_SIZE_RATIO),
+                    int(max_text_width / (chars_per_line(resolution) + 0.4)))
+    stroke_width = max(2, font_size // 18)
+    probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+
+    def line_height(size: int) -> int:
+        box = probe.textbbox((0, 0), "あ漢Ag", font=_load_font(font_path or resolve_font_path(), size),
+                             stroke_width=stroke_width)
+        return box[3] - box[1]
+
+    heights = [line_height(font_size)] * lines + [line_height(max(8, round(font_size * TELOP_SUB_SIZE_RATIO)))] * sub_lines
+    box_h = sum(heights) + round(font_size * 0.35) * (len(heights) - 1) + round(font_size * 0.35) * 2
+    if height > width:
+        top = round(height * TELOP_PORTRAIT_CENTER_Y_RATIO) - box_h // 2
+    else:
+        top = height - box_h - round(height * TELOP_MARGIN_BOTTOM_RATIO)
+    return top, top + box_h
 
 
 def render_telop_image(
