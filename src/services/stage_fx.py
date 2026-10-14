@@ -162,6 +162,46 @@ def _gloom(width: int, height: int) -> Image.Image:
     return img
 
 
+MARK_SCREEN_RATIO = 0.13   # マークの大きさ（画面の高さに対する比率の上限）
+MARK_MARGIN_RATIO = 0.02    # 画面の端からの余白
+
+
+def draw_mark_on_screen(canvas: Image.Image, fx: str, t: float, head: tuple[float, float],
+                        sprite_size: tuple[int, int], side: int) -> None:
+    """「！」「？」・汗・怒り・キラキラのマークを、話者の顔の横（顔の高さ）に、画面からはみ出さないように描く。
+
+    canvas は画面（カメラの後）。head はその画面での顔の位置、sprite_size はその画面での立ち絵の大きさ。
+    頭の真上に置くと、大きく映っているときやアップのときに画面の上で切れるため、顔の横に置き、画面の中に収める。
+    """
+    width, height = canvas.size
+    strength = _fade(t, MARK_SECONDS)
+    if strength <= 0:
+        return
+    sw, sh = sprite_size
+    base = _mark(fx, max(28, round(min(sh * 0.22, height * MARK_SCREEN_RATIO))))
+    if base is None:
+        return
+    pop = min(1.0, t / MARK_POP_SECONDS)
+    scale = 0.4 + 0.6 * (1 + 0.25 * math.sin(math.pi * pop)) * pop if pop < 1 else 1.0
+    size = max(4, round(base.width * scale))
+    mark = base.resize((size, size), Image.BILINEAR) if size != base.width else base
+    if strength < 1:
+        mark = mark.copy()
+        mark.putalpha(mark.getchannel("A").point(lambda v: int(v * strength)))
+    margin = round(height * MARK_MARGIN_RATIO)
+    wobble = math.sin(t * 6) * height * 0.004
+    x = head[0] + side * (sw * 0.32 + size * 0.1) - size / 2
+    if x < margin or x > width - size - margin:
+        x = head[0] - side * (sw * 0.32 + size * 0.1) - size / 2  # 画面の端なら、顔の反対側に出す
+    x = min(max(x, margin), width - size - margin)
+    y = min(max(head[1] - size * 0.6 + wobble, margin), height * 0.62 - size)
+    canvas_rgba = canvas if canvas.mode == "RGBA" else None
+    if canvas_rgba is not None:
+        canvas_rgba.alpha_composite(mark, (round(x), round(y)))
+    else:
+        canvas.paste(mark, (round(x), round(y)), mark)
+
+
 def draw_character_fx(canvas: Image.Image, fx: str, t: float, head: tuple[float, float], sprite_size: tuple[int, int],
                       side: int) -> None:
     """キャラクターに付ける効果を、頭の位置 head（画面座標）の近くに描く。side はマークを出す向き（左=-1・右=+1）。"""

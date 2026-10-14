@@ -243,6 +243,11 @@ def _render_motion_section(project: Project) -> None:
         project.char_slide_in = st.checkbox(
             "非表示だったキャラクターが横から入ってくる", value=project.char_slide_in, key="motion_char_slide_in",
         )
+        project.auto_stage = st.checkbox(
+            "台本に指定が無くても、セリフに合わせてキャラクターを動かす（中央に寄って話す・はしゃいで走り出る・"
+            "落ち込んで端で小さくなる・詰め寄る・逃げる など）",
+            value=project.auto_stage, key="motion_auto_stage",
+        )
         project.auto_fx = st.checkbox(
             "表情に合わせて漫画風の効果を付ける（驚き→「！」、ショック→集中線、焦り→汗、落ち込み→どんより線 など）",
             value=project.auto_fx, key="motion_auto_fx",

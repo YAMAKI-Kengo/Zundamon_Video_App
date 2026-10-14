@@ -72,6 +72,7 @@ from typing import Optional
 from src.models import (
     COUNTDOWN_SECONDS,
     GUEST_CHARACTERS,
+    LESSON_SECTIONS,
     CAMERA_LABELS,
     CHAR_MOTION_LABELS,
     PHASE_LABELS,
@@ -742,6 +743,29 @@ def assign_bullet_reveal(block_scenes: list[Scene], section: str = "") -> None:
         scene.slide_reveal = None if shown >= total else shown
 
 
+BOARD_LINES_AFTER_REVEAL = 1  # 箇条書きを全部書き終えてから、黒板を出しておくセリフ数
+
+
+def trim_board_after_reveal(block_scenes: list[Scene]) -> None:
+    """解説のブロックで、黒板は箇条書きを書き終えて少し話すまでにし、残りのセリフは黒板を片付ける。
+
+    黒板の文字を読む時間が長いと講義のようになるため、黒板は結果を見せる道具にとどめ、残りのセリフは
+    キャラクターの動き（立ち位置の演出）で見せる。台本に演出（stage）が書かれているブロックは台本どおりにする
+    （keep_board_shown がその場合の出し方を決めている）。
+    """
+    scenes = [s for s in block_scenes if not s.card_text]
+    if any(s.stage for s in scenes):
+        return
+    board = [i for i, s in enumerate(scenes) if s.has_slide and s.show_board]
+    if not board:
+        return
+    done = next((i for i in board if scenes[i].slide_reveal is None), board[-1])
+    keep_until = max(done + BOARD_LINES_AFTER_REVEAL, board[0] + 1)
+    for i, scene in enumerate(scenes):
+        if i > keep_until and scene.show_board and not scene.illustration_path:
+            scene.show_board = False
+
+
 def slide_renderer_normalize(bullets: list[str]) -> list[str]:
     from src.services.slide_renderer import normalize_bullets  # slide_renderer は重いので必要な時だけ読み込む
 
@@ -783,6 +807,8 @@ def build_scenes(
     """
     warnings: list[str] = []
     is_short = str(data.get("style") or "").lower() == "short"
+    lesson_script = any(isinstance(b, dict) and str(b.get("section") or "") in LESSON_SECTIONS
+                        for b in (data.get("blocks") or data.get("sections") or []))
     if is_short:
         speech_speed = round(speech_speed * SHORT_SPEECH_BOOST, 2)  # effective_speech_speed() と同じ速さで測る
     blocks = data.get("blocks")
@@ -927,6 +953,8 @@ def build_scenes(
             keep_dialog_illustration(scenes[block_scenes_start:])
         if reveal_bullets and block.get("reveal", True) is not False:
             assign_bullet_reveal(scenes[block_scenes_start:], section)
+        if section == "explain" and not lesson_script:
+            trim_board_after_reveal(scenes[block_scenes_start:])
 
     if not scenes:
         raise BookScriptError("台本JSONから読み取れるセリフがありませんでした。")
@@ -1460,7 +1488,8 @@ SAMPLE_BOOK_SCRIPT = {
         {
             "section": "intro", "phase": "hype", "hide": ["shikoku_metan"],
             "lines": [
-                {"speaker": "zundamon", "expression": "happy", "text": "最近ずっと眠いから、今日から毎日8時間寝るって決めたのだ！", "se": "シャキーン1"},
+                {"speaker": "zundamon", "expression": "happy", "text": "最近ずっと眠いから、今日から毎日8時間寝るって決めたのだ！", "se": "シャキーン1",
+                 "bgm": "bright", "stage": {"fx": "sparkle", "cast": [{"who": "zundamon", "pos": "center", "size": "large", "move": "run"}]}},
             ],
         },
         {
@@ -1468,13 +1497,15 @@ SAMPLE_BOOK_SCRIPT = {
             "lines": [
                 {"speaker": "zundamon", "card": "3日後…", "text": ""},
                 {"speaker": "zundamon", "expression": "troubled", "text": "夜9時に布団に入ったのに、2時間ゴロゴロしただけだったのだ…", "se": "ショック1"},
-                {"speaker": "zundamon", "expression": "sad", "text": "しかも朝もぜんぜん起きられなかったのだ…"},
+                {"speaker": "zundamon", "expression": "sad", "text": "しかも朝もぜんぜん起きられなかったのだ…",
+                 "bgm": "emotional", "stage": {"fx": "gloom", "cast": [{"who": "zundamon", "pos": "far_right", "size": "small"}]}},
             ],
         },
         {
             "section": "intro", "phase": "rescue",
             "lines": [
-                {"speaker": "shikoku_metan", "expression": "angry", "text": "そんなんじゃだめよ。", "se": "ビシッとツッコミ2"},
+                {"speaker": "shikoku_metan", "expression": "angry", "text": "そんなんじゃだめよ。", "se": "ビシッとツッコミ2",
+                 "bgm": "comedy", "stage": {"cast": [{"who": "shikoku_metan", "pos": "home", "move": "enter"}, {"who": "zundamon", "pos": "home", "size": "normal"}]}},
                 {"speaker": "zundamon", "expression": "surprised", "text": "どうしてなのだ？長く寝ればいいはずなのだ！"},
                 {"speaker": "shikoku_metan", "expression": "normal", "text": "このままだと、あんた毎晩ゴロゴロ地獄よ。でも、ある方法で一発で変わるわ。"},
                 {"speaker": "shikoku_metan", "expression": "happy", "text": "今日は『ぐっすり眠るための科学』を参考にするわ。", "se": "ジャジャーン", "show_book": True},
@@ -1491,7 +1522,8 @@ SAMPLE_BOOK_SCRIPT = {
                 ],
             },
             "lines": [
-                {"speaker": "shikoku_metan", "expression": "normal", "text": "まずは、あんたの3日間を振り返るわよ。", "se": "学校のチャイム", "board": False},
+                {"speaker": "shikoku_metan", "expression": "normal", "text": "まずは、あんたの3日間を振り返るわよ。", "board": False,
+                 "bgm": "calm", "stage": {"shot": "group"}},
                 {"speaker": "shikoku_metan", "expression": "normal", "text": "あんた、眠くないのに早く布団に入ったでしょ。", "board": True},
                 {"speaker": "zundamon", "expression": "troubled", "text": "早く寝れば長く眠れると思ったのだ…", "board": True},
                 {"speaker": "shikoku_metan", "expression": "normal", "text": "この本によると、大事なのは長さより質なのよ。", "board": True},
