@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
+from functools import lru_cache
 from typing import Optional
 
 from src.models import Project, Scene
@@ -75,7 +76,6 @@ STEP_BACK_SPEED = 0.22
 MIN_MOVE_SECONDS = 0.35
 MAX_MOVE_SECONDS = 1.6
 JUMP_SECONDS = 0.55
-APPROACH_GAP = 0.24     # 近づいたときの2人の間隔（画面幅に対する比率）
 RETREAT_DISTANCE = 0.18
 PARTNER_DELAY = 0.1     # 話者以外が動くときの、少し遅れて動き出す時間
 
@@ -132,11 +132,42 @@ class StagePlan:
 
 
 def native_facing(character_key: str) -> int:
-    """立ち絵の素材がもともと向いている向き（config/characters.json の "facing"。既定: つむぎは右、他は左）。"""
+    """立ち絵の素材がもともと向いている向き（config/characters.json の "facing"）。
+
+    既定: めたんは右向き（いつもの左の立ち位置から相手の方を見る）、ずんだもん・つむぎは左向き。
+    """
     value = str((load_character_config().get(character_key) or {}).get("facing") or "").strip()
     if value in FACINGS:
         return FACINGS[value]
-    return 1 if character_key == "kasukabe_tsumugi" else -1
+    return 1 if character_key == "shikoku_metan" else -1
+
+
+@lru_cache(maxsize=32)
+def body_width(character_key: str, resolution: tuple[int, int]) -> float:
+    """立ち絵の体（顔〜胴体）の幅（画面幅に対する比率。いつもの大きさのとき）。2人が重ならない間隔の計算に使う。"""
+    import numpy as np
+
+    from src.services.compositor import character_sprite
+    from src.utils.asset_loader import get_default_expression
+
+    try:
+        img, _ = character_sprite(character_key, get_default_expression(character_key), False, tuple(resolution))
+        alpha = np.asarray(img.getchannel("A")) > 20
+        band = alpha[int(alpha.shape[0] * 0.15):int(alpha.shape[0] * 0.6)]
+        cols = np.flatnonzero(band.any(axis=0))
+        if cols.size:
+            return float(cols[-1] - cols[0]) / resolution[0]
+    except Exception:  # noqa: BLE001 - 測れないときは、いつもの立ち絵くらいの幅にしておく
+        pass
+    return 0.3 if resolution[0] >= resolution[1] else 0.35
+
+
+TOUCH_ALLOWANCE = 1.05  # 体の幅の合計の半分にこれを掛けた距離より近づかない（体が重ならず、少しすき間が空く）
+
+
+def min_distance(a: str, scale_a: float, b: str, scale_b: float, resolution: tuple[int, int]) -> float:
+    """2人の立ち位置の中心が、これより近いと体が重なって見える距離。"""
+    return (body_width(a, resolution) * scale_a + body_width(b, resolution) * scale_b) / 2 * TOUCH_ALLOWANCE
 
 
 def home(character_key: str, resolution: tuple[int, int]) -> Placement:
@@ -172,12 +203,21 @@ def _offscreen(x: float) -> float:
     return POSITIONS["out_left"] if x < 0.5 else POSITIONS["out_right"]
 
 
-def _spread(keys: list[str], low: float, high: float, order: dict[str, float]) -> dict[str, float]:
-    """keys を、今いる位置の並び順を保ったまま low〜high に等間隔で並べる。"""
+def _spread(keys: list[str], low: float, high: float, order: dict[str, float],
+            resolution: Optional[tuple[int, int]] = None, scale: float = 1.0) -> dict[str, float]:
+    """keys を、今いる位置の並び順を保ったまま low〜high に等間隔で並べる。
+
+    resolution を渡すと、隣どうしが体の幅で重ならない間隔まで広げる（中央を中心に広げ、画面の端で止める）。
+    """
     keys = sorted(keys, key=lambda k: order.get(k, 0.5))
     if len(keys) == 1:
         return {keys[0]: (low + high) / 2}
     step = (high - low) / (len(keys) - 1)
+    if resolution is not None:
+        need = max(min_distance(a, scale, b, scale, resolution) for a, b in zip(keys, keys[1:]))
+        step = max(step, need)
+        span = step * (len(keys) - 1)
+        low = max(0.08, min(0.5 - span / 2, 0.92 - span))
     return {k: low + step * i for i, k in enumerate(keys)}
 
 
@@ -193,23 +233,34 @@ def _auto_facing(key: str, x: float, others: dict[str, float]) -> int:
     return 1 if target > x else -1
 
 
-MIN_GAP = 0.14  # 2人がこれより近いと重なって見えるので離す（画面幅に対する比率）
+def _separate(target: dict[str, Placement], explicit: set[str], resolution: tuple[int, int]) -> None:
+    """2人の体が重なる近さなら、立ち位置を指定されていない方を、重ならない距離までずらす。
 
-
-def _separate(target: dict[str, Placement], explicit: set[str]) -> None:
-    """同じ場所に2人が重なったら、立ち位置を指定されていない方を少しずらす（両方指定なら台本どおり）。"""
-    keys = [k for k, p in target.items() if p.on_screen]
-    for i, a in enumerate(keys):
-        for b in keys[i + 1:]:
+    ずらす先が画面の外になるときは反対側へずらす。3人以上でも収まるよう、数回くり返す。
+    """
+    for _ in range(4):
+        moved = False
+        keys = sorted((k for k, p in target.items() if p.on_screen), key=lambda k: target[k].x)
+        for a, b in zip(keys, keys[1:]):
             pa, pb = target[a], target[b]
-            if abs(pa.x - pb.x) >= MIN_GAP or (a in explicit and b in explicit):
+            gap = min_distance(a, pa.scale, b, pb.scale, resolution)
+            if pb.x - pa.x >= gap - 1e-3:
                 continue
-            mover, anchor = (b, pa) if a in explicit or b not in explicit else (a, pb)
-            mp = target[mover]
-            direction = 1 if mp.x >= anchor.x else -1
-            if not 0.08 <= anchor.x + direction * 0.2 <= 0.92:
-                direction = -direction
-            target[mover] = replace(mp, x=anchor.x + direction * 0.2)
+            if b not in explicit or a in explicit:
+                mover, anchor, direction = b, pa, 1   # 右の人を右へ
+            else:
+                mover, anchor, direction = a, pb, -1  # 左の人を左へ
+            x = anchor.x + direction * gap
+            if not 0.06 <= x <= 0.94:
+                # 画面の外に出てしまうので、もう一方を反対側へずらす
+                other = a if mover == b else b
+                ox = target[mover].x - direction * gap
+                target[other] = replace(target[other], x=min(max(ox, 0.06), 0.94))
+            else:
+                target[mover] = replace(target[mover], x=x)
+            moved = True
+        if not moved:
+            break
 
 
 def _move_seconds(move: str, distance: float) -> float:
@@ -300,12 +351,10 @@ def auto_directions(project: Project) -> list[dict]:
             elif speaker and changed and expr in ("shock", "surprised") and layout != "edge":
                 stage = {"cast": [{"who": speaker, "move": "step_back"}]}
             elif speaker and changed and expr == "panic":
-                stage = {"cast": [{"who": speaker, "pos": "far_left" if _home_side(speaker, project) < 0 else "far_right",
-                                   "move": "run"}]}
+                stage = {"cast": [{"who": speaker, "pos": "edge_away", "move": "run"}]}
                 layout = "edge"
             elif speaker and changed and expr in ("gloomy", "cry", "sad") and layout != "edge":
-                stage = {"cast": [{"who": speaker, "pos": "far_left" if _home_side(speaker, project) < 0 else "far_right",
-                                   "size": "small", "move": "walk"}]}
+                stage = {"cast": [{"who": speaker, "pos": "edge_away", "size": "small", "move": "walk"}]}
                 layout = "edge"
             elif speaker and changed and expr == "idea" and layout == "edge":
                 stage = {"cast": [{"who": speaker, "pos": "center", "size": "normal", "move": "jump"}]}
@@ -329,10 +378,6 @@ def auto_directions(project: Project) -> list[dict]:
             run += 1
             prev = scene
     return result
-
-
-def _home_side(character_key: str, project: Project) -> int:
-    return -1 if home(character_key, project.resolution).x < 0.5 else 1
 
 
 def plan_stages(project: Project) -> list[Optional[StagePlan]]:
@@ -368,10 +413,11 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
                 if scene.speaker in visible:
                     target[scene.speaker] = Placement(x=0.5, scale=SIZES["large"])
             elif shot == "group":
-                xs = _spread(visible, 0.32 if len(visible) > 2 else 0.38, 0.68 if len(visible) > 2 else 0.62, current_x)
+                xs = _spread(visible, 0.32 if len(visible) > 2 else 0.38, 0.68 if len(visible) > 2 else 0.62, current_x,
+                             resolution)
                 target = {k: Placement(x=xs[k], scale=1.0) for k in visible}
             elif shot == "wide":
-                xs = _spread(visible, 0.22, 0.78, current_x)
+                xs = _spread(visible, 0.22, 0.78, current_x, resolution, SIZES["small"])
                 target = {k: Placement(x=xs[k], scale=SIZES["small"]) for k in visible}
             else:
                 target = {k: start[k] for k in visible}
@@ -388,14 +434,21 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
                 face = str(item.get("face") or "")
                 move = str(item.get("move") or "")
                 x = base.x
+                others = {k: p for k, p in target.items() if k != key and p.on_screen}
+                partner = min(others, key=lambda k: abs(others[k].x - x)) if others else None
+                partner_x = others[partner].x if partner else None
                 if pos == "home":
                     x = home(key, resolution).x
+                elif pos == "edge_away":
+                    # 相手と反対側の端（相手の体を横切って移動しないように）
+                    x = POSITIONS["far_right"] if partner_x is not None and partner_x < x else POSITIONS["far_left"]
+                    if partner_x is None:
+                        x = POSITIONS["far_left"] if x < 0.5 else POSITIONS["far_right"]
                 elif pos in POSITIONS:
                     x = POSITIONS[pos]
-                others = {k: p.x for k, p in target.items() if k != key}
-                partner_x = min(others.values(), key=lambda ox: abs(ox - x)) if others else None
-                if move == "approach" and partner_x is not None and not pos:
-                    x = partner_x - APPROACH_GAP if x < partner_x else partner_x + APPROACH_GAP
+                if move == "approach" and partner is not None and not pos:
+                    gap = min_distance(key, SIZES.get(size, base.scale), partner, others[partner].scale, resolution)
+                    x = partner_x - gap if x < partner_x else partner_x + gap
                 elif move == "retreat" and partner_x is not None and not pos:
                     x = x - RETREAT_DISTANCE if x < partner_x else x + RETREAT_DISTANCE
                 elif move == "step_back" and partner_x is not None and not pos:
@@ -430,7 +483,7 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
             start = dict(target)
         if staging and not board_visible(scene):
             _separate(target, explicit={str(i.get("who")) for i in stage.get("cast") or []
-                                        if isinstance(i, dict) and i.get("pos")})
+                                        if isinstance(i, dict) and i.get("pos")}, resolution=resolution)
         # 向き: 指定が無ければ相手の方を向く（いつもの定位置の画面では素材の向きのまま）
         positions = {k: p.x for k, p in target.items()}
         tracks: dict[str, CharTrack] = {}

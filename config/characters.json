@@ -32,6 +32,7 @@
       "whisper": "ひそひそ",
       "gloomy": "どんより"
     },
+    "facing": "left",
     "illustrator": "坂本アヒル 様"
   },
   "shikoku_metan": {
@@ -65,6 +66,7 @@
       "blush": "照れ",
       "whisper": "ひそひそ"
     },
+    "facing": "right",
     "illustrator": "坂本アヒル 様"
   },
   "kasukabe_tsumugi": {
@@ -95,6 +97,7 @@
       "sad": "悲しみ",
       "angry": "怒り"
     },
+    "facing": "left",
     "illustrator": "坂本アヒル 様"
   }
 }
