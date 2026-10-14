@@ -23,7 +23,7 @@ import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Iterable, Optional
 
 from src.models import NO_BGM, Project, Scene
 from src.utils.asset_loader import _short_cache
@@ -157,7 +157,8 @@ LIBRARY_NOTE = (
     "credit があれば（作曲者が表記の仕方を指定している曲）、その文をそのまま載せる。conditions は作曲者独自の利用条件のメモ（説明文には載せない）。"
     "新しい曲を置くと、曲ファイルのタグから曲名・作者を読んで自動で追記する（info_from に情報の出どころ）。"
     "features は曲の音を解析した値（にぎやかさ・音の明るさ・音量の起伏・テンポなど）で、場面に一番合う曲を選ぶのに使う。"
-    "uptempo が true の曲（アップテンポ。長く聞くと疲れる）は、その雰囲気にほかの曲が無いときだけ使う（手で書き換えてよい）。"
+    "busy が true の曲（せわしない曲。長く聞くと疲れる）は、その雰囲気にほかの曲が無いときだけ使う"
+    "（画面のBGM設定の「せわしない曲」か、ここを手で true/false にして決める。音の解析では決めない）。"
     "分からない項目は空のままにし、推測で埋めないこと（artist が空の曲は、説明文に「作者名未登録」と出る）。"
 )
 
@@ -278,17 +279,6 @@ def analyze_features(path: Path) -> dict:
         "bass_ratio": round(float(spec[:, freqs < 250].sum() / max(float(spec.sum()), 1e-9)), 3),
         "seconds": round(seconds, 1),
     }
-    try:  # テンポは librosa があれば測る（アップテンポの曲を普段のBGMに使わないための判定）
-        import librosa
-
-        y = librosa.resample(x, orig_sr=sr, target_sr=22050)
-        onset = librosa.onset.onset_strength(y=y, sr=22050)
-        result["tempo_bpm"] = round(float(np.atleast_1d(librosa.feature.tempo(onset_envelope=onset, sr=22050,
-                                                                                start_bpm=100))[0]))
-        onsets = librosa.onset.onset_detect(onset_envelope=onset, sr=22050, units="time")
-        result["note_density"] = round(len(onsets) / max(min(seconds, FEATURE_SECONDS), 1.0), 2)
-    except Exception:  # noqa: BLE001 - librosa が無ければテンポは測らない（アップテンポ扱いにしない）
-        pass
     return result
 
 
@@ -313,9 +303,6 @@ def refresh_library(default_source: str = "") -> list[str]:
             entry["features"] = analyze_features(path)
         except Exception:  # noqa: BLE001 - 測れない曲は特徴なし（中くらいの曲として扱う）で登録する
             entry.setdefault("features", {})
-        f = entry.get("features") or {}
-        entry.setdefault("uptempo", bool(f.get("tempo_bpm", 0) >= UPTEMPO_MIN_BPM
-                                         and f.get("note_density", 0) >= UPTEMPO_MIN_DENSITY))
         library[key] = entry
         added.append(key)
     if added:
@@ -391,23 +378,42 @@ def track_score(track: "Track", mood: str, longest_seconds: float = 0.0,
     seconds = features.get("seconds")
     if isinstance(seconds, (int, float)) and longest_seconds > 0 and seconds < longest_seconds * 0.5:
         score -= 0.5  # 短い曲を長い場面で何度もループさせると繰り返しが目立つ
-    if is_uptempo(track):
-        score -= UPTEMPO_PENALTY  # アップテンポの曲は長く聞くと疲れるので、ほかに曲が無いときだけ使う
+    if is_busy(track):
+        score -= BUSY_PENALTY  # せわしない曲は長く聞くと疲れるので、ほかに曲が無いときだけ使う
     return score
 
 
-UPTEMPO_PENALTY = 10.0
-UPTEMPO_MIN_BPM = 115        # この速さ以上で、かつ
-UPTEMPO_MIN_DENSITY = 3.5    # 1秒あたりの音の頭がこれ以上（テンポの推定は倍・半分に間違えやすいので、両方そろったときだけ）
+BUSY_PENALTY = 10.0
 
 
-def is_uptempo(track: "Track") -> bool:
-    """アップテンポの曲か（_library.json の uptempo。手で true/false に書き換えれば、その判定を使う）。"""
-    info = load_library().get(track.key) or {}
-    if isinstance(info.get("uptempo"), bool):
-        return info["uptempo"]
-    features = info.get("features") or {}
-    return bool(features.get("tempo_bpm", 0) >= UPTEMPO_MIN_BPM and features.get("note_density", 0) >= UPTEMPO_MIN_DENSITY)
+def is_busy(track: "Track") -> bool:
+    """せわしない曲か（_library.json の busy）。
+
+    テンポや音数の解析では、聞いて疲れるかどうかが当たらない（ゆったりでも音が詰まった曲、速くても軽やかな曲がある）ため、
+    利用者が聞いて決めた印だけを使う。
+    """
+    return (load_library().get(track.key) or {}).get("busy") is True
+
+
+def busy_keys() -> list[str]:
+    """せわしない曲の一覧（_library.json のキー）。"""
+    return [key for key, info in load_library().items() if isinstance(info, dict) and info.get("busy") is True]
+
+
+def set_busy_keys(keys: Iterable[str]) -> None:
+    """せわしない曲の印を付け直す（keys に入っている曲だけ busy=true にする）。"""
+    wanted = set(keys)
+    library = load_library()
+    changed = False
+    for key, info in library.items():
+        if not isinstance(info, dict):
+            continue
+        flag = key in wanted
+        if info.get("busy", False) != flag:
+            info["busy"] = flag
+            changed = True
+    if changed:
+        save_library(library)
 
 
 def best_track(mood: str, longest_seconds: float = 0.0) -> Optional[str]:
