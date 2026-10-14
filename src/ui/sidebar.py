@@ -75,6 +75,12 @@ def _bgm_label(path: Path) -> str:
 
 def _render_mood_bgm(project: Project) -> None:
     """雰囲気ごとに流す曲（自動で選んだ曲を利用者が変えられる）。"""
+    try:
+        added = bgm_library.refresh_library()
+    except Exception:  # noqa: BLE001 - 登録できなくても画面は出す
+        added = []
+    if added:
+        st.caption(f"新しいBGMを{len(added)}曲登録しました（作者名は assets/bgm/_library.json に記入してください）。")
     st.markdown("**雰囲気ごとのBGM（自動選択）**")
     st.caption(
         "台本のセリフに書かれたBGMの雰囲気（楽しい・緊張・感動など）に合わせて、assets/bgm/ の気分ごとのフォルダから"
@@ -399,9 +405,8 @@ def _render_reading_dict_section(project: Project) -> None:
         )
         project.voice_emotion = st.toggle(
             "表情に合わせて声色を変える", value=project.voice_emotion, key="voice_emotion",
-            help="泣いている顔は「なみだめ」、ひそひそ話は「ささやき」、めたんの呆れ顔は「ツンツン」で抑揚を抑える…のように、"
-                 "セリフの表情に合わせてVOICEVOXの声の種類と高さ・抑揚・速さを変えます。"
-                 "お使いのVOICEVOXにその声の種類が無い場合は、普通の声のまま話し方だけを変えます。",
+            help="驚きは少し高く、呆れ顔は抑揚を抑える…のように、セリフの表情に合わせて声の高さ・抑揚・速さを少しだけ変えます。"
+                 "VOICEVOXの別の声（なみだめ等）は感情が激しすぎるため、大泣きの場面だけに使います。",
         )
         _render_reading_check(project)
         st.caption(
