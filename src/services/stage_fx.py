@@ -1,5 +1,5 @@
 """
-漫画風の効果（集中線・スピード線・フラッシュ・どんより縦線・「！」「？」・汗・怒りマーク・キラキラ）の描画。
+漫画風の効果（集中線・スピード線・フラッシュ・どんより縦線・「！」「？」・怒りマーク・キラキラ）の描画。
 
 - 画面全体にかける効果（集中線・スピード線・フラッシュ）は、カメラの動きの後に画面へそのまま重ねる。
 - キャラクターに付ける効果（マーク・どんより縦線）は、カメラの動きの前に、キャラクターの頭の近くに描く
@@ -18,7 +18,7 @@ from PIL import Image, ImageDraw
 from src.services import telop
 
 SCREEN_FX = {"focus_lines", "speed_lines", "flash"}
-CHARACTER_FX = {"gloom", "exclaim", "question", "sweat", "anger", "sparkle"}
+CHARACTER_FX = {"gloom", "exclaim", "question", "anger", "sparkle"}
 
 FOCUS_SECONDS = 1.8          # 集中線を出す長さ（最後の0.3秒で消える）
 FLICKER_SECONDS = 0.08       # 集中線・スピード線のパターンを切り替える間隔（ちらつかせて勢いを出す）
@@ -119,21 +119,18 @@ def _mark(kind: str, size_px: int) -> Optional[Image.Image]:
         box = draw.textbbox((0, 0), text, font=font, stroke_width=max(2, s // 14))
         draw.text(((s - (box[2] - box[0])) / 2 - box[0], (s - (box[3] - box[1])) / 2 - box[1]), text, font=font,
                   fill=color, stroke_width=max(2, s // 14), stroke_fill=(255, 255, 255, 255))
-    elif kind == "sweat":
-        w = s * 0.42
-        cx, top, bottom = s * 0.5, s * 0.1, s * 0.9
-        draw.polygon([(cx, top), (cx + w / 2, bottom - w / 2), (cx - w / 2, bottom - w / 2)], fill=(120, 190, 255, 235))
-        draw.ellipse([cx - w / 2, bottom - w, cx + w / 2, bottom], fill=(120, 190, 255, 235), outline=(40, 100, 200, 255),
-                     width=max(2, s // 24))
     elif kind == "anger":
-        red = (230, 40, 50, 255)
-        lw = max(3, s // 9)
+        # 怒りマーク（💢）: 中心に向かってふくらむ細い弧を4つ、真ん中をあけて十字に並べる。白い縁取りで背景から浮かせる
+        red = (225, 35, 45, 255)
+        line = max(2, round(s * 0.07))
+        reach, radius = s * 0.36, s * 0.3
         c = s / 2
-        for dx, dy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
-            box = [c + dx * s * 0.08 - s * 0.2, c + dy * s * 0.08 - s * 0.2, c + dx * s * 0.08 + s * 0.2,
-                   c + dy * s * 0.08 + s * 0.2]
-            start = {(-1, -1): 0, (1, -1): 90, (1, 1): 180, (-1, 1): 270}[(dx, dy)]
-            draw.arc(box, start, start + 90, fill=red, width=lw)
+        for outline, width in (((255, 255, 255, 255), line + max(2, round(s * 0.03))), (red, line)):
+            for dx, dy in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+                cx, cy = c + dx * reach, c + dy * reach
+                toward = math.degrees(math.atan2(-dy, -dx))
+                draw.arc([cx - radius, cy - radius, cx + radius, cy + radius], toward - 44, toward + 44,
+                         fill=outline, width=width)
     elif kind == "sparkle":
         def star(cx: float, cy: float, r: float) -> None:
             pts = []
@@ -168,7 +165,7 @@ MARK_MARGIN_RATIO = 0.02    # 画面の端からの余白
 
 def draw_mark_on_screen(canvas: Image.Image, fx: str, t: float, head: tuple[float, float],
                         sprite_size: tuple[int, int], side: int) -> None:
-    """「！」「？」・汗・怒り・キラキラのマークを、話者の顔の横（顔の高さ）に、画面からはみ出さないように描く。
+    """「！」「？」・怒り・キラキラのマークを、話者の顔の横（顔の高さ）に、画面からはみ出さないように描く。
 
     canvas は画面（カメラの後）。head はその画面での顔の位置、sprite_size はその画面での立ち絵の大きさ。
     頭の真上に置くと、大きく映っているときやアップのときに画面の上で切れるため、顔の横に置き、画面の中に収める。

@@ -57,15 +57,15 @@ CAMERA_LABELS = {
     "": "なし", "pan_left": "左へパン", "pan_right": "右へパン", "zoom_in": "ゆっくり寄る",
     "zoom_out": "寄った状態から引く", "follow": "話者を追う",
 }
-FX = ["", "focus_lines", "speed_lines", "flash", "gloom", "exclaim", "question", "sweat", "anger", "sparkle"]
+FX = ["", "focus_lines", "speed_lines", "flash", "gloom", "exclaim", "question", "anger", "sparkle"]
 FX_LABELS = {
     "": "なし", "focus_lines": "集中線", "speed_lines": "スピード線", "flash": "フラッシュ", "gloom": "どんより縦線",
-    "exclaim": "「！」マーク", "question": "「？」マーク", "sweat": "汗マーク", "anger": "怒りマーク", "sparkle": "キラキラ",
+    "exclaim": "「！」マーク", "question": "「？」マーク", "anger": "怒りマーク", "sparkle": "キラキラ",
 }
 
 # 表情から自動で付ける効果（Project.auto_fx。表情が変わった瞬間だけ）
 AUTO_FX = {
-    "surprised": "exclaim", "shock": "focus_lines", "panic": "sweat", "troubled": "sweat", "angry": "anger",
+    "surprised": "exclaim", "shock": "focus_lines", "angry": "anger",
     "gloomy": "gloom", "think": "question", "idea": "sparkle", "excited": "sparkle",
 }
 

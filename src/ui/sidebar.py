@@ -107,6 +107,9 @@ def _render_mood_bgm(project: Project) -> None:
             project.mood_bgm.pop(mood, None)
         else:
             project.mood_bgm[mood] = picked
+    busy = [t.title for mood in bgm_library.MOODS for t in bgm_library.list_tracks(mood) if bgm_library.is_busy(t)]
+    if busy:
+        st.caption("音がせわしなく長く聞くと疲れるため、自動では選ばない曲: " + "、".join(busy))
     used = video_metadata.used_bgm_paths(project) if project.scenes else []
     if used:
         st.caption("この動画で流れる曲: " + "、".join(bgm_library.track_for_path(p).title for p in used))
@@ -249,7 +252,7 @@ def _render_motion_section(project: Project) -> None:
             value=project.auto_stage, key="motion_auto_stage",
         )
         project.auto_fx = st.checkbox(
-            "表情に合わせて漫画風の効果を付ける（驚き→「！」、ショック→集中線、焦り→汗、落ち込み→どんより線 など）",
+            "表情に合わせて漫画風の効果を付ける（驚き→「！」、ショック→集中線、怒り→怒りマーク、落ち込み→どんより線 など）",
             value=project.auto_fx, key="motion_auto_fx",
         )
         options = list(TRANSITION_LABELS)
