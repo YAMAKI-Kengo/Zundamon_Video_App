@@ -23,7 +23,7 @@ from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from typing import Optional
 
-from src.models import Project, Scene
+from src.models import GUEST_CHARACTERS, Project, Scene
 from src.services.compositor import _center_ratio, _drawable_characters, CHARACTER_ORDER
 from src.utils.asset_loader import load_character_config
 
@@ -175,6 +175,17 @@ def home(character_key: str, resolution: tuple[int, int]) -> Placement:
     return Placement(x=_center_ratio(character_key, resolution), scale=1.0, facing=0)
 
 
+EDGE_LIMIT = 0.08    # 画面にいる人の立ち位置の中心の、画面の端からの最小距離（画面幅に対する比率）
+GUEST_STAGE_X = 0.5  # 立ち位置の演出のある会話で、ゲスト（つむぎ）が立つ位置（2人の間。いつもの位置だとめたんに重なるため）
+
+
+def stage_home(character_key: str, resolution: tuple[int, int]) -> Placement:
+    """立ち位置の演出のある会話での「いつもの立ち位置」。めたん・ずんだもんは左右の定位置、ゲストは2人の間。"""
+    if character_key in GUEST_CHARACTERS:
+        return Placement(x=GUEST_STAGE_X, scale=1.0, facing=0)
+    return home(character_key, resolution)
+
+
 def _parse_stage(stage) -> dict:
     return stage if isinstance(stage, dict) else {}
 
@@ -221,9 +232,11 @@ def _spread(keys: list[str], low: float, high: float, order: dict[str, float],
     return {k: low + step * i for i, k in enumerate(keys)}
 
 
-def _auto_facing(key: str, x: float, others: dict[str, float]) -> int:
-    """相手（一番近いキャラクター）の方を向く。1人なら画面の中央を向く。"""
+def _auto_facing(key: str, x: float, others: dict[str, float], speaker: str = "") -> int:
+    """聞いている人は話している人の方を、話している人は一番近い相手の方を向く。1人なら画面の中央を向く。"""
     candidates = [ox for k, ox in others.items() if k != key and -0.05 < ox < 1.05]
+    if key != speaker and speaker in others and -0.05 < others[speaker] < 1.05 and abs(others[speaker] - x) > 1e-3:
+        return 1 if others[speaker] > x else -1
     if candidates:
         target = min(candidates, key=lambda ox: abs(ox - x))
     else:
@@ -396,7 +409,8 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
         visible = _visible_keys(scene)
         stage = (_parse_stage(scene.stage) or auto[idx]) if staging else {}
         # 前のセリフの終わりの状態（初めて出てくるキャラクターは、いつもの立ち位置）
-        start = {k: state.get(k, home(k, resolution)) for k in set(visible) | set(state)}
+        start = {k: state.get(k, stage_home(k, resolution) if staging else home(k, resolution))
+                 for k in set(visible) | set(state)}
         target: dict[str, Placement] = {}
         moves: dict[str, str] = {}
 
@@ -407,7 +421,7 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
             shot = str(stage.get("shot") or "")
             current_x = {k: start[k].x for k in visible}
             if shot == "talk":
-                target = {k: home(k, resolution) for k in visible}
+                target = {k: stage_home(k, resolution) for k in visible}
             elif shot == "solo":
                 target = {k: replace(start[k], x=_offscreen(start[k].x)) for k in visible if k != scene.speaker}
                 if scene.speaker in visible:
@@ -428,7 +442,7 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
                 key = str(item.get("who") or "")
                 if key not in start and key not in visible:
                     continue
-                base = target.get(key, start.get(key, home(key, resolution)))
+                base = target.get(key, start.get(key, stage_home(key, resolution)))
                 pos = str(item.get("pos") or "")
                 size = str(item.get("size") or "")
                 face = str(item.get("face") or "")
@@ -438,7 +452,7 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
                 partner = min(others, key=lambda k: abs(others[k].x - x)) if others else None
                 partner_x = others[partner].x if partner else None
                 if pos == "home":
-                    x = home(key, resolution).x
+                    x = stage_home(key, resolution).x
                 elif pos == "edge_away":
                     # 相手と反対側の端（相手の体を横切って移動しないように）
                     x = POSITIONS["far_right"] if partner_x is not None and partner_x < x else POSITIONS["far_left"]
@@ -456,7 +470,7 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
                 elif move == "exit" and not pos:
                     x = _offscreen(x)
                 elif move == "enter" and not start.get(key, base).on_screen and not pos:
-                    x = home(key, resolution).x
+                    x = stage_home(key, resolution).x
                 scale = SIZES.get(size, base.scale)
                 facing = FACINGS.get(face, 0)
                 target[key] = Placement(x=x, scale=scale, facing=facing)
@@ -482,15 +496,21 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
             target = {k: home(k, resolution) for k in visible}
             start = dict(target)
         if staging and not board_visible(scene):
+            # 画面にいる人は、体が大きく画面の外にはみ出さない範囲に収める（後ずさり等で端から出ないように）
+            for k, p in list(target.items()):
+                if p.on_screen and k in visible:
+                    target[k] = replace(p, x=min(max(p.x, EDGE_LIMIT), 1 - EDGE_LIMIT))
             _separate(target, explicit={str(i.get("who")) for i in stage.get("cast") or []
                                         if isinstance(i, dict) and i.get("pos")}, resolution=resolution)
+        explicit_face = {str(i.get("who")) for i in stage.get("cast") or [] if isinstance(i, dict) and i.get("face")}
         # 向き: 指定が無ければ相手の方を向く（いつもの定位置の画面では素材の向きのまま）
         positions = {k: p.x for k, p in target.items()}
         tracks: dict[str, CharTrack] = {}
         for k, end in target.items():
             begin = start.get(k, end)
-            if staging and not board_visible(scene) and end.facing == 0 and end.on_screen:
-                end = replace(end, facing=_auto_facing(k, end.x, positions))
+            if staging and not board_visible(scene) and k not in explicit_face and end.on_screen:
+                # 向きはセリフごとに決め直す（聞いている人は、今話している人の方へ振り向く）
+                end = replace(end, facing=_auto_facing(k, end.x, positions, scene.speaker))
             move = moves.get(k, "")
             distance = abs(end.x - begin.x)
             moving = distance > 0.01 or abs(end.scale - begin.scale) > 0.01
