@@ -1,5 +1,5 @@
 {
-  "_説明": "BGMの曲情報。キーは assets/bgm/ からのファイルの場所。動画の説明文のクレジットには、その動画で実際に使った曲だけを、ここの title（曲名）・artist（作者）・source（配布元）・source_url（曲のページ）・license（必要なライセンス表記）で載せる。credit があれば（作曲者が表記の仕方を指定している曲）、その文をそのまま載せる。conditions は作曲者独自の利用条件のメモ（説明文には載せない）。新しい曲を置くと、曲ファイルのタグから曲名・作者を読んで自動で追記する（info_from に情報の出どころ）。features は曲の音を解析した値（にぎやかさ・音の明るさ・音量の起伏・テンポなど）で、場面に一番合う曲を選ぶのに使う。busy が true の曲（せわしない曲。長く聞くと疲れる）は、その雰囲気にほかの曲が無いときだけ使う（画面のBGM設定の「せわしない曲」か、ここを手で true/false にして決める。音の解析では決めない）。分からない項目は空のままにし、推測で埋めないこと（artist が空の曲は、説明文に「作者名未登録」と出る）。",
+  "_説明": "BGMの曲情報。キーは assets/bgm/ からのファイルの場所。動画の説明文のクレジットには、その動画で実際に使った曲だけを、ここの title（曲名）・artist（作者）・source（配布元）・source_url（曲のページ）・license（必要なライセンス表記）で載せる。credit があれば（作曲者が表記の仕方を指定している曲）、その文をそのまま載せる。conditions は作曲者独自の利用条件のメモ（説明文には載せない）。新しい曲を置くと、曲ファイルのタグから曲名・作者を読んで自動で追記する（info_from に情報の出どころ）。features は曲の音を解析した値（にぎやかさ・音の明るさ・音量の起伏・テンポなど）で、場面に一番合う曲を選ぶのに使う。せわしない曲（長く聞くと疲れる曲）は features の attack_hf・busy_share・rest_share から自動で判定し、その雰囲気にほかの曲が無いときだけ使う（判定を変えたい曲だけ busy: true/false を書けばそれに従う）。分からない項目は空のままにし、推測で埋めないこと（artist が空の曲は、説明文に「作者名未登録」と出る）。",
   "bright/Cat_life.mp3": {
     "title": "Cat life",
     "artist": "GT-K",
@@ -16,9 +16,11 @@
       "loudness_rms": 0.2769,
       "dynamics": 2.25,
       "bass_ratio": 0.387,
-      "seconds": 151.5
-    },
-    "busy": false
+      "seconds": 151.5,
+      "attack_hf": 10.11,
+      "busy_share": 0.8,
+      "rest_share": 0.06
+    }
   },
   "bright/Morning.mp3": {
     "title": "Morning",
@@ -34,9 +36,11 @@
       "loudness_rms": 0.2108,
       "dynamics": 1.94,
       "bass_ratio": 0.332,
-      "seconds": 165.2
-    },
-    "busy": false
+      "seconds": 165.2,
+      "attack_hf": 13.24,
+      "busy_share": 0.93,
+      "rest_share": 0.06
+    }
   },
   "bright/SUMMER_TRIANGLE.mp3": {
     "title": "SUMMER TRIANGLE",
@@ -52,9 +56,11 @@
       "loudness_rms": 0.176,
       "dynamics": 3.16,
       "bass_ratio": 0.214,
-      "seconds": 128.2
-    },
-    "busy": false
+      "seconds": 128.2,
+      "attack_hf": 18.82,
+      "busy_share": 0.78,
+      "rest_share": 0.15
+    }
   },
   "bright/Stream.mp3": {
     "title": "Stream",
@@ -71,9 +77,11 @@
       "loudness_rms": 0.1916,
       "dynamics": 3.29,
       "bass_ratio": 0.296,
-      "seconds": 331.4
-    },
-    "busy": false
+      "seconds": 331.4,
+      "attack_hf": 12.77,
+      "busy_share": 0.55,
+      "rest_share": 0.12
+    }
   },
   "bright/おどれグロッケンシュピール.mp3": {
     "title": "おどれグロッケンシュピール",
@@ -89,9 +97,11 @@
       "loudness_rms": 0.2499,
       "dynamics": 1.89,
       "bass_ratio": 0.303,
-      "seconds": 194.0
-    },
-    "busy": false
+      "seconds": 194.0,
+      "attack_hf": 20.0,
+      "busy_share": 0.78,
+      "rest_share": 0.02
+    }
   },
   "bright/しゅわしゅわハニーレモン350ml.mp3": {
     "title": "しゅわしゅわハニーレモン350ml",
@@ -107,9 +117,11 @@
       "loudness_rms": 0.1835,
       "dynamics": 2.81,
       "bass_ratio": 0.297,
-      "seconds": 97.0
-    },
-    "busy": false
+      "seconds": 97.0,
+      "attack_hf": 16.09,
+      "busy_share": 0.76,
+      "rest_share": 0.07
+    }
   },
   "bright/ちょっと楽しい.mp3": {
     "title": "ちょっと楽しい",
@@ -125,9 +137,11 @@
       "loudness_rms": 0.0833,
       "dynamics": 5.13,
       "bass_ratio": 0.308,
-      "seconds": 61.8
-    },
-    "busy": false
+      "seconds": 61.8,
+      "attack_hf": 1.44,
+      "busy_share": 0.0,
+      "rest_share": 0.29
+    }
   },
   "bright/わくわくクッキングタイム的なBGM.mp3": {
     "title": "わくわくクッキングタイム的なBGM",
@@ -143,9 +157,11 @@
       "loudness_rms": 0.0854,
       "dynamics": 7.14,
       "bass_ratio": 0.214,
-      "seconds": 124.5
-    },
-    "busy": false
+      "seconds": 124.5,
+      "attack_hf": 1.07,
+      "busy_share": 0.05,
+      "rest_share": 0.33
+    }
   },
   "bright/パステルハウス.mp3": {
     "title": "パステルハウス",
@@ -162,9 +178,11 @@
       "loudness_rms": 0.2993,
       "dynamics": 2.31,
       "bass_ratio": 0.437,
-      "seconds": 160.1
-    },
-    "busy": false
+      "seconds": 160.1,
+      "attack_hf": 16.37,
+      "busy_share": 0.47,
+      "rest_share": 0.03
+    }
   },
   "bright/夏はsummer!!.mp3": {
     "title": "夏はsummer!!",
@@ -180,9 +198,11 @@
       "loudness_rms": 0.2421,
       "dynamics": 2.4,
       "bass_ratio": 0.249,
-      "seconds": 198.1
-    },
-    "busy": false
+      "seconds": 198.1,
+      "attack_hf": 26.53,
+      "busy_share": 0.97,
+      "rest_share": 0.03
+    }
   },
   "bright/少年達の夏休み的なBGM.mp3": {
     "title": "少年達の夏休み的なBGM",
@@ -198,9 +218,11 @@
       "loudness_rms": 0.1517,
       "dynamics": 3.86,
       "bass_ratio": 0.164,
-      "seconds": 99.4
-    },
-    "busy": false
+      "seconds": 99.4,
+      "attack_hf": 13.03,
+      "busy_share": 0.21,
+      "rest_share": 0.19
+    }
   },
   "bright/春のキッチン.mp3": {
     "title": "春のキッチン",
@@ -216,9 +238,11 @@
       "loudness_rms": 0.1071,
       "dynamics": 4.27,
       "bass_ratio": 0.256,
-      "seconds": 113.6
-    },
-    "busy": false
+      "seconds": 113.6,
+      "attack_hf": 4.76,
+      "busy_share": 0.16,
+      "rest_share": 0.23
+    }
   },
   "bright/極東の羊、テレキャスターと踊る.mp3": {
     "title": "極東の羊、テレキャスターと踊る",
@@ -234,9 +258,11 @@
       "loudness_rms": 0.2149,
       "dynamics": 2.2,
       "bass_ratio": 0.272,
-      "seconds": 107.5
-    },
-    "busy": false
+      "seconds": 107.5,
+      "attack_hf": 23.92,
+      "busy_share": 0.97,
+      "rest_share": 0.06
+    }
   },
   "bright/野良猫は宇宙を目指した.mp3": {
     "title": "野良猫は宇宙を目指した",
@@ -252,9 +278,11 @@
       "loudness_rms": 0.1898,
       "dynamics": 2.0,
       "bass_ratio": 0.339,
-      "seconds": 123.6
-    },
-    "busy": false
+      "seconds": 123.6,
+      "attack_hf": 11.37,
+      "busy_share": 0.35,
+      "rest_share": 0.05
+    }
   },
   "calm/10℃.mp3": {
     "title": "10℃",
@@ -270,9 +298,11 @@
       "loudness_rms": 0.1669,
       "dynamics": 2.72,
       "bass_ratio": 0.292,
-      "seconds": 217.4
-    },
-    "busy": false
+      "seconds": 217.4,
+      "attack_hf": 10.14,
+      "busy_share": 0.75,
+      "rest_share": 0.08
+    }
   },
   "calm/2_23_AM.mp3": {
     "title": "2:23 AM",
@@ -288,9 +318,11 @@
       "loudness_rms": 0.1889,
       "dynamics": 2.99,
       "bass_ratio": 0.29,
-      "seconds": 195.9
-    },
-    "busy": false
+      "seconds": 195.9,
+      "attack_hf": 14.98,
+      "busy_share": 0.75,
+      "rest_share": 0.1
+    }
   },
   "calm/Cassette_Tape_Dream.mp3": {
     "title": "Cassette Tape Dream",
@@ -306,9 +338,11 @@
       "loudness_rms": 0.279,
       "dynamics": 2.91,
       "bass_ratio": 0.349,
-      "seconds": 176.0
-    },
-    "busy": false
+      "seconds": 176.0,
+      "attack_hf": 20.11,
+      "busy_share": 0.9,
+      "rest_share": 0.13
+    }
   },
   "calm/Recollections.mp3": {
     "title": "Recollections",
@@ -326,9 +360,11 @@
       "loudness_rms": 0.1997,
       "dynamics": 2.66,
       "bass_ratio": 0.311,
-      "seconds": 214.0
-    },
-    "busy": false
+      "seconds": 214.0,
+      "attack_hf": 15.36,
+      "busy_share": 0.2,
+      "rest_share": 0.07
+    }
   },
   "calm/You_and_Me.mp3": {
     "title": "You and Me",
@@ -344,9 +380,11 @@
       "loudness_rms": 0.1867,
       "dynamics": 2.78,
       "bass_ratio": 0.327,
-      "seconds": 125.2
-    },
-    "busy": false
+      "seconds": 125.2,
+      "attack_hf": 9.79,
+      "busy_share": 0.53,
+      "rest_share": 0.13
+    }
   },
   "calm/ensolarado.mp3": {
     "title": "ensolarado",
@@ -363,9 +401,11 @@
       "loudness_rms": 0.1319,
       "dynamics": 2.65,
       "bass_ratio": 0.366,
-      "seconds": 136.4
-    },
-    "busy": false
+      "seconds": 136.4,
+      "attack_hf": 4.44,
+      "busy_share": 0.25,
+      "rest_share": 0.07
+    }
   },
   "calm/いつもの風景.mp3": {
     "title": "いつもの風景",
@@ -381,9 +421,11 @@
       "loudness_rms": 0.0924,
       "dynamics": 17.65,
       "bass_ratio": 0.107,
-      "seconds": 199.2
-    },
-    "busy": false
+      "seconds": 199.2,
+      "attack_hf": 1.73,
+      "busy_share": 0.0,
+      "rest_share": 0.38
+    }
   },
   "calm/のんきな日常.mp3": {
     "title": "のんきな日常",
@@ -400,9 +442,11 @@
       "loudness_rms": 0.1415,
       "dynamics": 6.79,
       "bass_ratio": 0.222,
-      "seconds": 44.3
-    },
-    "busy": false
+      "seconds": 44.3,
+      "attack_hf": 5.91,
+      "busy_share": 0.33,
+      "rest_share": 0.33
+    }
   },
   "calm/アトリエと電脳世界.mp3": {
     "title": "アトリエと電脳世界",
@@ -418,9 +462,11 @@
       "loudness_rms": 0.2197,
       "dynamics": 5.18,
       "bass_ratio": 0.314,
-      "seconds": 162.8
-    },
-    "busy": false
+      "seconds": 162.8,
+      "attack_hf": 5.18,
+      "busy_share": 0.65,
+      "rest_share": 0.25
+    }
   },
   "calm/日曜の午後.mp3": {
     "title": "日曜の午後",
@@ -436,9 +482,11 @@
       "loudness_rms": 0.1007,
       "dynamics": 6.47,
       "bass_ratio": 0.253,
-      "seconds": 105.6
-    },
-    "busy": false
+      "seconds": 105.6,
+      "attack_hf": 3.8,
+      "busy_share": 0.14,
+      "rest_share": 0.27
+    }
   },
   "calm/昼下がり気分.mp3": {
     "title": "昼下がり気分",
@@ -454,9 +502,11 @@
       "loudness_rms": 0.107,
       "dynamics": 3.51,
       "bass_ratio": 0.2,
-      "seconds": 235.3
-    },
-    "busy": false
+      "seconds": 235.3,
+      "attack_hf": 2.94,
+      "busy_share": 0.05,
+      "rest_share": 0.15
+    }
   },
   "calm/自宅にて.mp3": {
     "title": "自宅にて",
@@ -472,9 +522,11 @@
       "loudness_rms": 0.0965,
       "dynamics": 3.07,
       "bass_ratio": 0.405,
-      "seconds": 356.9
-    },
-    "busy": false
+      "seconds": 356.9,
+      "attack_hf": 4.26,
+      "busy_share": 0.3,
+      "rest_share": 0.11
+    }
   },
   "calm/週末京都現実逃避.mp3": {
     "title": "週末京都現実逃避",
@@ -490,9 +542,11 @@
       "loudness_rms": 0.2179,
       "dynamics": 2.62,
       "bass_ratio": 0.304,
-      "seconds": 250.5
-    },
-    "busy": false
+      "seconds": 250.5,
+      "attack_hf": 15.9,
+      "busy_share": 0.33,
+      "rest_share": 0.1
+    }
   },
   "comedy/Pappa_Parappa.mp3": {
     "title": "Pappa Parappa",
@@ -509,9 +563,11 @@
       "loudness_rms": 0.3022,
       "dynamics": 2.79,
       "bass_ratio": 0.338,
-      "seconds": 122.8
-    },
-    "busy": false
+      "seconds": 122.8,
+      "attack_hf": 18.12,
+      "busy_share": 0.8,
+      "rest_share": 0.12
+    }
   },
   "comedy/shuffle_shuffle.mp3": {
     "title": "shuffle shuffle",
@@ -527,9 +583,11 @@
       "loudness_rms": 0.1444,
       "dynamics": 6.31,
       "bass_ratio": 0.458,
-      "seconds": 130.0
-    },
-    "busy": false
+      "seconds": 130.0,
+      "attack_hf": 9.8,
+      "busy_share": 0.33,
+      "rest_share": 0.33
+    }
   },
   "comedy/かえるのピアノ.mp3": {
     "title": "かえるのピアノ",
@@ -545,9 +603,11 @@
       "loudness_rms": 0.1843,
       "dynamics": 6.83,
       "bass_ratio": 0.119,
-      "seconds": 96.2
-    },
-    "busy": false
+      "seconds": 96.2,
+      "attack_hf": 3.19,
+      "busy_share": 0.0,
+      "rest_share": 0.32
+    }
   },
   "comedy/かけっこ競争.mp3": {
     "title": "かけっこ競争",
@@ -563,9 +623,11 @@
       "loudness_rms": 0.1493,
       "dynamics": 1.89,
       "bass_ratio": 0.313,
-      "seconds": 64.1
-    },
-    "busy": false
+      "seconds": 64.1,
+      "attack_hf": 7.86,
+      "busy_share": 0.73,
+      "rest_share": 0.05
+    }
   },
   "comedy/ぐだぐだな感じ.mp3": {
     "title": "ぐだぐだな感じ",
@@ -581,9 +643,11 @@
       "loudness_rms": 0.2375,
       "dynamics": 6.75,
       "bass_ratio": 0.46,
-      "seconds": 94.2
-    },
-    "busy": false
+      "seconds": 94.2,
+      "attack_hf": 2.73,
+      "busy_share": 0.0,
+      "rest_share": 0.3
+    }
   },
   "comedy/ほんわかぷっぷー.mp3": {
     "title": "ほんわかぷっぷー",
@@ -599,9 +663,11 @@
       "loudness_rms": 0.0946,
       "dynamics": 14.19,
       "bass_ratio": 0.063,
-      "seconds": 76.4
-    },
-    "busy": false
+      "seconds": 76.4,
+      "attack_hf": 3.58,
+      "busy_share": 0.04,
+      "rest_share": 0.47
+    }
   },
   "comedy/クレイジークッキング.mp3": {
     "title": "クレイジークッキング",
@@ -617,9 +683,11 @@
       "loudness_rms": 0.1438,
       "dynamics": 5.22,
       "bass_ratio": 0.274,
-      "seconds": 59.1
-    },
-    "busy": false
+      "seconds": 59.1,
+      "attack_hf": 10.88,
+      "busy_share": 0.0,
+      "rest_share": 0.26
+    }
   },
   "comedy/追いかけっこキャッハー.mp3": {
     "title": "追いかけっこキャッハー",
@@ -636,9 +704,11 @@
       "loudness_rms": 0.23,
       "dynamics": 1.83,
       "bass_ratio": 0.221,
-      "seconds": 132.3
-    },
-    "busy": true
+      "seconds": 132.3,
+      "attack_hf": 19.69,
+      "busy_share": 0.78,
+      "rest_share": 0.01
+    }
   },
   "emotional/Escort.mp3": {
     "title": "Escort",
@@ -654,9 +724,11 @@
       "loudness_rms": 0.1099,
       "dynamics": 9.61,
       "bass_ratio": 0.188,
-      "seconds": 127.2
-    },
-    "busy": false
+      "seconds": 127.2,
+      "attack_hf": 0.65,
+      "busy_share": 0.03,
+      "rest_share": 0.31
+    }
   },
   "emotional/Parade.mp3": {
     "title": "Parade",
@@ -672,9 +744,11 @@
       "loudness_rms": 0.2123,
       "dynamics": 2.83,
       "bass_ratio": 0.261,
-      "seconds": 175.3
-    },
-    "busy": false
+      "seconds": 175.3,
+      "attack_hf": 9.1,
+      "busy_share": 0.47,
+      "rest_share": 0.02
+    }
   },
   "emotional/ゆりかご.mp3": {
     "title": "ゆりかご",
@@ -690,9 +764,11 @@
       "loudness_rms": 0.1442,
       "dynamics": 3.78,
       "bass_ratio": 0.028,
-      "seconds": 42.5
-    },
-    "busy": false
+      "seconds": 42.5,
+      "attack_hf": 2.23,
+      "busy_share": 0.0,
+      "rest_share": 0.18
+    }
   },
   "emotional/ワスレナグサ.mp3": {
     "title": "ワスレナグサ",
@@ -708,9 +784,11 @@
       "loudness_rms": 0.2616,
       "dynamics": 3.14,
       "bass_ratio": 0.293,
-      "seconds": 499.5
-    },
-    "busy": false
+      "seconds": 499.5,
+      "attack_hf": 14.25,
+      "busy_share": 0.68,
+      "rest_share": 0.15
+    }
   },
   "emotional/神隠しの真相.mp3": {
     "title": "神隠しの真相",
@@ -726,9 +804,11 @@
       "loudness_rms": 0.1815,
       "dynamics": 2.47,
       "bass_ratio": 0.297,
-      "seconds": 165.5
-    },
-    "busy": false
+      "seconds": 165.5,
+      "attack_hf": 7.96,
+      "busy_share": 0.82,
+      "rest_share": 0.04
+    }
   },
   "mysterious/なんでしょう？.mp3": {
     "title": "なんでしょう？",
@@ -744,9 +824,11 @@
       "loudness_rms": 0.0945,
       "dynamics": 15.36,
       "bass_ratio": 0.19,
-      "seconds": 305.9
-    },
-    "busy": false
+      "seconds": 305.9,
+      "attack_hf": 2.65,
+      "busy_share": 0.0,
+      "rest_share": 0.42
+    }
   },
   "serious/全てを創造する者「Dominus_Deus」.mp3": {
     "title": "全てを創造する者「Dominus Deus」",
@@ -762,9 +844,11 @@
       "loudness_rms": 0.086,
       "dynamics": 5.79,
       "bass_ratio": 0.165,
-      "seconds": 127.3
-    },
-    "busy": false
+      "seconds": 127.3,
+      "attack_hf": 5.74,
+      "busy_share": 0.6,
+      "rest_share": 0.38
+    }
   },
   "serious/情動カタルシス.mp3": {
     "title": "情動カタルシス",
@@ -780,9 +864,11 @@
       "loudness_rms": 0.3425,
       "dynamics": 1.5,
       "bass_ratio": 0.173,
-      "seconds": 310.9
-    },
-    "busy": false
+      "seconds": 310.9,
+      "attack_hf": 39.79,
+      "busy_share": 0.95,
+      "rest_share": 0.0
+    }
   },
   "tense/8-bit_Aggressive1.mp3": {
     "title": "8-bit Aggressive1",
@@ -798,9 +884,11 @@
       "loudness_rms": 0.2051,
       "dynamics": 1.75,
       "bass_ratio": 0.228,
-      "seconds": 118.8
-    },
-    "busy": false
+      "seconds": 118.8,
+      "attack_hf": 24.3,
+      "busy_share": 0.85,
+      "rest_share": 0.01
+    }
   },
   "tense/コールドフィッシュ.mp3": {
     "title": "コールドフィッシュ",
@@ -817,9 +905,11 @@
       "loudness_rms": 0.1023,
       "dynamics": 2.05,
       "bass_ratio": 0.205,
-      "seconds": 91.2
-    },
-    "busy": false
+      "seconds": 91.2,
+      "attack_hf": 1.08,
+      "busy_share": 0.06,
+      "rest_share": 0.0
+    }
   },
   "tense/不穏.mp3": {
     "title": "不穏",
@@ -835,9 +925,11 @@
       "loudness_rms": 0.017,
       "dynamics": 9.12,
       "bass_ratio": 0.235,
-      "seconds": 77.3
-    },
-    "busy": false
+      "seconds": 77.3,
+      "attack_hf": 0.34,
+      "busy_share": 0.0,
+      "rest_share": 0.41
+    }
   },
   "tense/残滓念.mp3": {
     "title": "残滓念",
@@ -854,8 +946,10 @@
       "loudness_rms": 0.0936,
       "dynamics": 3.04,
       "bass_ratio": 0.218,
-      "seconds": 162.3
-    },
-    "busy": false
+      "seconds": 162.3,
+      "attack_hf": 8.24,
+      "busy_share": 0.38,
+      "rest_share": 0.08
+    }
   }
 }

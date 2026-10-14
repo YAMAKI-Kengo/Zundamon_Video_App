@@ -107,18 +107,9 @@ def _render_mood_bgm(project: Project) -> None:
             project.mood_bgm.pop(mood, None)
         else:
             project.mood_bgm[mood] = picked
-    all_tracks = [t for mood in bgm_library.MOODS for t in bgm_library.list_tracks(mood)]
-    if all_tracks:
-        titles = {t.key: f"{t.title}（{bgm_library.MOOD_LABELS.get(t.mood, t.mood)}）" for t in all_tracks}
-        current_busy = [k for k in bgm_library.busy_keys() if k in titles]
-        picked_busy = st.multiselect(
-            "せわしない曲（普段のBGMに使わない）", options=list(titles), default=current_busy,
-            format_func=lambda k: titles[k], key="bgm_busy_tracks",
-            help="音が詰まっていて長く聞くと疲れる曲。自動選択では、その雰囲気にほかの曲が無いときだけ使います。"
-                 "上で直接選んだ曲はそのまま流れます。",
-        )
-        if sorted(picked_busy) != sorted(current_busy):
-            bgm_library.set_busy_keys(picked_busy)
+    busy = [t.title for mood in bgm_library.MOODS for t in bgm_library.list_tracks(mood) if bgm_library.is_busy(t)]
+    if busy:
+        st.caption("音がせわしなく長く聞くと疲れるため、自動では選ばない曲: " + "、".join(busy))
     used = video_metadata.used_bgm_paths(project) if project.scenes else []
     if used:
         st.caption("この動画で流れる曲: " + "、".join(bgm_library.track_for_path(p).title for p in used))

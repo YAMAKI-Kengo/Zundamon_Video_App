@@ -23,7 +23,7 @@ import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
 
 from src.models import NO_BGM, Project, Scene
 from src.utils.asset_loader import _short_cache
@@ -157,8 +157,8 @@ LIBRARY_NOTE = (
     "credit があれば（作曲者が表記の仕方を指定している曲）、その文をそのまま載せる。conditions は作曲者独自の利用条件のメモ（説明文には載せない）。"
     "新しい曲を置くと、曲ファイルのタグから曲名・作者を読んで自動で追記する（info_from に情報の出どころ）。"
     "features は曲の音を解析した値（にぎやかさ・音の明るさ・音量の起伏・テンポなど）で、場面に一番合う曲を選ぶのに使う。"
-    "busy が true の曲（せわしない曲。長く聞くと疲れる）は、その雰囲気にほかの曲が無いときだけ使う"
-    "（画面のBGM設定の「せわしない曲」か、ここを手で true/false にして決める。音の解析では決めない）。"
+    "せわしない曲（長く聞くと疲れる曲）は features の attack_hf・busy_share・rest_share から自動で判定し、"
+    "その雰囲気にほかの曲が無いときだけ使う（判定を変えたい曲だけ busy: true/false を書けばそれに従う）。"
     "分からない項目は空のままにし、推測で埋めないこと（artist が空の曲は、説明文に「作者名未登録」と出る）。"
 )
 
@@ -246,6 +246,10 @@ def analyze_features(path: Path) -> dict:
     brightness_hz: 音の重心の周波数（大きいほど高い音が目立つ・明るい音色）
     dynamics: 音量の起伏（大きい音の部分 ÷ 静かな部分。大きいほど急に大きくなる・静かになる）
     loudness_rms・bass_ratio・seconds（長さ）・bpm（参考。推定が不安定なので選曲には使わない）
+    せわしなさ（長く聞くと疲れるか）の判定に使う値:
+      attack_hf: 高い音（3kHz以上）の音の立ち上がりの強さ（キンキンした音が次々に鳴るほど大きい）
+      busy_share: 音の頭が1秒に4つ以上ある時間の割合（ずっと音が詰まっているほど大きい）
+      rest_share: 音が小さくなって一息つける時間の割合（大きいほど休みがある）
     """
     import numpy as np
     from moviepy import AudioFileClip
@@ -279,7 +283,29 @@ def analyze_features(path: Path) -> dict:
         "bass_ratio": round(float(spec[:, freqs < 250].sum() / max(float(spec.sum()), 1e-9)), 3),
         "seconds": round(seconds, 1),
     }
+    result.update(_busy_features(spec, freqs, flux, rms, rate))
     return result
+
+
+def _busy_features(spec, freqs, flux, rms, rate: float) -> dict:
+    """せわしなさを測る値（attack_hf・busy_share・rest_share。analyze_features の説明を参照）。"""
+    import numpy as np
+
+    attack_hf = np.maximum(0, np.diff(np.log1p(spec[:, freqs > 3000]), axis=0)).sum(axis=1)
+    middle = flux[1:-1]
+    peaks = np.nonzero((middle > flux[:-2]) & (middle >= flux[2:]) & (middle > flux.mean() + 0.5 * flux.std()))[0] + 1
+    onsets, last = [], -1e9
+    for i in peaks:  # 50ミリ秒より近い音の頭は1つと数える
+        if i - last >= 0.05 * rate:
+            onsets.append(i / rate)
+            last = i
+    length = len(flux) / rate
+    per_second = np.histogram(onsets, bins=np.arange(0, length + 3, 3))[0] / 3  # 3秒ごとの音の頭の数（1秒あたり）
+    return {
+        "attack_hf": round(float(attack_hf.mean()), 2),
+        "busy_share": round(float((per_second >= 4).mean()), 2) if len(per_second) else 0.0,
+        "rest_share": round(float((rms < np.percentile(rms, 95) * 0.25).mean()), 2),
+    }
 
 
 def refresh_library(default_source: str = "") -> list[str]:
@@ -296,7 +322,7 @@ def refresh_library(default_source: str = "") -> list[str]:
         if not path.is_file() or path.suffix.lower() not in BGM_EXTS:
             continue
         key = path.relative_to(BGM_DIR).as_posix()
-        if key in library and library[key].get("features"):
+        if key in library and "attack_hf" in (library[key].get("features") or {}):
             continue
         entry = library.get(key) or dict(entry_from_tags(path, read_tags(path), legacy), source=default_source)
         try:
@@ -384,36 +410,48 @@ def track_score(track: "Track", mood: str, longest_seconds: float = 0.0,
 
 
 BUSY_PENALTY = 10.0
+BUSY_KEYS = ("attack_hf", "busy_share", "rest_share")
+BUSY_THRESHOLD = 3.0  # せわしなさの点数（全曲の中での標準化した値の合計）がこれ以上なら、せわしない曲
+
+
+def busy_score(track: "Track") -> Optional[float]:
+    """せわしなさの点数（大きいほど、長く聞くと疲れる）。測っていない曲は None。
+
+    テンポの速さではなく、「高い音の立ち上がりが強い（キンキンした音が次々に鳴る）」「ずっと音が詰まっている」
+    「一息つける静かな所がない」の3つを、全曲の中でどれだけ目立つか（標準化した値）で足し合わせる。
+    """
+    features = (load_library().get(track.key) or {}).get("features") or {}
+    if not all(isinstance(features.get(k), (int, float)) for k in BUSY_KEYS):
+        return None
+    stats = _busy_stats()
+    if len(stats) < len(BUSY_KEYS):
+        return None
+    z = {k: (features[k] - stats[k][0]) / stats[k][1] for k in BUSY_KEYS}
+    return z["attack_hf"] + z["busy_share"] - z["rest_share"]
+
+
+def _busy_stats() -> dict[str, tuple[float, float]]:
+    values: dict[str, list[float]] = {k: [] for k in BUSY_KEYS}
+    for info in load_library().values():
+        for k in BUSY_KEYS:
+            v = (info.get("features") or {}).get(k)
+            if isinstance(v, (int, float)):
+                values[k].append(float(v))
+    stats = {}
+    for k, vs in values.items():
+        if len(vs) >= 5:
+            mean = sum(vs) / len(vs)
+            stats[k] = (mean, (sum((v - mean) ** 2 for v in vs) / len(vs)) ** 0.5 or 1.0)
+    return stats
 
 
 def is_busy(track: "Track") -> bool:
-    """せわしない曲か（_library.json の busy）。
-
-    テンポや音数の解析では、聞いて疲れるかどうかが当たらない（ゆったりでも音が詰まった曲、速くても軽やかな曲がある）ため、
-    利用者が聞いて決めた印だけを使う。
-    """
-    return (load_library().get(track.key) or {}).get("busy") is True
-
-
-def busy_keys() -> list[str]:
-    """せわしない曲の一覧（_library.json のキー）。"""
-    return [key for key, info in load_library().items() if isinstance(info, dict) and info.get("busy") is True]
-
-
-def set_busy_keys(keys: Iterable[str]) -> None:
-    """せわしない曲の印を付け直す（keys に入っている曲だけ busy=true にする）。"""
-    wanted = set(keys)
-    library = load_library()
-    changed = False
-    for key, info in library.items():
-        if not isinstance(info, dict):
-            continue
-        flag = key in wanted
-        if info.get("busy", False) != flag:
-            info["busy"] = flag
-            changed = True
-    if changed:
-        save_library(library)
+    """せわしない曲か。音から自動で判定する（_library.json に busy: true/false を書いた曲だけはそれに従う）。"""
+    manual = (load_library().get(track.key) or {}).get("busy")
+    if isinstance(manual, bool):
+        return manual
+    score = busy_score(track)
+    return score is not None and score >= BUSY_THRESHOLD
 
 
 def best_track(mood: str, longest_seconds: float = 0.0) -> Optional[str]:
