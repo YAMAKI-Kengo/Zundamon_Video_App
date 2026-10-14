@@ -2,8 +2,8 @@
 漫画風の効果（集中線・スピード線・フラッシュ・どんより縦線・「！」「？」・怒りマーク・キラキラ）の描画。
 
 - 画面全体にかける効果（集中線・スピード線・フラッシュ）は、カメラの動きの後に画面へそのまま重ねる。
-- キャラクターに付ける効果（マーク・どんより縦線）は、カメラの動きの前に、キャラクターの頭の近くに描く
-  （アップにしたときはマークも一緒に大きくなる）。
+- どんより縦線は、カメラの動きの前に、キャラクターの頭の近くに描く（アップにしたときは一緒に大きくなる）。
+- マーク（！・？・怒り・キラキラ）は、カメラの動きの後に、顔の横の、画面から切れず字幕とも重ならない所に描く。
 同じ絵は何度も作らないよう、画面サイズ・種類・パターンごとに覚えておく（lru_cache）。
 """
 from __future__ import annotations
@@ -163,12 +163,33 @@ MARK_SCREEN_RATIO = 0.13   # マークの大きさ（画面の高さに対する
 MARK_MARGIN_RATIO = 0.02    # 画面の端からの余白
 
 
+def _avoid_telop(y: float, size: int, resolution: tuple[int, int], margin: int) -> float:
+    """マークが字幕のボックスと重なるなら、字幕の上か下の近い方（画面に収まる方）へずらす。
+
+    縦画面は字幕が画面の真ん中あたり（立ち絵の顔のすぐ上）に出るので、顔の横に置いたマークが字幕に隠れやすい。
+    """
+    top, bottom = telop.telop_band(resolution)
+    gap = margin
+    if y + size <= top - gap or y >= bottom + gap:
+        return y
+    above, below = top - gap - size, bottom + gap
+    fits_above, fits_below = above >= margin, below + size <= resolution[1] - margin
+    if fits_above and fits_below:
+        return above if abs(above - y) <= abs(below - y) else below
+    if fits_above:
+        return above
+    if fits_below:
+        return below
+    return y
+
+
 def draw_mark_on_screen(canvas: Image.Image, fx: str, t: float, head: tuple[float, float],
                         sprite_size: tuple[int, int], side: int) -> None:
     """「！」「？」・怒り・キラキラのマークを、話者の顔の横（顔の高さ）に、画面からはみ出さないように描く。
 
     canvas は画面（カメラの後）。head はその画面での顔の位置、sprite_size はその画面での立ち絵の大きさ。
     頭の真上に置くと、大きく映っているときやアップのときに画面の上で切れるため、顔の横に置き、画面の中に収める。
+    字幕のボックスとは重ならないようにする（重なるなら字幕のすぐ上か下へずらす）。
     """
     width, height = canvas.size
     strength = _fade(t, MARK_SECONDS)
@@ -191,7 +212,10 @@ def draw_mark_on_screen(canvas: Image.Image, fx: str, t: float, head: tuple[floa
     if x < margin or x > width - size - margin:
         x = head[0] - side * (sw * 0.32 + size * 0.1) - size / 2  # 画面の端なら、顔の反対側に出す
     x = min(max(x, margin), width - size - margin)
-    y = min(max(head[1] - size * 0.6 + wobble, margin), height * 0.62 - size)
+    y = head[1] - size * 0.6 + wobble
+    if height <= width:
+        y = min(y, height * 0.62 - size)  # 横画面: 顔の高さより下（下の字幕の近く）には出さない
+    y = _avoid_telop(min(max(y, margin), height - size - margin), size, (width, height), margin)
     canvas_rgba = canvas if canvas.mode == "RGBA" else None
     if canvas_rgba is not None:
         canvas_rgba.alpha_composite(mark, (round(x), round(y)))
