@@ -822,6 +822,8 @@ def manual_script_prompt(style: str = "normal", target_minutes: float = 5, title
         _script_system(style, target_minutes, speech_speed, structure_hint) + research_script_rules(source_kind),
         first_step + "出力は次の形式のJSONだけにしてください"
         "（blocks には section・phase・slide・lines を、各セリフには speaker・expression・text・se・hide・show_book・board・image・caption・image_request・image_name を必ず書く。"
+        "立ち位置・動きの stage と BGM の雰囲気の bgm は、ルールのとおり、動きや雰囲気が変わるセリフに必ず書く（キャラクターを動かさない・"
+        "黒板ばかりの台本にしない）。"
         "トップレベルには book_title・author・title_candidates・video_title・description_lead・hashtags・tags・readings も書く）。"
         + ("さらにトップレベルに、本編紹介ショートの promo_short "
            '（{"title_candidates": [...], "video_title": "...", "hook": "...", "description_lead": "...", "hashtags": [...], "tags": [...], '

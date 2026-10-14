@@ -18,7 +18,6 @@ assets/bgm/ の下に、気分ごとのフォルダ（bright・calm・comedy・e
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 import subprocess
@@ -157,6 +156,7 @@ LIBRARY_NOTE = (
     "ここの title（曲名）・artist（作者）・source（配布元）・source_url（曲のページ）・license（必要なライセンス表記）で載せる。"
     "credit があれば（作曲者が表記の仕方を指定している曲）、その文をそのまま載せる。conditions は作曲者独自の利用条件のメモ（説明文には載せない）。"
     "新しい曲を置くと、曲ファイルのタグから曲名・作者を読んで自動で追記する（info_from に情報の出どころ）。"
+    "features は曲の音を解析した値（にぎやかさ・音の明るさ・音量の起伏など）で、場面に一番合う曲を選ぶのに使う。"
     "分からない項目は空のままにし、推測で埋めないこと（artist が空の曲は、説明文に「作者名未登録」と出る）。"
 )
 
@@ -233,6 +233,52 @@ def entry_from_tags(path: Path, tags: dict[str, str], legacy: dict[str, str]) ->
     }
 
 
+FEATURE_SAMPLE_RATE = 11025
+FEATURE_SECONDS = 120
+
+
+def analyze_features(path: Path) -> dict:
+    """曲の音の特徴を測る（曲選びの判断材料）。
+
+    busyness: 目立つ音の頭の数（1秒あたり。大きいほど音数が多くにぎやか）
+    brightness_hz: 音の重心の周波数（大きいほど高い音が目立つ・明るい音色）
+    dynamics: 音量の起伏（大きい音の部分 ÷ 静かな部分。大きいほど急に大きくなる・静かになる）
+    loudness_rms・bass_ratio・seconds（長さ）・bpm（参考。推定が不安定なので選曲には使わない）
+    """
+    import numpy as np
+    from moviepy import AudioFileClip
+
+    sr = FEATURE_SAMPLE_RATE
+    clip = AudioFileClip(str(path), fps=sr)
+    try:
+        seconds = float(clip.duration)
+        x = np.asarray(clip.subclipped(0, min(seconds, FEATURE_SECONDS)).to_soundarray(fps=sr), dtype=np.float32)
+    finally:
+        clip.close()
+    x = x.mean(axis=1) if x.ndim == 2 else x
+    n, hop = 1024, 256
+    frames = np.lib.stride_tricks.sliding_window_view(x, n)[::hop] * np.hanning(n)
+    spec = np.abs(np.fft.rfft(frames, axis=1))
+    freqs = np.fft.rfftfreq(n, 1 / sr)
+    rms = np.sqrt(np.mean(frames ** 2, axis=1))
+    flux = np.maximum(0, np.diff(np.log1p(spec), axis=0)).sum(axis=1)
+    flux = np.maximum(flux - np.convolve(flux, np.ones(16) / 16, mode="same"), 0)
+    rate = sr / hop
+    ac = np.correlate(flux, flux, mode="full")[len(flux) - 1:]
+    lags = np.arange(len(ac))
+    window = (lags > rate * 60 / 190) & (lags < rate * 60 / 60)
+    bpm = 60 * rate / lags[window][np.argmax(ac[window])] if window.any() else 0.0
+    return {
+        "bpm": round(float(bpm)),
+        "brightness_hz": round(float((spec * freqs).sum() / max(float(spec.sum()), 1e-9))),
+        "busyness": round(float((flux > flux.mean() + 1.5 * flux.std()).mean() * rate), 2),
+        "loudness_rms": round(float(np.sqrt(np.mean(x ** 2))), 4),
+        "dynamics": round(float(np.percentile(rms, 95) / max(float(np.percentile(rms, 20)), 1e-6)), 2),
+        "bass_ratio": round(float(spec[:, freqs < 250].sum() / max(float(spec.sum()), 1e-9)), 3),
+        "seconds": round(seconds, 1),
+    }
+
+
 def refresh_library(default_source: str = "") -> list[str]:
     """assets/bgm/ にあってライブラリに無い曲を、タグから読んで追記する（追記した曲のキーを返す）。
 
@@ -247,10 +293,13 @@ def refresh_library(default_source: str = "") -> list[str]:
         if not path.is_file() or path.suffix.lower() not in BGM_EXTS:
             continue
         key = path.relative_to(BGM_DIR).as_posix()
-        if key in library:
+        if key in library and library[key].get("features"):
             continue
-        entry = entry_from_tags(path, read_tags(path), legacy)
-        entry["source"] = default_source
+        entry = library.get(key) or dict(entry_from_tags(path, read_tags(path), legacy), source=default_source)
+        try:
+            entry["features"] = analyze_features(path)
+        except Exception:  # noqa: BLE001 - 測れない曲は特徴なし（中くらいの曲として扱う）で登録する
+            entry.setdefault("features", {})
         library[key] = entry
         added.append(key)
     if added:
@@ -262,13 +311,84 @@ def refresh_library(default_source: str = "") -> list[str]:
 # シーンごとのBGMの決定
 # ---------------------------------------------------------------------------
 
-def _seed(project: Project) -> int:
-    name = project.video_title or project.book_title or project.name or ""
-    return int(hashlib.md5(name.encode("utf-8")).hexdigest()[:8], 16)
+# 曲の選び方: 雰囲気のフォルダ（OpenTracks の曲ページのタグで分けたもの）の中から、曲の音の特徴
+# （_library.json の features。analyze_features で測った値）が、その雰囲気の場面に一番合う曲を選ぶ。
+# どの曲もセリフの下で流れるので、「セリフの邪魔をしない」ことを全部の雰囲気で重視する:
+#   - 音量の起伏が大きい曲（静かな出だしから急に大きくなる等）は、セリフが聞き取りにくくなるので避ける
+#   - 音数が多すぎる・高い音が目立つ曲は、解説の場面では避ける
+# 雰囲気ごとに、それに加えて好む特徴（楽しい: 明るく音数が多い、感動: 音数が少なく静か…）を足して点数を付ける。
+# テンポ（BPM）は推定が不安定なので使わない。
+TALK_WEIGHT = {"calm": 1.6, "serious": 1.2, "mysterious": 1.2, "emotional": 1.0, "tense": 0.9, "bright": 0.8,
+               "comedy": 0.6}
+MOOD_PREFERENCES: dict[str, dict[str, float]] = {
+    # 特徴（標準化した値）ごとの重み。+ はその特徴が大きい曲ほど合う
+    "calm": {},
+    "bright": {"brightness_hz": 0.6, "busyness": 0.4},
+    "comedy": {"busyness": 0.6, "brightness_hz": 0.3},
+    "tense": {"brightness_hz": -0.3},
+    "serious": {"busyness": -0.2},
+    "emotional": {"busyness": -0.5, "brightness_hz": -0.2},
+    "mysterious": {"busyness": -0.3},
+}
+FEATURE_KEYS = ("busyness", "brightness_hz", "dynamics")
 
 
-def auto_track(project: Project, mood: str, use_choice: bool = True) -> Optional[str]:
-    """その気分で流す曲（利用者が選んだ曲 → 動画のタイトルから決まる曲）。気分のフォルダが空なら None。
+def _feature_stats() -> dict[str, tuple[float, float]]:
+    """全曲の特徴の平均と標準偏差（標準化に使う）。"""
+    import math
+
+    values: dict[str, list[float]] = {k: [] for k in FEATURE_KEYS}
+    for info in load_library().values():
+        for k in FEATURE_KEYS:
+            v = (info.get("features") or {}).get(k)
+            if isinstance(v, (int, float)):
+                values[k].append(math.log(v) if k == "dynamics" and v > 0 else float(v))
+    stats = {}
+    for k, vs in values.items():
+        if len(vs) >= 2:
+            mean = sum(vs) / len(vs)
+            sd = (sum((v - mean) ** 2 for v in vs) / len(vs)) ** 0.5 or 1.0
+            stats[k] = (mean, sd)
+    return stats
+
+
+def track_score(track: "Track", mood: str, longest_seconds: float = 0.0,
+                stats: Optional[dict] = None) -> float:
+    """その雰囲気の場面に、この曲がどれだけ合うか（大きいほど合う）。"""
+    import math
+
+    features = (load_library().get(track.key) or {}).get("features") or {}
+    stats = stats if stats is not None else _feature_stats()
+
+    def z(key: str) -> float:
+        v = features.get(key)
+        if not isinstance(v, (int, float)) or key not in stats:
+            return 0.0
+        v = math.log(v) if key == "dynamics" and v > 0 else float(v)
+        mean, sd = stats[key]
+        return (v - mean) / sd
+
+    # セリフの邪魔をしにくいか: 音量の起伏が小さく、音数が多すぎず、高い音が目立ちすぎない
+    talk = -1.0 * z("dynamics") - 0.6 * z("busyness") - 0.4 * max(0.0, z("brightness_hz"))
+    score = TALK_WEIGHT.get(mood, 1.0) * talk
+    score += sum(w * z(k) for k, w in MOOD_PREFERENCES.get(mood, {}).items())
+    seconds = features.get("seconds")
+    if isinstance(seconds, (int, float)) and longest_seconds > 0 and seconds < longest_seconds * 0.5:
+        score -= 0.5  # 短い曲を長い場面で何度もループさせると繰り返しが目立つ
+    return score
+
+
+def best_track(mood: str, longest_seconds: float = 0.0) -> Optional[str]:
+    """その雰囲気のフォルダから、場面に一番合う曲（ランダムではなく、いつも同じ基準で選ぶ）。"""
+    tracks = list_tracks(mood)
+    if not tracks:
+        return None
+    stats = _feature_stats()
+    return str(max(tracks, key=lambda t: (track_score(t, mood, longest_seconds, stats), t.title)).path)
+
+
+def auto_track(project: Project, mood: str, use_choice: bool = True, longest_seconds: float = 0.0) -> Optional[str]:
+    """その雰囲気で流す曲（利用者が選んだ曲 → 場面に一番合う曲）。気分のフォルダが空なら None。
 
     use_choice=False なら、利用者の選択を見ずに自動で選ぶ曲だけを返す（画面の「自動（曲名）」の表示用）。
     """
@@ -277,28 +397,104 @@ def auto_track(project: Project, mood: str, use_choice: bool = True) -> Optional
         return None
     if chosen and Path(chosen).exists():
         return chosen
-    tracks = list_tracks(mood)
-    if not tracks:
-        return None
-    return str(tracks[(_seed(project) + MOOD_CHOICES.index(mood) * 7) % len(tracks)].path)
+    return best_track(mood, longest_seconds)
 
 
 def uses_moods(project: Project) -> bool:
     return any(s.bgm_mood for s in project.scenes)
 
 
+# --- 台本に雰囲気（bgm）が書かれていないときの推定 ---
+# 場面ごとの基本の雰囲気（重み）
+SECTION_PRIORS: dict[str, dict[str, float]] = {
+    "intro:hype": {"bright": 2.0}, "intro:fail": {"comedy": 1.5, "emotional": 0.5}, "intro:rescue": {"calm": 1.5},
+    "intro": {"bright": 1.5}, "explain:why": {"calm": 2.0}, "explain:how": {"calm": 1.5, "bright": 0.5},
+    "explain": {"calm": 2.0}, "summary": {"bright": 1.5, "calm": 1.0}, "ending": {"bright": 3.0},
+}
+EXPRESSION_MOODS = {
+    "cry": "emotional", "sad": "emotional", "gloomy": "emotional", "worried": "emotional",
+    "shock": "tense", "panic": "tense",
+    "happy": "bright", "excited": "bright", "laugh": "bright", "idea": "bright",
+    "smug": "comedy", "angry": "comedy",
+    "think": "mysterious",
+}
+SCENE_MOODS = {"gloomy": "emotional", "sepia": "emotional", "dark": "tense", "shock": "tense", "bright": "bright"}
+SE_MOODS = (
+    (("ボヨヨーン", "ボヨン", "ちゃんちゃん", "チーン", "ツッコミ", "ずっこけ", "ピューン"), "comedy"),
+    (("運命", "ショック", "不安", "ドドン", "爆発", "タイマー"), "tense"),
+    (("ファンファーレ", "歓声", "レベルアップ", "イエーイ", "イヤッホー", "パフパフ"), "bright"),
+)
+
+
+def _scene_votes(scene: Scene) -> dict[str, float]:
+    votes: dict[str, float] = {}
+
+    def add(mood: str, weight: float) -> None:
+        votes[mood] = votes.get(mood, 0.0) + weight
+
+    if scene.mood in SCENE_MOODS:
+        add(SCENE_MOODS[scene.mood], 3.0)
+    se = Path(scene.se_path).stem if scene.se_path else ""
+    for words, mood in SE_MOODS:
+        if any(w in se for w in words):
+            add(mood, 1.5)
+    if scene.expression in EXPRESSION_MOODS and scene.text.strip():
+        add(EXPRESSION_MOODS[scene.expression], 1.0)
+    if scene.char_motion == "tsukkomi":
+        add("comedy", 1.0)
+    if scene.shows_board:
+        add("calm", 0.5)
+    return votes
+
+
+def infer_moods(project: Project) -> list[str]:
+    """台本に雰囲気（bgm）が無いときに、場面・表情・効果音・背景の雰囲気から、ブロックごとの雰囲気を推定する。"""
+    scenes = project.scenes
+    blocks: list[list[int]] = []
+    for i, scene in enumerate(scenes):
+        prev = scenes[i - 1] if i else None
+        same = prev is not None and prev.section == scene.section and prev.phase == scene.phase \
+            and prev.slide_title == scene.slide_title
+        if same or (scene.card_text and blocks):
+            blocks[-1].append(i)
+        else:
+            blocks.append([i])
+    result = [""] * len(scenes)
+    for block in blocks:
+        first = scenes[block[0]]
+        prior = SECTION_PRIORS.get(f"{first.section}:{first.phase}") or SECTION_PRIORS.get(first.section) \
+            or {"calm": 2.0}
+        score = {m: w * 2 for m, w in prior.items()}
+        for i in block:
+            for mood, weight in _scene_votes(scenes[i]).items():
+                score[mood] = score.get(mood, 0.0) + weight
+        mood = max(score, key=lambda m: (score[m], m == "calm"))
+        for i in block:
+            result[i] = mood
+    return result
+
+
 def effective_moods(project: Project, durations: Optional[list[float]] = None) -> list[str]:
-    """各シーンで実際に流す雰囲気（指定が無いシーンは前の雰囲気を引き継ぐ。短すぎる区間は前のまま）。"""
+    """各シーンで実際に流す雰囲気。
+
+    台本の雰囲気（bgm）があれば、そのセリフから切り替える（それより前は推定した雰囲気）。無ければ推定する。
+    短すぎる区間は前の雰囲気のまま流す。
+    """
     scenes = project.scenes
     durations = durations or [s.duration for s in scenes]
+    inferred = infer_moods(project)
+    explicit = uses_moods(project)
     raw: list[str] = []
     current = ""
-    for scene in scenes:
-        if scene.section == "ending":
-            current = ""  # エンディングは場面ごとのBGM（従来の設定）に任せる
-        elif scene.bgm_mood in MOOD_CHOICES:
-            current = scene.bgm_mood
-        raw.append(current)
+    for scene, guess in zip(scenes, inferred):
+        if explicit:
+            if scene.bgm_mood in MOOD_CHOICES:
+                current = scene.bgm_mood
+            elif scene.section == "ending":
+                current = guess
+            raw.append(current or guess)
+        else:
+            raw.append(scene.bgm_mood if scene.bgm_mood in MOOD_CHOICES else guess)
     # 同じ雰囲気の続く区間に分け、短すぎる区間は前の区間の雰囲気にする
     result = list(raw)
     i = 0
@@ -315,22 +511,56 @@ def effective_moods(project: Project, durations: Optional[list[float]] = None) -
     return result
 
 
-def scene_bgm_paths(project: Project, durations: Optional[list[float]] = None) -> list[Optional[str]]:
-    """各シーンで流すBGMのファイル（None は無音）。
+def _existing(path: Optional[str]) -> Optional[str]:
+    """設定された曲が実際にあるときだけ返す（フォルダ分けで場所が変わった古い設定は無視する）。"""
+    if path == NO_BGM:
+        return NO_BGM
+    return path if path and Path(path).exists() else None
 
-    優先順: シーン個別のBGM（Scene.bgm_path）→ 台本の雰囲気（bgm）から選んだ曲 → 場面・プロジェクト全体の設定。
+
+def scene_bgm_paths(project: Project, durations: Optional[list[float]] = None) -> list[Optional[str]]:
+    """各シーンで流すBGMのファイル（None は無音）。何も設定しなくても、場面に合う曲が流れる。
+
+    優先順: シーン個別の曲 → 台本の雰囲気（bgm）の曲 → 利用者が選んだ場面ごと・全体の曲（ファイルがある場合）
+    → 推定した雰囲気の曲。
     """
-    moods = effective_moods(project, durations) if uses_moods(project) else [""] * len(project.scenes)
+    scenes = project.scenes
+    durations = durations or [s.duration for s in scenes]
+    moods = effective_moods(project, durations)
+    # 雰囲気ごとに、一番長く続く区間の長さ（短い曲を長い場面でループさせないための目安）
+    longest: dict[str, float] = {}
+    run_mood, run_len = None, 0.0
+    for mood, duration in zip(moods, durations):
+        run_len = run_len + duration if mood == run_mood else duration
+        run_mood = mood
+        longest[mood] = max(longest.get(mood, 0.0), run_len)
+    chosen: dict[str, Optional[str]] = {}
+    explicit_mood = ""
     paths: list[Optional[str]] = []
-    for scene, mood in zip(project.scenes, moods):
-        if scene.bgm_path:
-            paths.append(None if scene.bgm_path == NO_BGM else scene.bgm_path)
+    for scene, mood in zip(scenes, moods):
+        if scene.bgm_mood in MOOD_CHOICES:
+            explicit_mood = scene.bgm_mood
+        manual = _existing(scene.bgm_path)
+        if manual:
+            paths.append(None if manual == NO_BGM else manual)
+            continue
+        setting = None
+        if not explicit_mood or scene.section == "ending":  # 台本に雰囲気が書かれていれば、それを優先する
+            phase_bgm = project.section_bgm.get(f"{scene.section}:{scene.phase}") if scene.phase else None
+            for candidate in (phase_bgm, project.section_bgm.get(scene.section), project.bgm_path):
+                setting = _existing(candidate)
+                if setting:
+                    break
+        if setting:
+            paths.append(None if setting == NO_BGM else setting)
         elif mood == SILENCE:
             paths.append(None)
         elif mood:
-            paths.append(auto_track(project, mood) or project.resolve_bgm_path(scene))
+            if mood not in chosen:
+                chosen[mood] = auto_track(project, mood, longest_seconds=longest.get(mood, 0.0))
+            paths.append(chosen[mood])
         else:
-            paths.append(project.resolve_bgm_path(scene))
+            paths.append(None)
     return paths
 
 
@@ -338,7 +568,7 @@ def scene_bgm_path(project: Project, scene: Scene) -> Optional[str]:
     for s, path in zip(project.scenes, scene_bgm_paths(project)):
         if s is scene:
             return path
-    return project.resolve_bgm_path(scene)
+    return None
 
 
 # ---------------------------------------------------------------------------

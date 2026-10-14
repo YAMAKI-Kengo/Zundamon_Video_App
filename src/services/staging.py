@@ -219,20 +219,137 @@ def _move_seconds(move: str, distance: float) -> float:
     return max(MIN_MOVE_SECONDS, min(MAX_MOVE_SECONDS, distance / speed))
 
 
+# ---------------------------------------------------------------------------
+# 自動の演出（台本に stage が書かれていないブロックで、セリフの表情・流れから立ち位置を決める）
+# ---------------------------------------------------------------------------
+
+AUTO_GROUP_AFTER = 3      # 黒板の無い会話がこのセリフ数以上続くときは、2人が中央に寄って話す
+AUTO_VARY_EVERY = 4       # 同じ構図がこのセリフ数続いたら、構図を変える
+
+
+def _blocks(scenes: list[Scene]) -> list[list[int]]:
+    blocks: list[list[int]] = []
+    for i, scene in enumerate(scenes):
+        prev = scenes[i - 1] if i else None
+        same = prev is not None and prev.section == scene.section and prev.phase == scene.phase \
+            and prev.slide_title == scene.slide_title
+        if same and blocks:
+            blocks[-1].append(i)
+        else:
+            blocks.append([i])
+    return blocks
+
+
+def _partner_of(scene: Scene, visible: list[str]) -> Optional[str]:
+    others = [k for k in visible if k != scene.speaker]
+    return others[0] if others else None
+
+
+def auto_directions(project: Project) -> list[dict]:
+    """台本に演出（stage）の無いブロックの各セリフに、セリフの意味と流れから演出を付ける（指定があるセリフは空）。
+
+    方針（ランダムには動かさない。気持ちが動いたセリフで動かす）:
+      - 黒板の無い会話が続くところでは、2人が中央に寄って向かい合って話す（いつも端に立ったままにしない）
+      - 調子に乗る・はしゃぐ: 話者が中央へ走り出て大きく（躍り出る）
+      - ショック・驚き: 後ずさる ／ 焦り: 相手と反対の端へ逃げる
+      - 落ち込み・大泣き: 自分の側の端で小さくなる ／ ひらめき・立ち直り: 跳んで中央へ戻る
+      - ツッコミ・怒り・ひそひそ: 相手に詰め寄る（近づく）
+      - 場面転換（「3日後…」）のあと: 引きの画から始める
+      - 同じ構図が長く続いたら、引き・寄りを入れ替える
+      - 黒板・イラストを出すセリフは何もしない（自動で左右に戻る）
+    """
+    scenes = project.scenes
+    result: list[dict] = [{} for _ in scenes]
+    if not project.auto_stage or project.source_kind == "english":
+        return result  # 英会話はレッスンの型が決まっているので、自動では動かさない
+    for block in _blocks(scenes):
+        if any(has_stage(scenes[i]) for i in block):
+            continue  # 台本に演出が書かれているブロックは、台本どおり
+        run = 0          # 黒板の無い会話が続いているセリフ数
+        since_change = 0
+        layout = "home"  # 今の構図: home（左右）/ group（中央で向かい合う）/ wide / edge（誰かが端・小さい）
+        after_card = False
+        prev: Optional[Scene] = None
+        for i in block:
+            scene = scenes[i]
+            if scene.card_text.strip():
+                after_card = True
+                continue
+            if board_visible(scene) or not scene.text.strip():
+                run, layout, since_change = 0, "home", 0
+                prev = scene
+                continue
+            visible = _visible_keys(scene)
+            speaker = scene.speaker if scene.speaker in visible else ""
+            partner = _partner_of(scene, visible)
+            changed = prev is None or prev.speaker != scene.speaker or prev.expression != scene.expression
+            expr = scene.expression
+            remaining = 0
+            for j in block[block.index(i):]:
+                if scenes[j].card_text.strip() or board_visible(scenes[j]):
+                    break
+                remaining += 1
+            stage: dict = {}
+            if after_card:
+                stage = {"shot": "wide"}
+                layout = "wide"
+            elif speaker and changed and layout != "solo-ish" and (
+                    expr == "excited" or (expr == "happy" and scene.section == "intro")):
+                stage = {"cast": [{"who": speaker, "pos": "center", "size": "large", "move": "run"}]}
+                layout = "solo-ish"
+            elif speaker and changed and expr in ("shock", "surprised") and layout != "edge":
+                stage = {"cast": [{"who": speaker, "move": "step_back"}]}
+            elif speaker and changed and expr == "panic":
+                stage = {"cast": [{"who": speaker, "pos": "far_left" if _home_side(speaker, project) < 0 else "far_right",
+                                   "move": "run"}]}
+                layout = "edge"
+            elif speaker and changed and expr in ("gloomy", "cry", "sad") and layout != "edge":
+                stage = {"cast": [{"who": speaker, "pos": "far_left" if _home_side(speaker, project) < 0 else "far_right",
+                                   "size": "small", "move": "walk"}]}
+                layout = "edge"
+            elif speaker and changed and expr == "idea" and layout == "edge":
+                stage = {"cast": [{"who": speaker, "pos": "center", "size": "normal", "move": "jump"}]}
+                layout = "solo-ish"
+            elif speaker and partner and (scene.char_motion == "tsukkomi" or (changed and expr in ("angry", "whisper"))):
+                stage = {"cast": [{"who": speaker, "move": "approach"}]}
+                layout = "group"
+            elif layout in ("home", "edge", "solo-ish", "wide") and remaining + run >= AUTO_GROUP_AFTER and \
+                    since_change >= (0 if layout == "home" else 2):
+                stage = {"shot": "group"}
+                layout = "group"
+            elif since_change >= AUTO_VARY_EVERY:
+                stage = {"shot": "wide"} if layout == "group" else {"shot": "group"}
+                layout = "wide" if layout == "group" else "group"
+            if stage:
+                result[i] = stage
+                since_change = 0
+            else:
+                since_change += 1
+            after_card = False
+            run += 1
+            prev = scene
+    return result
+
+
+def _home_side(character_key: str, project: Project) -> int:
+    return -1 if home(character_key, project.resolution).x < 0.5 else 1
+
+
 def plan_stages(project: Project) -> list[Optional[StagePlan]]:
     """各セリフの演出（StagePlan）。演出が要らないセリフ（いつもの画面のまま）は None。"""
     resolution = project.resolution
     scenes = project.scenes
-    staging = uses_staging(project)
+    auto = auto_directions(project)
+    staging = uses_staging(project) or any(auto)
     state: dict[str, Placement] = {}
     plans: list[Optional[StagePlan]] = []
     prev_scene: Optional[Scene] = None
-    for scene in scenes:
+    for idx, scene in enumerate(scenes):
         if scene.card_text.strip():
             plans.append(None)  # 場面転換テロップ（全画面の文字）の間は立ち位置を変えない
             continue
         visible = _visible_keys(scene)
-        stage = _parse_stage(scene.stage) if staging else {}
+        stage = (_parse_stage(scene.stage) or auto[idx]) if staging else {}
         # 前のセリフの終わりの状態（初めて出てくるキャラクターは、いつもの立ち位置）
         start = {k: state.get(k, home(k, resolution)) for k in set(visible) | set(state)}
         target: dict[str, Placement] = {}

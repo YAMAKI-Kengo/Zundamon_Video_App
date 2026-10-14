@@ -710,6 +710,7 @@ def build_motion_clip(
         else:
             canvas = bg.copy()
         board_layer(canvas, t)
+        mark_anchor = None
         if plan is not None:
             for key in draw_order:
                 img, x, y, cx, head_y, inward = staged_sprite(key, mouth_open, t)
@@ -729,8 +730,10 @@ def build_motion_clip(
                     if 0.08 < t < 0.6:
                         dx += width * SHIVER_AMPLITUDE_RATIO * math.sin(2 * math.pi * 20 * t)
                 canvas.paste(img, (round(x + dx), round(y + dy)), img)
-                if plan.fx in stage_fx.CHARACTER_FX and key == plan.fx_target:
+                if plan.fx == "gloom" and key == plan.fx_target:
                     stage_fx.draw_character_fx(canvas, plan.fx, t, (cx + dx, head_y + dy), img.size, -inward)
+                elif plan.fx in stage_fx.CHARACTER_FX and key == plan.fx_target:
+                    mark_anchor = (cx + dx, head_y + dy, img.size, -inward)  # マークはカメラの後に画面内へ描く
         for key, (img, (x, y)) in leaving.items():
             offset = leaving_offset(key, img, t)
             if offset is not None:
@@ -746,6 +749,14 @@ def build_motion_clip(
         box = camera_box(t)
         if box is not None:
             canvas = canvas.resize((width, height), Image.BILINEAR, box=box)
+        if mark_anchor is not None:
+            # 「！」「？」・汗などのマークは、カメラで寄っても画面から切れないよう、カメラの後に画面の中へ描く
+            mx, my, (sw, sh), side = mark_anchor
+            zoom = 1.0
+            if box is not None:
+                zoom = width / (box[2] - box[0])
+                mx, my = (mx - box[0]) * zoom, (my - box[1]) * zoom
+            stage_fx.draw_mark_on_screen(canvas, plan.fx, t, (mx, my), (round(sw * zoom), round(sh * zoom)), side)
         if plan is not None and plan.fx in stage_fx.SCREEN_FX:
             fx_focus = staged_focus(t)
             if box is not None:

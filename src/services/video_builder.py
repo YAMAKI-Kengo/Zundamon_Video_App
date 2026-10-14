@@ -796,6 +796,10 @@ def build_video(
 
     if not project.scenes:
         raise VideoBuildError("シーンが1つもありません。シーンを追加してから生成してください。")
+    try:
+        bgm_library.refresh_library()  # 新しく置いたBGMを曲の一覧に登録し、音の特徴を測っておく
+    except Exception:  # noqa: BLE001 - 登録に失敗しても書き出しは続ける
+        pass
 
     # シーンにテキストが1つでもあればVOICEVOXが必要 → 事前に起動確認して早期に失敗させる
     needs_voicevox = any(

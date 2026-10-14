@@ -40,47 +40,46 @@ class VoiceTone:
 
 NEUTRAL = VoiceTone()
 
-# 表情 → 声色。config/characters.json の表情キーに合わせる
+# 表情 → 声色。config/characters.json の表情キーに合わせる。
+# VOICEVOXの別スタイル（なみだめ・ツンツン・ささやき・ヘロヘロ等）は感情がかなり激しい声なので、
+# 普段は使わず「ノーマルの声のまま、高さ・抑揚・速さを少しだけ変える」にとどめる。
+# 別スタイルを使うのは、大泣き（cry）のような、よっぽど感情が振り切れた場面だけ。
 EXPRESSION_TONES: dict[str, dict[str, VoiceTone]] = {
     "zundamon": {
-        "happy": VoiceTone(pitch=0.02, intonation=1.2),
-        "excited": VoiceTone(pitch=0.04, intonation=1.35, speed=1.08),
-        "smug": VoiceTone(pitch=0.02, intonation=1.3, speed=0.97),
-        "surprised": VoiceTone(pitch=0.05, intonation=1.35),
-        "shock": VoiceTone(pitch=0.06, intonation=1.45, speed=0.95),
-        "panic": VoiceTone(pitch=0.05, intonation=1.3, speed=1.12),
-        "angry": VoiceTone(style="ツンツン", intonation=1.2),
-        "sad": VoiceTone(style="なみだめ", speed=0.96),
-        "cry": VoiceTone(style="なみだめ", intonation=1.2, speed=0.94),
-        "gloomy": VoiceTone(style="ヘロヘロ", speed=0.94),
-        "sleepy": VoiceTone(style="ヘロヘロ", speed=0.9),
-        "troubled": VoiceTone(intonation=0.9, speed=0.97),
-        "think": VoiceTone(intonation=0.9, speed=0.95),
-        "idea": VoiceTone(pitch=0.03, intonation=1.25),
-        "whisper": VoiceTone(style="ヒソヒソ", volume=1.5, speed=0.97),
+        "happy": VoiceTone(pitch=0.01, intonation=1.1),
+        "excited": VoiceTone(pitch=0.02, intonation=1.15, speed=1.04),
+        "smug": VoiceTone(intonation=1.12),
+        "surprised": VoiceTone(pitch=0.03, intonation=1.15),
+        "shock": VoiceTone(pitch=0.03, intonation=1.2, speed=0.97),
+        "panic": VoiceTone(pitch=0.02, intonation=1.12, speed=1.05),
+        "angry": VoiceTone(intonation=1.1),
+        "sad": VoiceTone(pitch=-0.01, intonation=0.92, speed=0.97),
+        "cry": VoiceTone(style="なみだめ", speed=0.96),  # 大泣き（よっぽどの場面）だけ別スタイル
+        "gloomy": VoiceTone(pitch=-0.02, intonation=0.88, speed=0.96),
+        "sleepy": VoiceTone(intonation=0.88, speed=0.94),
+        "troubled": VoiceTone(intonation=0.95, speed=0.98),
+        "think": VoiceTone(intonation=0.95, speed=0.97),
+        "idea": VoiceTone(pitch=0.02, intonation=1.12),
+        "whisper": VoiceTone(intonation=0.9, speed=0.97),
     },
     "shikoku_metan": {
-        "happy": VoiceTone(style="あまあま", intonation=1.1),
-        "laugh": VoiceTone(style="あまあま", pitch=0.02, intonation=1.25),
-        "blush": VoiceTone(style="あまあま", intonation=1.1, speed=0.97),
-        "angry": VoiceTone(style="ツンツン", intonation=1.2),
-        # 呆れ・冷めたツッコミ: ツンツンで抑揚を落とすと「…はぁ」という冷たさが出る
-        "troubled": VoiceTone(style="ツンツン", intonation=0.8, speed=0.97),
-        "confident": VoiceTone(style="ツンツン", intonation=1.05),
-        "surprised": VoiceTone(pitch=0.04, intonation=1.3),
-        "sad": VoiceTone(pitch=-0.02, intonation=0.8, speed=0.95),
-        "worried": VoiceTone(pitch=-0.01, intonation=0.85, speed=0.97),
-        "think": VoiceTone(intonation=0.9, speed=0.96),
-        "whisper": VoiceTone(style="ささやき", volume=1.5, speed=0.97),
+        "happy": VoiceTone(pitch=0.01, intonation=1.08),
+        "laugh": VoiceTone(pitch=0.02, intonation=1.12),
+        "angry": VoiceTone(intonation=1.1),
+        # 呆れ・冷めたツッコミ: 抑揚を少し落とすと「…はぁ」という冷たさが出る
+        "troubled": VoiceTone(intonation=0.88, speed=0.98),
+        "surprised": VoiceTone(pitch=0.03, intonation=1.15),
+        "sad": VoiceTone(pitch=-0.01, intonation=0.9, speed=0.97),
+        "worried": VoiceTone(intonation=0.92, speed=0.98),
+        "think": VoiceTone(intonation=0.95, speed=0.97),
+        "whisper": VoiceTone(intonation=0.9, speed=0.97),
     },
     "kasukabe_tsumugi": {
-        "happy": VoiceTone(pitch=0.02, intonation=1.2),
-        "laugh": VoiceTone(pitch=0.03, intonation=1.3),
-        "surprised": VoiceTone(pitch=0.05, intonation=1.3),
-        "smug": VoiceTone(intonation=1.25),
-        "sad": VoiceTone(pitch=-0.02, intonation=0.85, speed=0.96),
-        "troubled": VoiceTone(intonation=0.9),
-        "angry": VoiceTone(intonation=1.2),
+        "happy": VoiceTone(pitch=0.01, intonation=1.1),
+        "laugh": VoiceTone(pitch=0.02, intonation=1.12),
+        "surprised": VoiceTone(pitch=0.03, intonation=1.15),
+        "sad": VoiceTone(pitch=-0.01, intonation=0.9, speed=0.97),
+        "troubled": VoiceTone(intonation=0.95),
     },
 }
 
