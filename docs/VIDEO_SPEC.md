@@ -228,8 +228,7 @@
 | flash | 白を最大 alpha 220 で重ね、0.35秒で消える |
 | gloom（どんより） | 頭の上に紫の縦線9本（立ち絵の幅0.8・高さ0.45の範囲）。0.3秒でフェードイン、シーン中ずっと |
 | exclaim / question | 赤の「！」/青の「？」（白の縁取り） |
-| sweat | 水色のしずく |
-| anger | 赤い怒りマーク（4つの弧） |
+| anger | 赤い怒りマーク（💢。中心に向かってふくらむ細い弧4本を、真ん中をあけて十字に並べる。線の太さ マークの大きさ×0.07、白い縁取り付き） |
 | sparkle | 黄色い星3つ |
 
 - マーク類は **カメラの後** に、話者の顔の横（顔の高さ。相手と反対側に立ち絵幅の0.32）へ出す。大きさは min(立ち絵の高さ×0.22, 画面の高さ×0.13)。
@@ -237,7 +236,7 @@
   0.18秒でポンと弾んで現れ、1.8秒表示、ゆらゆら上下。
 - 集中線・スピード線・フラッシュ・マークはカメラの後、どんより線はカメラの前（ズームで一緒に大きくなる）。
 - 自動の効果（設定でオン/オフ。表情が変わった瞬間だけ）:
-  `surprised→！ / shock→集中線 / panic・troubled→汗 / angry→怒り / gloomy→どんより / think→？ / idea・excited→キラキラ`
+  `surprised→！ / shock→集中線 / angry→怒り / gloomy→どんより / think→？ / idea・excited→キラキラ`
 
 ---
 
@@ -466,14 +465,16 @@ VOICEVOX の別スタイル（なみだめ・ツンツン・ささやき・ヘ�
 ### 14.1 BGM の選び方（何も設定しなくても流れる）
 - 曲は `assets/bgm/<雰囲気>/` に置く。雰囲気: calm（日常・解説）/ bright（楽しい）/ comedy / tense（緊張）/ serious / emotional（感動・悲しい）/ mysterious（謎）、＋ none（無音）。
 - **雰囲気の決め方**: 台本の各セリフの `bgm` があればそのセリフから切り替える。無ければブロック（場面＋段階＋黒板の見出しが同じ区間）ごとに推定する:
-  - 場面の基本: 導入の決意 bright、導入の失敗 comedy、めたん登場 calm、解説 calm、まとめ bright＋calm、エンディング bright（重みを2倍）
+  - 場面の基本: 導入の決意 bright、導入の失敗 comedy、めたん登場 calm、解説 calm、まとめ calm（＋少し bright）、エンディング bright（重みを2倍）
   - 足し点: 背景の雰囲気（落ち込み・回想→emotional、夜・ショック→tense、明るく→bright）3点、効果音（ボヨヨーン・チーン等→comedy、運命・ショック等→tense、ファンファーレ等→bright）1.5点、表情（大泣き・悲しみ・どんより→emotional、ショック・焦り→tense、喜び・大興奮・笑い・ひらめき→bright、ドヤ顔・怒り→comedy、考え中→mysterious）1点、ツッコミ→comedy 1点、黒板→calm 0.5点
 - **8秒未満で終わる雰囲気の区間は前の曲のまま**（無音だけは1秒以上あれば効かせる）。
 - **曲の決め方（ランダムなし）**: 雰囲気のフォルダの中から、曲の音を解析した特徴（`_library.json` の `features`）の点数が一番高い曲。
   - 全雰囲気共通「セリフの邪魔をしにくいか」: −1.0×音量の起伏（log）−0.6×にぎやかさ −0.4×max(0, 音の明るさ)（いずれも全曲で標準化した値）。
     雰囲気ごとの重み: calm 1.6 / serious・mysterious 1.2 / emotional 1.0 / tense 0.9 / bright 0.8 / comedy 0.6
-  - 雰囲気ごとに好む特徴: bright 明るさ+0.6・にぎやかさ+0.4 ／ comedy にぎやかさ+0.6・明るさ+0.3 ／ tense 明るさ−0.3 ／ serious にぎやかさ−0.2 ／ emotional にぎやかさ−0.5・明るさ−0.2 ／ mysterious にぎやかさ−0.3
+  - 雰囲気ごとに好む特徴: bright 明るさ+0.4・にぎやかさ−0.2 ／ comedy にぎやかさ+0.6・明るさ+0.3 ／ tense 明るさ−0.3 ／ serious にぎやかさ−0.2 ／ emotional にぎやかさ−0.5・明るさ−0.2 ／ mysterious にぎやかさ−0.3
   - その雰囲気が一番長く続く区間の半分より短い曲は −0.5（ループが目立つため）
+  - **アップテンポの曲は −10**（長く聞くと疲れるので、その雰囲気にほかの曲が無いときだけ使う）。アップテンポ＝テンポ 115 BPM 以上 **かつ** 1秒あたりの音の頭 3.5 以上
+    （テンポの推定は倍・半分に間違えやすいので、両方そろったときだけ。librosa で測る）。`_library.json` の `uptempo` を手で true/false にすればそれに従う
   - 特徴: にぎやかさ＝目立つ音の頭の数/秒、音の明るさ＝スペクトルの重心(Hz)、音量の起伏＝RMSの95パーセンタイル÷20パーセンタイル（曲の頭120秒）。テンポは推定が不安定なので使わない
 - 優先順: シーン個別の曲 ＞ 台本の雰囲気（`bgm`）の曲 ＞ 利用者が選んだ場面ごと・全体の曲（**ファイルがある場合だけ**。古い場所の設定は無視）＞ 推定した雰囲気の曲。
   雰囲気ごとの曲は、利用者が選び直した曲があればそれを使う。
@@ -548,7 +549,7 @@ VOICEVOX の別スタイル（なみだめ・ツンツン・ささやき・ヘ�
           "stage": {                      // 立ち位置の演出（変えたいセリフだけ。次のセリフに引き継ぐ）
             "shot": "",                   // talk / solo / closeup / group / wide
             "camera": "",                 // pan_left / pan_right / zoom_in / zoom_out / follow
-            "fx": "sparkle",              // focus_lines / speed_lines / flash / gloom / exclaim / question / sweat / anger / sparkle
+            "fx": "sparkle",              // focus_lines / speed_lines / flash / gloom / exclaim / question / anger / sparkle
             "cast": [
               {"who": "zundamon", "pos": "center", "size": "large", "face": "", "move": "run"}
             ]

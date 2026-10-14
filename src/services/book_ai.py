@@ -581,7 +581,7 @@ stage に書いたことは次のセリフにも引き継がれる（書かな�
   - move: 動き方。walk（歩く）・run（走る）・jump（跳んで移動）・step_back（向きはそのまま後ずさる）・approach（相手に近づく。pos は空）・retreat（相手から離れる）・chase（追いかける。走る）・turn（振り向く）・enter（画面の外から入ってくる）・exit（画面の外へ出ていく）。空なら位置が変わるときは歩く。
 - shot（画面の構図）: talk（いつもの2人の会話の定位置に戻る）・solo（話者1人だけを中央に大きく。他は画面の外へ）・closeup（話者の顔のアップ）・group（全員が中央に集まる）・wide（全員を小さく引きで見せる。場所の背景が見える）。
 - camera: pan_left / pan_right（横にパン）・zoom_in（ゆっくり寄る）・zoom_out（寄った状態から引く）・follow（動く話者を追う）。
-- fx（効果）: focus_lines（集中線。衝撃の瞬間）・speed_lines（スピード線。走る・急展開）・flash（フラッシュ。ひらめき・大発表）・gloom（どんより縦線。落ち込み）・exclaim（「！」）・question（「？」）・sweat（汗）・anger（怒りマーク）・sparkle（キラキラ）。
+- fx（効果）: focus_lines（集中線。衝撃の瞬間）・speed_lines（スピード線。走る・急展開）・flash（フラッシュ。ひらめき・大発表）・gloom（どんより縦線。落ち込み）・exclaim（「！」）・question（「？」）・anger（怒りマーク）・sparkle（キラキラ）。
 動きの例（セリフの意味に合わせる。ランダムに動かさない）:
   - 調子に乗って画面の中央へ躍り出る: ずんだもん pos center, move run, size large ＋ fx sparkle
   - めたんがツッコミながら詰め寄る: めたん move approach ＋ motion tsukkomi

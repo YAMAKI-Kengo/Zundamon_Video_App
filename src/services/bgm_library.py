@@ -156,7 +156,8 @@ LIBRARY_NOTE = (
     "ここの title（曲名）・artist（作者）・source（配布元）・source_url（曲のページ）・license（必要なライセンス表記）で載せる。"
     "credit があれば（作曲者が表記の仕方を指定している曲）、その文をそのまま載せる。conditions は作曲者独自の利用条件のメモ（説明文には載せない）。"
     "新しい曲を置くと、曲ファイルのタグから曲名・作者を読んで自動で追記する（info_from に情報の出どころ）。"
-    "features は曲の音を解析した値（にぎやかさ・音の明るさ・音量の起伏など）で、場面に一番合う曲を選ぶのに使う。"
+    "features は曲の音を解析した値（にぎやかさ・音の明るさ・音量の起伏・テンポなど）で、場面に一番合う曲を選ぶのに使う。"
+    "uptempo が true の曲（アップテンポ。長く聞くと疲れる）は、その雰囲気にほかの曲が無いときだけ使う（手で書き換えてよい）。"
     "分からない項目は空のままにし、推測で埋めないこと（artist が空の曲は、説明文に「作者名未登録」と出る）。"
 )
 
@@ -268,7 +269,7 @@ def analyze_features(path: Path) -> dict:
     lags = np.arange(len(ac))
     window = (lags > rate * 60 / 190) & (lags < rate * 60 / 60)
     bpm = 60 * rate / lags[window][np.argmax(ac[window])] if window.any() else 0.0
-    return {
+    result = {
         "bpm": round(float(bpm)),
         "brightness_hz": round(float((spec * freqs).sum() / max(float(spec.sum()), 1e-9))),
         "busyness": round(float((flux > flux.mean() + 1.5 * flux.std()).mean() * rate), 2),
@@ -277,6 +278,18 @@ def analyze_features(path: Path) -> dict:
         "bass_ratio": round(float(spec[:, freqs < 250].sum() / max(float(spec.sum()), 1e-9)), 3),
         "seconds": round(seconds, 1),
     }
+    try:  # テンポは librosa があれば測る（アップテンポの曲を普段のBGMに使わないための判定）
+        import librosa
+
+        y = librosa.resample(x, orig_sr=sr, target_sr=22050)
+        onset = librosa.onset.onset_strength(y=y, sr=22050)
+        result["tempo_bpm"] = round(float(np.atleast_1d(librosa.feature.tempo(onset_envelope=onset, sr=22050,
+                                                                                start_bpm=100))[0]))
+        onsets = librosa.onset.onset_detect(onset_envelope=onset, sr=22050, units="time")
+        result["note_density"] = round(len(onsets) / max(min(seconds, FEATURE_SECONDS), 1.0), 2)
+    except Exception:  # noqa: BLE001 - librosa が無ければテンポは測らない（アップテンポ扱いにしない）
+        pass
+    return result
 
 
 def refresh_library(default_source: str = "") -> list[str]:
@@ -300,6 +313,9 @@ def refresh_library(default_source: str = "") -> list[str]:
             entry["features"] = analyze_features(path)
         except Exception:  # noqa: BLE001 - 測れない曲は特徴なし（中くらいの曲として扱う）で登録する
             entry.setdefault("features", {})
+        f = entry.get("features") or {}
+        entry.setdefault("uptempo", bool(f.get("tempo_bpm", 0) >= UPTEMPO_MIN_BPM
+                                         and f.get("note_density", 0) >= UPTEMPO_MIN_DENSITY))
         library[key] = entry
         added.append(key)
     if added:
@@ -323,7 +339,7 @@ TALK_WEIGHT = {"calm": 1.6, "serious": 1.2, "mysterious": 1.2, "emotional": 1.0,
 MOOD_PREFERENCES: dict[str, dict[str, float]] = {
     # 特徴（標準化した値）ごとの重み。+ はその特徴が大きい曲ほど合う
     "calm": {},
-    "bright": {"brightness_hz": 0.6, "busyness": 0.4},
+    "bright": {"brightness_hz": 0.4, "busyness": -0.2},  # 明るい曲でも、音数が多すぎて疲れる曲は避ける
     "comedy": {"busyness": 0.6, "brightness_hz": 0.3},
     "tense": {"brightness_hz": -0.3},
     "serious": {"busyness": -0.2},
@@ -375,7 +391,23 @@ def track_score(track: "Track", mood: str, longest_seconds: float = 0.0,
     seconds = features.get("seconds")
     if isinstance(seconds, (int, float)) and longest_seconds > 0 and seconds < longest_seconds * 0.5:
         score -= 0.5  # 短い曲を長い場面で何度もループさせると繰り返しが目立つ
+    if is_uptempo(track):
+        score -= UPTEMPO_PENALTY  # アップテンポの曲は長く聞くと疲れるので、ほかに曲が無いときだけ使う
     return score
+
+
+UPTEMPO_PENALTY = 10.0
+UPTEMPO_MIN_BPM = 115        # この速さ以上で、かつ
+UPTEMPO_MIN_DENSITY = 3.5    # 1秒あたりの音の頭がこれ以上（テンポの推定は倍・半分に間違えやすいので、両方そろったときだけ）
+
+
+def is_uptempo(track: "Track") -> bool:
+    """アップテンポの曲か（_library.json の uptempo。手で true/false に書き換えれば、その判定を使う）。"""
+    info = load_library().get(track.key) or {}
+    if isinstance(info.get("uptempo"), bool):
+        return info["uptempo"]
+    features = info.get("features") or {}
+    return bool(features.get("tempo_bpm", 0) >= UPTEMPO_MIN_BPM and features.get("note_density", 0) >= UPTEMPO_MIN_DENSITY)
 
 
 def best_track(mood: str, longest_seconds: float = 0.0) -> Optional[str]:
@@ -408,8 +440,8 @@ def uses_moods(project: Project) -> bool:
 # 場面ごとの基本の雰囲気（重み）
 SECTION_PRIORS: dict[str, dict[str, float]] = {
     "intro:hype": {"bright": 2.0}, "intro:fail": {"comedy": 1.5, "emotional": 0.5}, "intro:rescue": {"calm": 1.5},
-    "intro": {"bright": 1.5}, "explain:why": {"calm": 2.0}, "explain:how": {"calm": 1.5, "bright": 0.5},
-    "explain": {"calm": 2.0}, "summary": {"bright": 1.5, "calm": 1.0}, "ending": {"bright": 3.0},
+    "intro": {"bright": 1.5}, "explain:why": {"calm": 2.0}, "explain:how": {"calm": 2.0},
+    "explain": {"calm": 2.0}, "summary": {"calm": 2.0, "bright": 0.5}, "ending": {"bright": 3.0},
 }
 EXPRESSION_MOODS = {
     "cry": "emotional", "sad": "emotional", "gloomy": "emotional", "worried": "emotional",
