@@ -53,7 +53,8 @@ LESSON_SECTIONS = ("dialog", "phrase", "repeat", "quiz", "review")  # 英会話�
 # （Project.section_bgm に "intro:hype" のようなキーで保存する）。
 PHASE_LABELS: dict[str, dict[str, str]] = {
     "intro": {"hype": "導入①：決意・ワクワク", "fail": "導入②：失敗", "rescue": "導入③：めたん登場"},
-    "explain": {"why": "解説：なぜ失敗したのか", "how": "解説：成功させるには"},
+    "explain": {"try": "本編：やってみる（実践）", "reveal": "本編：種明かし（なぜそうなったか）",
+                "why": "解説：なぜ失敗したのか", "how": "解説：成功させるには"},
 }
 
 

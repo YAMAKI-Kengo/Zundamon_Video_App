@@ -204,6 +204,8 @@ _PHASE_ALIASES = {
     "rescue": "rescue", "登場": "rescue", "めたん登場": "rescue",
     "why": "why", "理由": "why", "失敗の理由": "why",
     "how": "how", "コツ": "how", "成功のコツ": "how", "方法": "how",
+    "try": "try", "実践": "try", "やってみた": "try", "挑戦中": "try",
+    "reveal": "reveal", "種明かし": "reveal", "振り返り": "reveal",
 }
 
 
@@ -216,15 +218,22 @@ def _normalize_phase(section: str, value) -> str:
 CARD_DEFAULT_SECONDS = 2.0  # 場面転換テロップの表示秒数の既定値
 
 
-# 台本の "bgm"（BGMの雰囲気）の書き方のゆれ → src.services.bgm_library.MOOD_CHOICES のキー
+# 台本の "bgm"（BGMの場面の種類）の書き方のゆれ → src.services.bgm_library.MOOD_CHOICES のキー
+# （以前の気分の名前 calm・bright… も、今の種類に読み替える）
 _BGM_MOOD_ALIASES = {
-    "calm": "calm", "daily": "calm", "日常": "calm", "解説": "calm", "落ち着いた": "calm", "普通": "calm",
-    "bright": "bright", "happy": "bright", "fun": "bright", "楽しい": "bright", "明るい": "bright",
-    "comedy": "comedy", "comic": "comedy", "コミカル": "comedy", "ギャグ": "comedy",
-    "tense": "tense", "tension": "tense", "緊張": "tense", "ピンチ": "tense", "焦り": "tense",
-    "serious": "serious", "シリアス": "serious", "深刻": "serious",
-    "emotional": "emotional", "sad": "emotional", "感動": "emotional", "悲しい": "emotional", "しんみり": "emotional",
-    "mysterious": "mysterious", "mystery": "mysterious", "謎": "mysterious", "不思議": "mysterious",
+    "talk": "talk", "calm": "talk", "daily": "talk", "日常": "talk", "解説": "talk", "会話": "talk", "普通": "talk",
+    "opening": "opening", "intro": "opening", "導入": "opening", "つかみ": "opening",
+    "hype": "hype", "bright": "hype", "happy": "hype", "fun": "hype", "楽しい": "hype", "ノリノリ": "hype",
+    "調子に乗る": "hype",
+    "gag": "gag", "comedy": "gag", "comic": "gag", "コミカル": "gag", "ギャグ": "gag", "ドタバタ": "gag",
+    "trouble": "trouble", "tense": "trouble", "tension": "trouble", "緊張": "trouble", "ピンチ": "trouble",
+    "焦り": "trouble",
+    "fail": "fail", "トホホ": "fail", "失敗": "fail", "がっかり": "fail",
+    "sad": "sad", "emotional": "sad", "感動": "sad", "悲しい": "sad", "しんみり": "sad", "どん底": "sad",
+    "mystery": "mystery", "mysterious": "mystery", "謎": "mystery", "不思議": "mystery",
+    "serious": "serious", "シリアス": "serious", "深刻": "serious", "核心": "serious",
+    "success": "success", "成功": "success", "逆転": "success",
+    "ending": "ending", "まとめ": "ending", "締め": "ending",
     "none": "none", "silence": "none", "無音": "none", "なし": "none",
 }
 
@@ -1489,7 +1498,7 @@ SAMPLE_BOOK_SCRIPT = {
             "section": "intro", "phase": "hype", "hide": ["shikoku_metan"],
             "lines": [
                 {"speaker": "zundamon", "expression": "happy", "text": "最近ずっと眠いから、今日から毎日8時間寝るって決めたのだ！", "se": "シャキーン1",
-                 "bgm": "bright", "stage": {"fx": "sparkle", "cast": [{"who": "zundamon", "pos": "center", "size": "large", "move": "run"}]}},
+                 "bgm": "opening", "stage": {"fx": "sparkle", "cast": [{"who": "zundamon", "pos": "center", "size": "large", "move": "run"}]}},
             ],
         },
         {
@@ -1498,14 +1507,14 @@ SAMPLE_BOOK_SCRIPT = {
                 {"speaker": "zundamon", "card": "3日後…", "text": ""},
                 {"speaker": "zundamon", "expression": "troubled", "text": "夜9時に布団に入ったのに、2時間ゴロゴロしただけだったのだ…", "se": "ショック1"},
                 {"speaker": "zundamon", "expression": "sad", "text": "しかも朝もぜんぜん起きられなかったのだ…",
-                 "bgm": "emotional", "stage": {"fx": "gloom", "cast": [{"who": "zundamon", "pos": "far_right", "size": "small"}]}},
+                 "bgm": "fail", "stage": {"fx": "gloom", "cast": [{"who": "zundamon", "pos": "far_right", "size": "small"}]}},
             ],
         },
         {
             "section": "intro", "phase": "rescue",
             "lines": [
                 {"speaker": "shikoku_metan", "expression": "angry", "text": "そんなんじゃだめよ。", "se": "ビシッとツッコミ2",
-                 "bgm": "comedy", "stage": {"cast": [{"who": "shikoku_metan", "pos": "home", "move": "enter"}, {"who": "zundamon", "pos": "home", "size": "normal"}]}},
+                 "bgm": "gag", "stage": {"cast": [{"who": "shikoku_metan", "pos": "home", "move": "enter"}, {"who": "zundamon", "pos": "home", "size": "normal"}]}},
                 {"speaker": "zundamon", "expression": "surprised", "text": "どうしてなのだ？長く寝ればいいはずなのだ！"},
                 {"speaker": "shikoku_metan", "expression": "normal", "text": "このままだと、あんた毎晩ゴロゴロ地獄よ。でも、ある方法で一発で変わるわ。"},
                 {"speaker": "shikoku_metan", "expression": "happy", "text": "今日は『ぐっすり眠るための科学』を参考にするわ。", "se": "ジャジャーン", "show_book": True},
@@ -1523,7 +1532,7 @@ SAMPLE_BOOK_SCRIPT = {
             },
             "lines": [
                 {"speaker": "shikoku_metan", "expression": "normal", "text": "まずは、あんたの3日間を振り返るわよ。", "board": False,
-                 "bgm": "calm", "stage": {"shot": "group"}},
+                 "bgm": "talk", "stage": {"shot": "group"}},
                 {"speaker": "shikoku_metan", "expression": "normal", "text": "あんた、眠くないのに早く布団に入ったでしょ。", "board": True},
                 {"speaker": "zundamon", "expression": "troubled", "text": "早く寝れば長く眠れると思ったのだ…", "board": True},
                 {"speaker": "shikoku_metan", "expression": "normal", "text": "この本によると、大事なのは長さより質なのよ。", "board": True},

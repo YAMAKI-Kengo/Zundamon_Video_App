@@ -67,47 +67,54 @@ def bgm_selectbox(label: str, current: Optional[str], key: str, inherit_label: O
 
 
 def _bgm_label(path: Path) -> str:
-    """選択肢の表示「〔気分〕曲名」（気分のフォルダの外の曲は曲名だけ）。"""
+    """選択肢の表示「〔曲の気分〕曲名」（気分のフォルダの外の曲は曲名だけ）。"""
     track = bgm_library.track_for_path(path)
-    mood = bgm_library.MOOD_LABELS.get(track.mood, "")
+    mood = bgm_library.FOLDERS.get(track.mood, "")
     return f"〔{mood}〕{track.title}" if mood else track.title
 
 
 def _render_mood_bgm(project: Project) -> None:
-    """雰囲気ごとに流す曲（自動で選んだ曲を利用者が変えられる）。"""
+    """場面の種類ごとに流す曲（自動で選んだ曲を利用者が変えられる）。"""
     try:
         added = bgm_library.refresh_library()
     except Exception:  # noqa: BLE001 - 登録できなくても画面は出す
         added = []
     if added:
         st.caption(f"新しいBGMを{len(added)}曲登録しました（作者名は assets/bgm/_library.json に記入してください）。")
-    st.markdown("**雰囲気ごとのBGM（自動選択）**")
+    st.markdown("**場面の種類ごとのBGM（自動選択）**")
     st.caption(
-        "台本のセリフに書かれたBGMの雰囲気（楽しい・緊張・感動など）に合わせて、assets/bgm/ の気分ごとのフォルダから"
-        "曲を自動で選び、雰囲気が変わったところで切り替えます（短すぎる区間は前の曲のまま）。曲を変えたい雰囲気だけ選び直してください。"
+        "台本に書かれた場面の種類（ふだんの会話・調子に乗る・ピンチ・トホホ・まとめなど）ごとに、その場面に一番合う曲を"
+        "全部の曲から選び、場面が変わったところで切り替えます。曲を変えたい種類だけ選び直してください。"
     )
     if not bgm_library.uses_moods(project) and project.scenes:
-        st.caption("今の台本には雰囲気の指定がないため、下の「場面ごとのBGM」の設定で流れます。")
+        st.caption("今の台本には場面の種類の指定がないため、場面・表情・効果音から推定して流します"
+                   "（下の「場面ごとのBGM」を設定した場面は、その曲が流れます）。")
+    assigned: dict = {}
+    if project.scenes:
+        durations = [s.duration for s in project.scenes]
+        assigned = bgm_library.assign_tracks(project, bgm_library.effective_moods(project, durations), durations)
     for mood in bgm_library.MOODS:
-        tracks = bgm_library.list_tracks(mood)
+        tracks = bgm_library.candidates(mood)
         if not tracks:
             continue
-        auto = bgm_library.auto_track(project, mood, use_choice=False)
+        auto = assigned.get(mood) if mood in assigned and not bgm_library.user_choice(project, mood) \
+            else bgm_library.best_track(mood)
         options: list[Optional[str]] = [None, NO_BGM] + [str(t.path) for t in tracks]
-        labels = {None: f"自動（{Path(auto).stem if auto else 'なし'}）", NO_BGM: "BGMなし"}
-        labels.update({str(t.path): t.title for t in tracks})
+        labels = {None: f"自動（{bgm_library.track_for_path(auto).title if auto else 'なし'}）", NO_BGM: "BGMなし"}
+        labels.update({str(t.path): _bgm_label(t.path) for t in tracks})
         current = project.mood_bgm.get(mood)
         if current not in options:
             current = None
         picked = st.selectbox(
             bgm_library.MOOD_LABELS[mood], options=options, index=options.index(current),
             format_func=lambda v, labels=labels: labels[v], key=f"mood_bgm_{mood}",
+            help=bgm_library.MOODS[mood] + "。候補は合う順に並んでいます。",
         )
         if picked is None:
             project.mood_bgm.pop(mood, None)
         else:
             project.mood_bgm[mood] = picked
-    busy = [t.title for mood in bgm_library.MOODS for t in bgm_library.list_tracks(mood) if bgm_library.is_busy(t)]
+    busy = [t.title for t in bgm_library.list_tracks() if bgm_library.is_busy(t)]
     if busy:
         st.caption("音がせわしなく長く聞くと疲れるため、自動では選ばない曲: " + "、".join(busy))
     used = video_metadata.used_bgm_paths(project) if project.scenes else []
