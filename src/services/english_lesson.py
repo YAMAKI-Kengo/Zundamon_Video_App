@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Optional
 
 from src.models import GUEST_CHARACTERS, Scene
-from src.services import book_ai, video_history
+from src.services import bgm_library, book_ai, video_history
 from src.services.book_ai import _STR, _STR_LIST, AIResult, ProgressCallback, _call, _obj
 from src.services.voicevox_client import DEFAULT_SPEECH_SPEED
 from src.utils.asset_loader import get_available_expressions, list_illustrations, list_se, place_background_schema
@@ -370,6 +370,12 @@ def previous_themes(week: int) -> list[str]:
 LESSON_SECTIONS_ENUM = ["intro", "dialog", "phrase", "repeat", "quiz", "review", "summary"]
 
 
+def _bgm_choices() -> str:
+    """台本の bgm に書ける場面の種類の一覧（AIへの説明）。"""
+    return "\n".join(f"  - {key}: {label}" for key, label in bgm_library.MOODS.items()) + \
+        "\n  - none: 無音（ショックの一瞬だけ。次のセリフで別の種類に戻す）"
+
+
 def _lesson_schema(with_promo: bool = True) -> dict:
     characters = book_ai._characters()
     expressions = sorted({e for c in characters for e in get_available_expressions(c)})
@@ -396,10 +402,12 @@ def _lesson_schema(with_promo: bool = True) -> dict:
         "caption": _STR,
         "image_request": _STR,
         "image_name": _STR,
+        "bgm": {"type": "string", "enum": [""] + bgm_library.MOOD_CHOICES},
     })
     guest_keys = [c for c in characters if c in GUEST_CHARACTERS]
     block = _obj({
         "section": {"type": "string", "enum": LESSON_SECTIONS_ENUM},
+        "bgm": {"type": "string", "enum": bgm_library.MOOD_CHOICES},
         "slide": _obj({"title": _STR, "bullets": _STR_LIST, "numbered": {"type": "boolean"}}),
         "background": place_background_schema(),
         "background_request": _STR,
@@ -490,6 +498,14 @@ def _lesson_system(plan: dict, day: int, level: str, speech_speed: float = DEFAU
 - 日本語のセリフは10〜30字（字幕1行＝30字）。同じ話者が3セリフ以上続かない。ずんだもんのボケとめたんのツッコミで、1ブロックに2回以上は笑いどころを作る（楽しく学べることが一番大事）。フレーズの使い方は、思わず笑う面白いたとえや場面で説明する（例:「Could you slow down? は、早口の先生にブレーキを踏んでもらう魔法の言葉よ」）。ずんだもんが英語で大げさにやらかす面白シーン（間違った英語で店員さんを困らせる・勢いで変な注文をしてしまう など）を1本に2回以上入れる。
 - 画面の基本は2人の会話だけ（board は false、image は空文字）。黒板（board を true）は phrase・review・summary でフレーズを紹介するセリフから出し、そのブロックの最後まで出したままにする（アプリも自動で出したままにする）。黒板を出している間は、黒板の1行ごとに2〜3セリフかけて、意味・使い方・例文をじっくり話す。黒板の bullets は、話す順に1行ずつ書き足される。slide の numbered は、手順や順番があるときだけ true。
 - mood（背景の雰囲気）は、ずんだもんが英語で失敗して落ち込みがピークになる場面だけ "gloomy"（ショックの瞬間なら "shock"）にし、その場面の2〜4セリフに続けて付ける（1セリフだけ付けない）。動画の最初のセリフには付けない。1本で1〜2場面まで。それ以外は空文字。card（場面転換テロップ。例:「その日の夜…」）は導入で時間が飛ぶときだけ、text を空文字にした独立した行で使い、それ以外は空文字。
+- bgm（BGMを流す場面の種類。アプリが、その種類の場面に一番合う曲を選んで流す。種類は次のとおり）:
+{_bgm_choices()}
+  - ブロックの bgm（必ず書く）: そのブロックの基本の種類。目安: 導入（intro）は opening（ずんだもんが外で英語に困る場面から始めるなら trouble）、
+    会話（dialog）は cheerful、フレーズ解説（phrase）・リピート（repeat）・ふりかえり（review）は talk、瞬発トレーニング（quiz）は cheerful、まとめ（summary）は ending。
+    ブロックが変わると、BGMはそのブロックの種類に戻る。
+  - セリフの bgm: ブロックの途中で空気がはっきり変わるセリフにだけ書く（そのセリフからブロックの終わりまでその種類）。
+    例: ずんだもんが英語で大失敗 → fail、焦って固まる → trouble、言えた！と大喜び → success、ボケとツッコミの応酬 → gag。それ以外のセリフは空文字。
+  - 曲はブロックの途中では6秒以上続かないと切り替わらないので、1〜2セリフごとに変えない。英語のお手本（ネイティブ音声）を聞かせる間は、落ち着いた種類（talk・cheerful）にする。
 - note（重要な表現の解説カード）: phrase ブロックで、今日のフレーズの大事な部分（例: Can I get の部分）を解説するセリフに使う（フレーズごとに1回、1本で2〜4回）。text は英文、meaning は日本語。画面に文が大きく出て、focus の部分に赤い下線が引かれ、矢印の先に meaning が表示される。
   text に文（25字・8語程度まで）、focus に赤線を引く部分（text の中にそのまま含まれる語句）、meaning にその部分の意味・使い方（25字以内。例:「〜をもらえる？ お店で注文するときの定番」）を書く。
   その部分を説明する2〜3セリフに、同じ note を続けて付ける（その間は黒板の代わりに解説カードが出る）。使わない行は text・focus・meaning をすべて空文字にする。
@@ -561,7 +577,7 @@ def finish_lesson_data(data: dict, plan: dict, day: int, level: str = "") -> dic
     for block in list(data.get("blocks", [])) + list(promo.get("blocks") or []):
         for line in block.get("lines", []):
             for key in ("se", "hide", "image", "image_request", "caption", "ja", "reading", "pause_text", "mood", "card",
-                        "pause_style"):
+                        "pause_style", "bgm"):
                 if not line.get(key):
                     line.pop(key, None)
             if not line.get("image_request"):
@@ -587,11 +603,11 @@ LESSON_SAMPLE = {
     "book_title": "カフェで使う英語",
     "phrases": [{"en": "Can I get a coffee?", "ja": "コーヒーをもらえますか？"}],
     "blocks": [
-        {"section": "intro", "lines": [
+        {"section": "intro", "bgm": "opening", "lines": [
             {"speaker": "zundamon", "expression": "sad", "text": "カフェでコーヒープリーズって言ったら、サイズを聞かれて固まったのだ…", "lang": "ja", "board": False},
             {"speaker": "shikoku_metan", "expression": "happy", "text": "今日は注文で使える英語を教えてあげるわ。", "lang": "ja", "board": False},
         ]},
-        {"section": "phrase", "slide": {"title": "今日のフレーズ1", "bullets": ["Can I get a coffee?", "コーヒーをもらえますか？", "Can I は「キャナイ」とつながる"]},
+        {"section": "phrase", "bgm": "talk", "slide": {"title": "今日のフレーズ1", "bullets": ["Can I get a coffee?", "コーヒーをもらえますか？", "Can I は「キャナイ」とつながる"]},
          "lines": [
              {"speaker": "shikoku_metan", "expression": "normal", "text": "Can I get a coffee?", "lang": "en", "ja": "コーヒーをもらえますか？", "voice": "A", "board": True},
              {"speaker": "shikoku_metan", "expression": "explain", "text": "Can I get は「〜をもらえる？」って意味よ。", "lang": "ja", "reading": "キャナイゲットは「〜をもらえる？」って意味よ。",
@@ -599,11 +615,11 @@ LESSON_SAMPLE = {
              {"speaker": "zundamon", "expression": "happy", "text": "Can I get a coffee?", "lang": "en", "reading": "キャン アイ ゲット ア コーヒー", "board": True},
              {"speaker": "shikoku_metan", "expression": "angry", "text": "Can I は、キャナイってつなげるのよ。", "lang": "ja", "reading": "キャナイは、キャナイってつなげるのよ。", "board": True},
          ]},
-        {"section": "repeat", "lines": [
+        {"section": "repeat", "bgm": "talk", "lines": [
             {"speaker": "shikoku_metan", "expression": "normal", "text": "Can I get a coffee?", "lang": "en", "ja": "コーヒーをもらえますか？", "voice": "A", "pause": 3.5, "pause_style": "repeat", "pause_text": "リピート！", "board": False},
             {"speaker": "shikoku_metan", "expression": "normal", "text": "Can I get a coffee?", "lang": "en", "ja": "コーヒーをもらえますか？", "voice": "A", "pause_style": "shadow", "pause_text": "一緒に言ってみよう！", "board": False},
         ]},
-        {"section": "quiz", "lines": [
+        {"section": "quiz", "bgm": "cheerful", "lines": [
             {"speaker": "shikoku_metan", "expression": "normal", "text": "「紅茶をもらえますか？」を英語で言うと？", "lang": "ja", "pause": 4.5, "pause_text": "英語で言ってみよう！", "board": False},
             {"speaker": "shikoku_metan", "expression": "happy", "text": "Can I get a tea?", "lang": "en", "ja": "紅茶をもらえますか？", "voice": "A", "board": False},
         ]},
@@ -617,7 +633,8 @@ def lesson_manual_prompt(plan: dict, day: int, level: str = "", speech_speed: fl
     return "\n\n".join([
         _lesson_system(plan, day, level, speech_speed),
         f"第{plan.get('week', 1)}週の{day}日目の台本を、次の形式のJSONだけで出力してください"
-        "（各セリフには speaker・expression・text・lang・ja・reading・voice・pause・pause_text・se・board を書く。"
+        "（各ブロックには section・bgm を、各セリフには speaker・expression・text・lang・ja・reading・voice・pause・pause_text・se・board を書く。"
+        "セリフの bgm は空気が変わるところだけ書く。"
         "トップレベルには、本編紹介ショートの promo_short "
         '（{"title_candidates": [...], "video_title": "...", "hook": "...", "description_lead": "...", "hashtags": [...], "tags": [...], '
         '"blocks": [本編と同じ形のブロック]}）も必ず書く。'
