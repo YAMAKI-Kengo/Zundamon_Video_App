@@ -188,16 +188,9 @@ def _speaker_visible(scene: Scene) -> bool:
 def resolve_camera(project: Project, scene: Scene) -> str:
     mode = scene.camera or "auto"
     if mode == "auto":
-        body_action = scene.char_motion in ACTIONS or (
-            scene.char_motion in ("", "auto") and project.auto_jump and scene.expression in AUTO_ACTIONS)
-        if not project.auto_camera or scene.section == "ending" or body_action:
-            mode = "none"  # 体を動かすシーンは、動き（と相手の反応）が見えるよう寄らない
-        elif scene.expression in ZOOM_EXPRESSIONS and scene.text.strip():
-            mode = "zoom_speaker"
-        elif scene.section == "explain" and scene.has_slide:
-            mode = "slow_zoom"
-        else:
-            mode = "none"
+        # 自動ではカメラを動かさない（アップ・ズームでキャラクターの大きさが変わると見にくいため）。
+        # シーンの編集画面でカメラワークを選んだシーンだけ、その動きにする
+        mode = "none"
     if mode in ("zoom_speaker", "slow_zoom_speaker") and not _speaker_visible(scene):
         mode = "none"  # 話者が画面にいないので寄れない
     return mode

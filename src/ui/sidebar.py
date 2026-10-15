@@ -20,7 +20,7 @@ from src.models import (
     VideoFormat,
 )
 from src.state import TAB_KEY, TABS, get_project, set_project
-from src.services import bgm_library, video_metadata
+from src.services import bgm_library, book_script, video_metadata
 from src.utils.asset_loader import ASSETS_DIR, is_video_path, list_bgm, list_se
 
 BGM_DIR = ASSETS_DIR / "bgm"
@@ -236,10 +236,6 @@ def _render_motion_section(project: Project) -> None:
         st.caption(
             "各シーンの動きを「自動」にしている場合の演出です。シーン編集の「動き」で1シーンずつ変更もできます。"
             "動きのあるシーンは1コマずつ合成するため、書き出しに時間がかかるようになります。"
-        )
-        project.auto_camera = st.checkbox(
-            "カメラワーク（驚き系の表情で話者にアップ・解説中はゆっくりズームイン）",
-            value=project.auto_camera, key="motion_auto_camera",
         )
         project.auto_shake = st.checkbox(
             "画面の揺れ（ショック・驚き系の効果音・ガーン顔のとき）", value=project.auto_shake, key="motion_auto_shake",
@@ -502,6 +498,9 @@ def render_sidebar() -> None:
         help="横画面(1920x1080) / 縦画面(1080x1920) を切り替えます",
     )
     project.format = format_options[labels.index(selected_label)]
+    if project.scenes:
+        # 既定の背景のままなら、画面の向き・動画の種類に合う既定の背景にそろえる（以前の既定の部屋の背景も切り替える）
+        book_script.sync_background_to_format(project)
     _render_project_io_section(project)
 
     # 似た設定ごとに見出しを付けてまとめる（探しやすくするため）

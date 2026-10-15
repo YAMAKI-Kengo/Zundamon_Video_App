@@ -96,13 +96,16 @@ def _save_uploaded_content_media(uploaded_file, scene_id: str) -> Path:
 
 
 def _render_stage_editor(scene: Scene) -> None:
-    """立ち位置・移動・ショット・カメラ・効果（Scene.stage）の編集。指定しない項目は前のシーンの状態のまま。"""
+    """立ち位置・移動・ショット・効果（Scene.stage）の編集。指定しない項目は前のシーンの状態のまま。
+
+    キャラクターの大きさとカメラ（アップ・ズーム）は変えない（見にくいため）。以前の台本の size・camera は消す。
+    """
     stage = dict(scene.stage or {})
+    stage.pop("camera", None)
     st.markdown("**立ち位置・ショット・効果**（空欄は前のシーンのまま）")
-    col_shot, col_cam, col_fx = st.columns(3)
+    col_shot, col_fx = st.columns(2)
     for col, key, choices, labels, title in (
         (col_shot, "shot", staging.SHOTS, staging.SHOT_LABELS, "ショット"),
-        (col_cam, "camera", staging.CAMERAS, staging.CAMERA_LABELS, "カメラの動き"),
         (col_fx, "fx", staging.FX, staging.FX_LABELS, "効果"),
     ):
         current = stage.get(key, "")
@@ -116,16 +119,17 @@ def _render_stage_editor(scene: Scene) -> None:
     new_cast = []
     for character in [c for c in staging.CHARACTER_ORDER if c in list_characters()]:
         entry = cast.get(character, {"who": character})
-        cols = st.columns([1.1, 1.2, 1, 1, 1.4])
+        entry.pop("size", None)
+        cols = st.columns([1.1, 1.2, 1, 1.4])
         cols[0].caption(get_character_display_name(character))
         for col, field_name, labels in (
-            (cols[1], "pos", staging.POSITION_LABELS), (cols[2], "size", staging.SIZE_LABELS),
-            (cols[3], "face", staging.FACE_LABELS), (cols[4], "move", staging.MOVE_LABELS),
+            (cols[1], "pos", staging.POSITION_LABELS),
+            (cols[2], "face", staging.FACE_LABELS), (cols[3], "move", staging.MOVE_LABELS),
         ):
             options = list(labels)
             current = entry.get(field_name, "")
             value = col.selectbox(
-                {"pos": "立ち位置", "size": "大きさ", "face": "向き", "move": "動き方"}[field_name], options=options,
+                {"pos": "立ち位置", "face": "向き", "move": "動き方"}[field_name], options=options,
                 index=options.index(current) if current in options else 0, format_func=labels.get,
                 key=f"stage_{field_name}_{character}_{scene.id}", label_visibility="collapsed",
             )
