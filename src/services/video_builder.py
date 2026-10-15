@@ -206,8 +206,8 @@ def _build_fixed_overlay(
         layers.append(pr_label_overlay)
     # リピート・回答の間の見出しは、カウントダウンに合わせて出し入れするので、ここでは焼き込まない（pause_cue）
     if scene.headline and scene.headline.strip() and not scene.pause_style:
-        if scene.headline_style == hook_text.HOOK_STYLE:
-            layers.append(hook_text.render_hook_image(scene.headline, resolution))
+        if scene.headline_style in hook_text.HOOK_STYLES:
+            layers.append(hook_text.render_hook_image(scene.headline, resolution, scene.headline_style))
         else:
             layers.append(telop.render_headline_image(scene.headline, resolution, font_path))
     # 字幕（読み上げテキストをそのまま表示。文字色は話者ごとに変える。字幕なしのシーンは出さない）

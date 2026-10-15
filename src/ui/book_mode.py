@@ -837,8 +837,6 @@ def _render_thumbnail(project: Project) -> None:
         "thumb_shout": spec["shout"] if spec.get("shout") is not None
         else thumbnail.DEFAULT_SHOUTS.get(spec.get("zundamon"), ""),
         "thumb_before": spec.get("before", ""),
-        "thumb_before_shout": spec.get("before_shout") or thumbnail.BA_BEFORE_SHOUT,
-        "thumb_after_shout": spec.get("after_shout") or thumbnail.BA_AFTER_SHOUT,
         "thumb_after": spec.get("after", ""),
         "thumb_scene": spec.get("scene", ""),
         "thumb_hide_answer": spec.get("hide_answer") is not False,
@@ -916,9 +914,7 @@ def _render_thumbnail(project: Project) -> None:
                 help="一覧に並んだとき、毎回同じに見えないように企画ごとに色を変えます。",
             )
         else:
-            col_before, col_after = col_text.columns(2)
-            spec["before_shout"] = col_before.text_input("見る前の吹き出し", key="thumb_before_shout")
-            spec["after_shout"] = col_after.text_input("見た後の吹き出し", key="thumb_after_shout")
+            col_before, col_after = col_text.columns(2)  # 吹き出しは出さない（文字は3フレーズまで）
             image_label = lambda v: "（なし）" if not v else ("" if "thumbnail_images" in v else "") + Path(v).stem  # noqa: E731
             spec["before_image"] = col_before.selectbox("見る前の画面に敷く画像（動画で使った画像）", panel_images,
                                                         format_func=image_label, key="thumb_before_image")

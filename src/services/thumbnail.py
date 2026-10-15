@@ -467,7 +467,6 @@ def _panel_image(path: Optional[str], size: tuple[int, int]) -> Optional[Image.I
 
 BA_DARK = (44, 62, 80)            # 見る前（左）の背景: 彩度を落とした暗い紺（#2C3E50）
 BA_BRIGHT = ((255, 214, 40), (255, 150, 20))  # 見た後（右）の背景: 明るい黄の集中線
-BA_BEFORE_SHOUT, BA_AFTER_SHOUT = "やばいのだ…", "超かんたんなのだ！"
 # 見る前→見た後の表情のペア（左の顔, 右の顔）
 EXPRESSION_PAIRS: dict[str, tuple[str, str, str]] = {
     "despair_smile": ("絶望 → 笑顔", "gloomy", "happy"),
@@ -529,22 +528,12 @@ def _render_before_after(spec: dict, lines: list[str]) -> Image.Image:
     # 右下の再生時間のバッジには胴体がかかるが、顔や文字はかからないので問題ない
     before_char = _character("zundamon", face("before_face", "gloomy"), 520, 0.62)
     after_char = _character("zundamon", face("after_face", "happy"), 520, 0.62)
-    b_top = a_top = h
-    # 頭の中心（立ち絵はしっぽの分だけ横に広いので、幅の真ん中ではない。反転した左は右寄り、右は左寄り）
-    b_head = a_head = w // 2
-    b_w = a_w = 0
     if before_char is not None:
         before_char = ImageOps.mirror(ImageEnhance.Color(before_char).enhance(0.6))
-        b_w = before_char.width
-        b_top = h - before_char.height + 105
-        _paste(canvas, _drop_shadow(_outline_sprite(before_char, 10)), -30, b_top)
-        b_head = -30 + int(b_w * 0.58)
+        _paste(canvas, _drop_shadow(_outline_sprite(before_char, 10)), -30, h - before_char.height + 105)
     if after_char is not None:
-        a_w = after_char.width
-        a_top = h - after_char.height + 105
-        a_left = w - a_w + 30
-        _paste(canvas, _drop_shadow(_outline_sprite(after_char, 12)), a_left, a_top)
-        a_head = a_left + int(a_w * 0.42)
+        _paste(canvas, _drop_shadow(_outline_sprite(after_char, 12)), w - after_char.width + 30,
+               h - after_char.height + 105)
 
     # --- 左右のひと言（見た後は1.25倍・黄色） ---
     def words(key: str) -> list[str]:
@@ -561,25 +550,18 @@ def _render_before_after(spec: dict, lines: list[str]) -> Image.Image:
                             fill_color=(255, 255, 255))
     after_text = _pop_text(words("after"), int(w * 0.41), 200, 120, align="center", accent=accent,
                            fill_color=TEXT_FILL_ALT)
-    _paste_rotated(canvas, before_text, (int(w * 0.24), 222), -3.0)
-    _paste_rotated(canvas, after_text, (int(w * 0.76), 226), 3.0)
+    _paste_rotated(canvas, before_text, (int(w * 0.24), 262), -3.0)
+    _paste_rotated(canvas, after_text, (int(w * 0.76), 266), 3.0)
 
-    # --- 吹き出し（小さめ） ---
-    # 吹き出しは、それぞれのずんだもんの頭の内側（画面の中央寄り）に、左右対称に（顔にはかけない）
-    if before_char is not None:
-        bx = b_head + int(b_w * 0.34)
-        _speech_bubble(canvas, str(spec.get("before_shout") or BA_BEFORE_SHOUT),
-                       (bx, b_top + 110, bx + 220, b_top + 184), (bx - 5, b_top + 200))
-    if after_char is not None:
-        ax = a_head - int(a_w * 0.34)
-        _speech_bubble(canvas, str(spec.get("after_shout") or BA_AFTER_SHOUT),
-                       (ax - 220, a_top + 110, ax, a_top + 184), (ax + 5, a_top + 200))
+    # 吹き出しは出さない（文字は「大きな一言・見る前・見た後」の3フレーズまでに絞る。スマホの一覧で一瞬で読めるように）
 
     # --- 中央の矢印: 左右のひと言のあいだ（「見る前 ➔ 見た後」と読めるように） ---
-    _arrow(canvas, (w // 2, 245), 130, 120)
-    # --- 上の細い帯に、動画の大きな一言 ---
+    _arrow(canvas, (w // 2, 285), 130, 120)
+    # --- 上の帯に、動画の大きな一言（メッセージの中心。短ければ1行にまとめて、画面の幅いっぱいに大きく） ---
     if lines:
-        _headline(canvas, lines, band_y=(6, 150), colors=_text_colors(spec))
+        if len(lines) > 1 and sum(len(re.sub(r"\*\*|==", "", ln)) for ln in lines) <= 14:
+            lines = ["".join(lines)]
+        _headline(canvas, lines, band_y=(6, 190), colors=_text_colors(spec))
     return canvas
 
 
@@ -761,15 +743,9 @@ def default_spec(project: Project) -> dict:
             title = re.sub(r"【[^】]*】|#\S+|｜.*$|\|.*$", "", project.video_title or project.book_title or "").strip()
             spec["text"] = "\n".join(telop.split_natural(title, 8)[:3]) if title else "今日の本"
     if not spec.get("sub"):
-        if project.source_kind == "english":
-            day = lesson.get("day")
-            # Day の番号は入れない（初めて見る人が「Day1から見ないと」と感じてクリックを避けるため）
-            # 大きな一言とは別の角度のメリット（シリーズ名や Day の番号は入れない。文字の要素を増やさないため）
-            spec["sub"] = ""
-        elif project.source_kind == "research":
-            spec["sub"] = "ずんだもん解説"
-        else:
-            spec["sub"] = "本要約"
+        # 左上の帯は出さない（文字は3フレーズまでに絞る。英会話はシリーズ名や Day の番号も入れない。
+        # 初めて見る人が「Day1から見ないと」と感じてクリックを避けるため）
+        spec["sub"] = ""
     if project.source_kind == "english":
         spec.setdefault("layout", "scene")
         spec.setdefault("scene", lesson.get("theme") or "")

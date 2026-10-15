@@ -48,8 +48,8 @@ def _compose_jpeg(
         mood=mood,
     ).convert("RGBA")
     if headline.strip():
-        frame = Image.alpha_composite(frame, hook_text.render_hook_image(headline, frame.size)
-                                      if headline_style == hook_text.HOOK_STYLE
+        frame = Image.alpha_composite(frame, hook_text.render_hook_image(headline, frame.size, headline_style)
+                                      if headline_style in hook_text.HOOK_STYLES
                                       else telop.render_headline_image(headline, frame.size, telop.resolve_font_path()))
     if chapter_label.strip():
         frame = Image.alpha_composite(frame, telop.render_chapter_label(chapter_label, frame.size, telop.resolve_font_path()))

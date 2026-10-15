@@ -1041,11 +1041,32 @@ def apply_hook(scenes: list[Scene], hook) -> None:
     hook = str(hook or "").replace("\\n", "\n").strip()
     if not hook:
         return
+    first = True
     for scene in scenes:
         if scene.section != "intro" or (scene.has_slide and scene.show_board):
             break
         if not scene.card_text and not scene.headline:
-            scene.headline, scene.headline_style = hook, "hook"
+            # 1セリフ目は画面の中央に特大で、2セリフ目以降は上に小さく出したまま
+            scene.headline, scene.headline_style = hook, ("hook" if first else "hook_top")
+            if first:
+                punch_first_line(scene)
+            first = False
+
+
+HOOK_SE_NAMES = ("驚く", "ジャン！", "和太鼓でドドン")  # 1セリフ目に効果音が無いときに付ける、驚き系の効果音（ある順に）
+
+
+def punch_first_line(scene: Scene) -> None:
+    """ショートの1セリフ目を、音と画面で最初のフレームから目立たせる（台本に指定が無い分だけ足す）:
+    驚き系の効果音・集中線・話者の「！」の驚きリアクション。"""
+    if not scene.se_path:
+        found = next((f for f in (find_se(n) for n in HOOK_SE_NAMES) if f), None)
+        if found:
+            scene.se_path = str(found)
+    stage = dict(scene.stage or {})
+    if not stage.get("fx"):
+        stage["fx"] = "focus_lines"
+        scene.stage = stage
 
 
 def promo_short_data(data: dict) -> dict:
