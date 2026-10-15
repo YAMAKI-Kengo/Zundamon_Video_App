@@ -781,7 +781,33 @@ def build_motion_clip(
 
 def staged_still(project: Project, scene: Scene, ctx: SceneContext, resolution: tuple[int, int],
                  at_end: bool = True) -> Image.Image:
-    """立ち位置の演出があるシーンの、動きの始め（at_end=False）か終わりの1コマ（画面の確認用のプレビュー）。"""
+    """立ち位置の演出があるシーンの、動きの始め（at_end=False）か終わりの1コマ（画面の確認用のプレビュー）。
+
+    画面の操作のたびに同じプレビューを作り直すと重いので、シーン・前後のシーン・演出・設定が同じなら覚えている絵を返す。
+    """
+    import json
+
+    key = json.dumps([scene.to_dict(), ctx.prev.to_dict() if ctx.prev else None,
+                      ctx.next.to_dict() if ctx.next else None, repr(ctx.stage), ctx.block_offset, ctx.block_duration,
+                      list(resolution), at_end, project.common_background_path, project.background_blur,
+                      project.auto_fx, project.auto_jump, project.auto_shake, project.char_bob],
+                     ensure_ascii=False, sort_keys=True, default=str)
+    cached = _STILL_MEMO.get(key)
+    if cached is not None:
+        return cached.copy()
+    image = _staged_still(project, scene, ctx, resolution, at_end)
+    if len(_STILL_MEMO) >= STILL_MEMO_SIZE:
+        _STILL_MEMO.pop(next(iter(_STILL_MEMO)))
+    _STILL_MEMO[key] = image
+    return image.copy()
+
+
+STILL_MEMO_SIZE = 200
+_STILL_MEMO: dict[str, Image.Image] = {}
+
+
+def _staged_still(project: Project, scene: Scene, ctx: SceneContext, resolution: tuple[int, int],
+                  at_end: bool = True) -> Image.Image:
     from src.services import book_script
     from src.services.compositor import load_background_image
 

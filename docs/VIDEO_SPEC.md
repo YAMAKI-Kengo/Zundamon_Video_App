@@ -468,7 +468,7 @@ VOICEVOX の別スタイル（なみだめ・ツンツン・ささやき・ヘ�
 
 ### 14.1 BGM の選び方（何も設定しなくても流れる）
 - 曲は `assets/bgm/<曲の気分>/` に置く（OpenTracks のタグで分けたフォルダ）: calm（落ち着いた）/ bright（明るい）/ comedy / tense（緊張）/ serious / emotional（感動・悲しい）/ mysterious（謎）。
-- **場面の種類**（台本の `bgm`。どういう場面で流れる曲か）: talk（ふだんの会話・解説・種明かし。いちばん長く流れるベース）/ opening（つかみ・導入）/
+- **場面の種類**（台本の `bgm`。どういう場面で流れる曲か）: talk（ふだんの会話・解説・種明かし。いちばん長く流れるベース）/ opening（つかみ・導入）/ cheerful（明るい会話。英会話の会話シーンなど。明るいが落ち着いた曲）/
   hype（ノリノリ・調子に乗る）/ gag（ドタバタ・ボケ）/ trouble（雲行きが怪しい・ピンチ）/ fail（やらかした後・トホホ）/ sad（どん底・しんみり）/
   mystery（謎・なぜ？）/ serious（核心・重大な事実）/ success（成功・逆転）/ ending（まとめ・締め）、＋ none（無音）。
   以前の気分の名前は読み替える（calm→talk、bright→hype、comedy→gag、tense→trouble、emotional→sad、mysterious→mystery）。
@@ -477,19 +477,20 @@ VOICEVOX の別スタイル（なみだめ・ツンツン・ささやき・ヘ�
   まとまり＝場面・段階が同じ連続。場面転換テロップ（card）と、黒板の見出しが別の見出しに変わる所から新しいまとまり（黒板なし→ありは同じまとまり）。
 - 書かれていないまとまりは推定する:
   - 場面の基本（重みを2倍）: 導入の決意 opening、導入の失敗 gag（＋fail）、めたん登場 talk、本編の実践（try）hype（＋trouble）、種明かし（reveal）・解説 talk、まとめ talk＋ending、エンディング ending
+    英会話: 会話（dialog）cheerful、フレーズ解説・リピート・ふりかえり talk、瞬発トレーニング cheerful（英会話の台本も、ブロックの `bgm` は必須・セリフの `bgm` は空気が変わるところだけ）
   - 足し点: 背景の雰囲気（落ち込み・回想→sad、夜・ショック→trouble、明るく→success）3点、効果音（ボヨヨーン等→gag、チーン→fail、運命・ショック等→trouble、ファンファーレ等→success）1.5点、
     表情（大泣き・悲しみ・どんより→sad、心配・ショック・焦り→trouble、喜び・大興奮・ドヤ顔→hype、笑い・怒り→gag、ひらめき→success、考え中→mystery）1点、ツッコミ→gag 1点、黒板→talk 0.5点
 - **短い区間**: まとまりの途中の切り替えは6秒未満なら前の曲のまま。まとまりの切れ目の切り替えは3秒以上あれば効かせる。無音は1秒以上あれば効かせる。
 - **曲の決め方（ランダムなし）**: 全部の曲に、その種類の場面への合い方の点数を付けて一番高い曲:
   - フォルダの点（その種類の場面でよく使われる気分か。0 の気分の曲は候補にしない）:
-    talk calm3・bright0.8・comedy0.4 ／ opening bright3・comedy1.5・calm1 ／ hype bright3・comedy2 ／ gag comedy3・bright0.5 ／
+    talk calm3・bright0.8・comedy0.4 ／ opening bright3・comedy1.5・calm1 ／ cheerful bright3・calm2・comedy0.5 ／ hype bright3・comedy2 ／ gag comedy3・bright0.5 ／
     trouble tense3・mysterious1・serious1 ／ fail comedy3・emotional1・calm0.5 ／ sad emotional3・calm0.5 ／ mystery mysterious3・tense1.5 ／
     serious serious3・tense1.5・emotional0.5 ／ success bright3・emotional1 ／ ending calm2・bright2・emotional0.5
   - 音の特徴の点（全曲の中で標準化した値×重み）。勢い energy＝(にぎやかさ＋高い音の立ち上がり＋音が詰まっている時間−休みの時間)/2:
-    talk 勢い−1.0・起伏−0.8・明るさ−0.3 ／ opening 勢い+0.4・明るさ+0.4 ／ hype 勢い+0.8・明るさ+0.4 ／ gag 勢い+0.6 ／ trouble 勢い+0.3・明るさ−0.4 ／
+    talk 勢い−1.0・起伏−0.8・明るさ−0.3 ／ opening 勢い+0.4・明るさ+0.4 ／ cheerful 勢い−0.6・明るさ+0.3・起伏−0.6 ／ hype 勢い+0.8・明るさ+0.4 ／ gag 勢い+0.6 ／ trouble 勢い+0.3・明るさ−0.4 ／
     fail 勢い−0.8（ゆるい曲）／ sad 勢い−0.8・明るさ−0.3 ／ mystery 勢い−0.4 ／ serious 明るさ−0.2 ／ success 勢い+0.4・明るさ+0.5 ／ ending 勢い−0.2・明るさ+0.3・起伏−0.4
   - 全種類共通: −0.5×音量の起伏（セリフの下で流れるため）
-  - **せわしない曲**: 長く流れる種類（talk・opening・sad・mystery・serious・success・ending）では −10（ほかに曲が無いときだけ）、短い場面の種類（hype・gag・trouble・fail）では −1.5。
+  - **せわしない曲**: 長く流れる種類（talk・opening・cheerful・sad・mystery・serious・success・ending）では −10（ほかに曲が無いときだけ）、短い場面の種類（hype・gag・trouble・fail）では −1.5。
     テンポの速さでは決めない。曲の音から次の3つを測り、全曲の中で標準化して「高い音の立ち上がり + 音が詰まっている時間 − 一息つける時間」が 3.0 以上ならせわしない曲とする:
     - attack_hf: 3kHz以上の音の立ち上がりの強さ（キンキンした音が次々に鳴る）
     - busy_share: 音の頭が1秒に4つ以上ある時間（3秒ごと）の割合

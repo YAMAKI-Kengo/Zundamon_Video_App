@@ -19,10 +19,12 @@ assets/bgm/ の下に、気分ごとのフォルダ（bright・calm・comedy・e
 """
 from __future__ import annotations
 
+import copy
 import json
 import re
 import subprocess
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
@@ -46,6 +48,7 @@ FOLDERS: dict[str, str] = {
 MOODS: dict[str, str] = {
     "talk": "ふだんの会話・解説（説明・振り返り・種明かし。セリフの下でずっと流れる、いちばん長く使うベース）",
     "opening": "つかみ・導入（これから何かが始まるワクワク・問いをぶつける）",
+    "cheerful": "明るい会話（楽しく話している場面・英会話の会話シーン。明るいが落ち着いていて、セリフや英語の邪魔をしない）",
     "hype": "ノリノリ・調子に乗る（うまくいっている・浮かれている・自信満々で挑戦中）",
     "gag": "ドタバタ・ボケ（ずっこけ・妄想の暴走・ツッコミの応酬）",
     "trouble": "雲行きが怪しい・ピンチ（焦り・危機・追い詰められる）",
@@ -93,16 +96,25 @@ class Track:
 
     @property
     def key(self) -> str:
-        return library_key(self.path)
+        return library_key(str(self.path))
 
 
+@lru_cache(maxsize=2048)
 def library_key(path: Path | str) -> str:
-    """_library.json のキー（assets/bgm/ からの相対パス。区切りは /）。"""
+    """_library.json のキー（assets/bgm/ からの相対パス。区切りは /）。
+
+    画面の描画のたびに何千回も呼ばれるので、覚えておく（ファイルの場所の解決はディスクを見るため遅い）。
+    """
     path = Path(path)
     try:
-        return path.resolve().relative_to(BGM_DIR.resolve()).as_posix()
+        return path.resolve().relative_to(_bgm_dir_resolved()).as_posix()
     except ValueError:
         return path.name
+
+
+@lru_cache(maxsize=1)
+def _bgm_dir_resolved() -> Path:
+    return BGM_DIR.resolve()
 
 
 def list_tracks(mood: Optional[str] = None) -> list[Track]:
@@ -137,7 +149,7 @@ def _all_tracks() -> list[Track]:
 
 
 def track_for_path(path: str | Path) -> Track:
-    key = library_key(path)
+    key = library_key(str(path))
     for track in _all_tracks():
         if track.key == key:
             return track
@@ -153,12 +165,47 @@ def _title_from_filename(path: Path) -> str:
     return stem.replace("_", " ")
 
 
-def load_library() -> dict[str, dict]:
+_LIBRARY_MEMO: dict = {}
+
+
+def _library_signature() -> tuple:
     try:
-        data = json.loads(LIBRARY_PATH.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {}
-    return {k: v for k, v in data.items() if isinstance(v, dict) and not k.startswith("_")} if isinstance(data, dict) else {}
+        stat = LIBRARY_PATH.stat()
+        return (stat.st_mtime_ns, stat.st_size)
+    except OSError:
+        return (0, 0)
+
+
+def load_library() -> dict[str, dict]:
+    """_library.json の中身。ファイルが変わらない間は読み直さない（画面の描画のたびに何百回も呼ばれるため）。
+
+    返す辞書は共有しているので、書き換えるときは copy.deepcopy してから（refresh_library のように）使う。
+    """
+    signature = _library_signature()
+    if _LIBRARY_MEMO.get("signature") != signature:
+        try:
+            data = json.loads(LIBRARY_PATH.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            data = {}
+        library = ({k: v for k, v in data.items() if isinstance(v, dict) and not k.startswith("_")}
+                   if isinstance(data, dict) else {})
+        _LIBRARY_MEMO.clear()
+        _LIBRARY_MEMO.update(signature=signature, library=library)
+    return _LIBRARY_MEMO["library"]
+
+
+def _memo_by_library(func):
+    """_library.json が変わるまで結果を覚えておく（引数なしの関数用）。"""
+    memo: dict = {}
+
+    def wrapper():
+        signature = _library_signature()
+        if memo.get("signature") != signature:
+            memo.update(signature=signature, value=func())
+        return memo["value"]
+
+    wrapper.__doc__ = func.__doc__
+    return wrapper
 
 
 def save_library(library: dict[str, dict]) -> None:
@@ -331,7 +378,7 @@ def refresh_library(default_source: str = "") -> list[str]:
     """
     if not BGM_DIR.exists():
         return []
-    library = load_library()
+    library = copy.deepcopy(load_library())
     legacy = _legacy_credits()
     added = []
     for path in sorted(BGM_DIR.rglob("*")):
@@ -369,6 +416,7 @@ def refresh_library(default_source: str = "") -> list[str]:
 MOOD_FOLDERS: dict[str, dict[str, float]] = {
     "talk": {"calm": 3.0, "bright": 0.8, "comedy": 0.4},
     "opening": {"bright": 3.0, "comedy": 1.5, "calm": 1.0},
+    "cheerful": {"bright": 3.0, "calm": 2.0, "comedy": 0.5},
     "hype": {"bright": 3.0, "comedy": 2.0},
     "gag": {"comedy": 3.0, "bright": 0.5},
     "trouble": {"tense": 3.0, "mysterious": 1.0, "serious": 1.0},
@@ -383,6 +431,7 @@ MOOD_PREFERENCES: dict[str, dict[str, float]] = {
     # 特徴（標準化した値）ごとの重み。+ はその特徴が大きい曲ほど合う
     "talk": {"energy": -1.0, "dynamics": -0.8, "brightness_hz": -0.3},  # セリフの下でずっと流れても邪魔にならない
     "opening": {"energy": 0.4, "brightness_hz": 0.4},
+    "cheerful": {"energy": -0.6, "brightness_hz": 0.3, "dynamics": -0.6},  # 明るいけれど、長く流れても疲れない
     "hype": {"energy": 0.8, "brightness_hz": 0.4},
     "gag": {"energy": 0.6},
     "trouble": {"energy": 0.3, "brightness_hz": -0.4},
@@ -400,6 +449,7 @@ BUSY_SHORT_PENALTY = 1.5
 FEATURE_KEYS = ("busyness", "brightness_hz", "dynamics", "attack_hf", "busy_share", "rest_share")
 
 
+@_memo_by_library
 def _feature_stats() -> dict[str, tuple[float, float]]:
     """全曲の特徴の平均と標準偏差（標準化に使う）。"""
     import math
@@ -547,6 +597,9 @@ SECTION_PRIORS: dict[str, dict[str, float]] = {
     "explain:try": {"hype": 1.5, "trouble": 0.5}, "explain:reveal": {"talk": 2.0},
     "explain:why": {"talk": 2.0}, "explain:how": {"talk": 2.0}, "explain": {"talk": 2.0},
     "summary": {"talk": 1.5, "ending": 1.0}, "ending": {"ending": 3.0},
+    # 英会話
+    "dialog": {"cheerful": 2.0}, "phrase": {"talk": 2.0}, "repeat": {"talk": 2.0}, "quiz": {"cheerful": 1.5},
+    "review": {"talk": 2.0},
 }
 EXPRESSION_MOODS = {
     "cry": "sad", "sad": "sad", "gloomy": "sad", "worried": "trouble",
