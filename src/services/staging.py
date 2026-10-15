@@ -37,7 +37,8 @@ POSITION_LABELS = {
     "center_left": "中央の左", "center": "中央", "center_right": "中央の右", "right": "右", "far_right": "右端",
     "out_right": "画面の外（右）",
 }
-SIZES: dict[str, float] = {"small": 0.72, "normal": 1.0, "large": 1.22}
+# キャラクターの大きさは変えない（大きくなったり小さくなったりすると見にくいため）。以前の台本の size は読み飛ばす
+SIZES: dict[str, float] = {"small": 1.0, "normal": 1.0, "large": 1.0}
 SIZE_LABELS = {"": "前のまま", "small": "小さく（遠く）", "normal": "普通", "large": "大きく（近く）"}
 FACINGS = {"left": -1, "right": 1}
 FACE_LABELS = {"": "自動（相手の方を向く）", "left": "左を向く", "right": "右を向く"}
@@ -47,12 +48,13 @@ MOVE_LABELS = {
     "step_back": "後ずさる（向きはそのまま下がる）", "approach": "相手に近づく", "retreat": "相手から離れる",
     "chase": "追いかける（走る）", "turn": "振り向く", "enter": "画面の外から入ってくる", "exit": "画面の外へ出ていく",
 }
-SHOTS = ["", "talk", "solo", "closeup", "group", "wide"]
+SHOTS = ["", "talk", "solo", "group", "wide"]  # 以前の closeup（顔のアップ）は使わない（solo として扱う）
 SHOT_LABELS = {
-    "": "前のまま", "talk": "いつもの2人の会話（定位置に戻る）", "solo": "話者1人だけ（中央・大きめ）",
-    "closeup": "話者の顔のアップ", "group": "全員が中央に集まる", "wide": "引きの画（全員小さめ・場面が見える）",
+    "": "前のまま", "talk": "いつもの2人の会話（定位置に戻る）", "solo": "話者1人だけ（中央）",
+    "group": "全員が中央に集まる", "wide": "全員が横に広がる（場面が見える）",
 }
-CAMERAS = ["", "pan_left", "pan_right", "zoom_in", "zoom_out", "follow"]
+# カメラ（パン・ズーム）は使わない（画面ごと拡大するとキャラクターの大きさが変わって見にくいため）。以前の台本の camera は読み飛ばす
+CAMERAS = [""]
 CAMERA_LABELS = {
     "": "なし", "pan_left": "左へパン", "pan_right": "右へパン", "zoom_in": "ゆっくり寄る",
     "zoom_out": "寄った状態から引く", "follow": "話者を追う",
@@ -128,7 +130,7 @@ class StagePlan:
 
     @property
     def animated(self) -> bool:
-        return self.moving or bool(self.camera) or bool(self.fx) or self.shot == "closeup"
+        return self.moving or bool(self.fx)
 
 
 def native_facing(character_key: str) -> int:
@@ -246,34 +248,51 @@ def _auto_facing(key: str, x: float, others: dict[str, float], speaker: str = ""
     return 1 if target > x else -1
 
 
-def _separate(target: dict[str, Placement], explicit: set[str], resolution: tuple[int, int]) -> None:
-    """2人の体が重なる近さなら、立ち位置を指定されていない方を、重ならない距離までずらす。
+SEPARATE_LOW, SEPARATE_HIGH = 0.06, 0.94  # 立ち位置の中心を収める範囲（いつもの定位置 0.095・0.905 も入る）
 
-    ずらす先が画面の外になるときは反対側へずらす。3人以上でも収まるよう、数回くり返す。
+
+def _separate(target: dict[str, Placement], explicit: set[str], resolution: tuple[int, int],
+              order: Optional[dict[str, float]] = None) -> None:
+    """体が重なる近さの人どうしを、重ならない距離まで離す（左右の並び順は変えない＝人をすり抜けない）。
+
+    まず立ち位置を指定されていない方をずらし、それでも収まらないとき（3人が端に寄った等）は全員を
+    画面の中で並べ直す。縦画面に3人など、画面の幅に入りきらないときは、重なりを全員で均等に分け合う。
     """
+    keys = sorted((k for k, p in target.items() if p.on_screen),
+                  key=lambda k: (target[k].x, (order or {}).get(k, target[k].x)))
+    if len(keys) < 2:
+        return
+    gaps = [min_distance(a, 1.0, b, 1.0, resolution) for a, b in zip(keys, keys[1:])]
+    room = SEPARATE_HIGH - SEPARATE_LOW
+    if sum(gaps) > room:
+        gaps = [g * room / sum(gaps) for g in gaps]
+    xs = [target[k].x for k in keys]
+    # 1) 指定されていない方をずらす（指定された人はなるべく動かさない）
     for _ in range(4):
         moved = False
-        keys = sorted((k for k, p in target.items() if p.on_screen), key=lambda k: target[k].x)
-        for a, b in zip(keys, keys[1:]):
-            pa, pb = target[a], target[b]
-            gap = min_distance(a, pa.scale, b, pb.scale, resolution)
-            if pb.x - pa.x >= gap - 1e-3:
+        for i in range(len(keys) - 1):
+            if xs[i + 1] - xs[i] >= gaps[i] - 1e-3:
                 continue
-            if b not in explicit or a in explicit:
-                mover, anchor, direction = b, pa, 1   # 右の人を右へ
+            if keys[i + 1] not in explicit or keys[i] in explicit:
+                xs[i + 1] = xs[i] + gaps[i]
             else:
-                mover, anchor, direction = a, pb, -1  # 左の人を左へ
-            x = anchor.x + direction * gap
-            if not 0.06 <= x <= 0.94:
-                # 画面の外に出てしまうので、もう一方を反対側へずらす
-                other = a if mover == b else b
-                ox = target[mover].x - direction * gap
-                target[other] = replace(target[other], x=min(max(ox, 0.06), 0.94))
-            else:
-                target[mover] = replace(target[mover], x=x)
+                xs[i] = xs[i + 1] - gaps[i]
             moved = True
         if not moved:
             break
+    # 2) 画面の中に収めて、まだ近すぎる所を詰め直す（左から押し出し → 右端から押し戻し → もう一度左から）
+    xs[0] = max(xs[0], SEPARATE_LOW)
+    for i in range(1, len(xs)):
+        xs[i] = max(xs[i], xs[i - 1] + gaps[i - 1])
+    xs[-1] = min(xs[-1], SEPARATE_HIGH)
+    for i in range(len(xs) - 2, -1, -1):
+        xs[i] = min(xs[i], xs[i + 1] - gaps[i])
+    xs[0] = max(xs[0], SEPARATE_LOW)
+    for i in range(1, len(xs)):
+        xs[i] = max(xs[i], xs[i - 1] + gaps[i - 1])
+    for k, x in zip(keys, xs):
+        if abs(target[k].x - x) > 1e-4:
+            target[k] = replace(target[k], x=x)
 
 
 def _move_seconds(move: str, distance: float) -> float:
@@ -314,12 +333,13 @@ def auto_directions(project: Project) -> list[dict]:
 
     方針（ランダムには動かさない。気持ちが動いたセリフで動かす）:
       - 黒板の無い会話が続くところでは、2人が中央に寄って向かい合って話す（いつも端に立ったままにしない）
-      - 調子に乗る・はしゃぐ: 話者が中央へ走り出て大きく（躍り出る）
+      - 調子に乗る・はしゃぐ: 話者が中央へ走り出る（躍り出る）
       - ショック・驚き: 後ずさる ／ 焦り: 相手と反対の端へ逃げる
-      - 落ち込み・大泣き: 自分の側の端で小さくなる ／ ひらめき・立ち直り: 跳んで中央へ戻る
+      - 落ち込み・大泣き: 相手から離れて端へ ／ ひらめき・立ち直り: 跳んで中央へ戻る
       - ツッコミ・怒り・ひそひそ: 相手に詰め寄る（近づく）
-      - 場面転換（「3日後…」）のあと: 引きの画から始める
-      - 同じ構図が長く続いたら、引き・寄りを入れ替える
+      - 場面転換（「3日後…」）のあと: いつもの立ち位置から始める（前の場面の立ち位置を引きずらない）
+      - 同じ構図が長く続いたら、広がる・集まるを入れ替える
+      - キャラクターの大きさは変えない
       - 黒板・イラストを出すセリフは何もしない（自動で左右に戻る）
     """
     scenes = project.scenes
@@ -331,13 +351,13 @@ def auto_directions(project: Project) -> list[dict]:
             continue  # 台本に演出が書かれているブロックは、台本どおり
         run = 0          # 黒板の無い会話が続いているセリフ数
         since_change = 0
-        layout = "home"  # 今の構図: home（左右）/ group（中央で向かい合う）/ wide / edge（誰かが端・小さい）
-        after_card = False
+        layout = "home"  # 今の構図: home（左右）/ group（中央で向かい合う）/ wide / edge（誰かが端）
         prev: Optional[Scene] = None
         for i in block:
             scene = scenes[i]
             if scene.card_text.strip():
-                after_card = True
+                run, layout, since_change = 0, "home", 0  # 場面転換のあとは、いつもの立ち位置から始まる
+                prev = None
                 continue
             if board_visible(scene) or not scene.text.strip():
                 run, layout, since_change = 0, "home", 0
@@ -354,12 +374,9 @@ def auto_directions(project: Project) -> list[dict]:
                     break
                 remaining += 1
             stage: dict = {}
-            if after_card:
-                stage = {"shot": "wide"}
-                layout = "wide"
-            elif speaker and changed and layout != "solo-ish" and (
+            if speaker and changed and layout != "solo-ish" and (
                     expr == "excited" or (expr == "happy" and scene.section == "intro")):
-                stage = {"cast": [{"who": speaker, "pos": "center", "size": "large", "move": "run"}]}
+                stage = {"cast": [{"who": speaker, "pos": "center", "move": "run"}]}
                 layout = "solo-ish"
             elif speaker and changed and expr in ("shock", "surprised") and layout != "edge":
                 stage = {"cast": [{"who": speaker, "move": "step_back"}]}
@@ -367,10 +384,10 @@ def auto_directions(project: Project) -> list[dict]:
                 stage = {"cast": [{"who": speaker, "pos": "edge_away", "move": "run"}]}
                 layout = "edge"
             elif speaker and changed and expr in ("gloomy", "cry", "sad") and layout != "edge":
-                stage = {"cast": [{"who": speaker, "pos": "edge_away", "size": "small", "move": "walk"}]}
+                stage = {"cast": [{"who": speaker, "pos": "edge_away", "move": "walk"}]}
                 layout = "edge"
             elif speaker and changed and expr == "idea" and layout == "edge":
-                stage = {"cast": [{"who": speaker, "pos": "center", "size": "normal", "move": "jump"}]}
+                stage = {"cast": [{"who": speaker, "pos": "center", "move": "jump"}]}
                 layout = "solo-ish"
             elif speaker and partner and (scene.char_motion == "tsukkomi" or (changed and expr in ("angry", "whisper"))):
                 stage = {"cast": [{"who": speaker, "move": "approach"}]}
@@ -387,7 +404,6 @@ def auto_directions(project: Project) -> list[dict]:
                 since_change = 0
             else:
                 since_change += 1
-            after_card = False
             run += 1
             prev = scene
     return result
@@ -402,9 +418,12 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
     state: dict[str, Placement] = {}
     plans: list[Optional[StagePlan]] = []
     prev_scene: Optional[Scene] = None
+    after_card = False
     for idx, scene in enumerate(scenes):
         if scene.card_text.strip():
             plans.append(None)  # 場面転換テロップ（全画面の文字）の間は立ち位置を変えない
+            # 場面が変わる（「3日後…」）ので、次のセリフはいつもの立ち位置から始める（前の場面の立ち位置を引きずらない）
+            state, after_card = {}, True
             continue
         visible = _visible_keys(scene)
         stage = (_parse_stage(scene.stage) or auto[idx]) if staging else {}
@@ -422,17 +441,17 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
             current_x = {k: start[k].x for k in visible}
             if shot == "talk":
                 target = {k: stage_home(k, resolution) for k in visible}
-            elif shot == "solo":
+            elif shot in ("solo", "closeup"):
                 target = {k: replace(start[k], x=_offscreen(start[k].x)) for k in visible if k != scene.speaker}
                 if scene.speaker in visible:
-                    target[scene.speaker] = Placement(x=0.5, scale=SIZES["large"])
+                    target[scene.speaker] = Placement(x=0.5)
             elif shot == "group":
                 xs = _spread(visible, 0.32 if len(visible) > 2 else 0.38, 0.68 if len(visible) > 2 else 0.62, current_x,
                              resolution)
                 target = {k: Placement(x=xs[k], scale=1.0) for k in visible}
             elif shot == "wide":
-                xs = _spread(visible, 0.22, 0.78, current_x, resolution, SIZES["small"])
-                target = {k: Placement(x=xs[k], scale=SIZES["small"]) for k in visible}
+                xs = _spread(visible, 0.2, 0.8, current_x, resolution)
+                target = {k: Placement(x=xs[k]) for k in visible}
             else:
                 target = {k: start[k] for k in visible}
             # キャラクターごとの指定（cast）
@@ -444,7 +463,6 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
                     continue
                 base = target.get(key, start.get(key, stage_home(key, resolution)))
                 pos = str(item.get("pos") or "")
-                size = str(item.get("size") or "")
                 face = str(item.get("face") or "")
                 move = str(item.get("move") or "")
                 x = base.x
@@ -461,8 +479,10 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
                 elif pos in POSITIONS:
                     x = POSITIONS[pos]
                 if move == "approach" and partner is not None and not pos:
-                    gap = min_distance(key, SIZES.get(size, base.scale), partner, others[partner].scale, resolution)
-                    x = partner_x - gap if x < partner_x else partner_x + gap
+                    gap = min_distance(key, 1.0, partner, 1.0, resolution)
+                    near = partner_x - gap if x < partner_x else partner_x + gap
+                    if abs(near - partner_x) < abs(x - partner_x):  # もう十分近ければ動かない（近づくつもりで離れない）
+                        x = near
                 elif move == "retreat" and partner_x is not None and not pos:
                     x = x - RETREAT_DISTANCE if x < partner_x else x + RETREAT_DISTANCE
                 elif move == "step_back" and partner_x is not None and not pos:
@@ -471,9 +491,8 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
                     x = _offscreen(x)
                 elif move == "enter" and not start.get(key, base).on_screen and not pos:
                     x = stage_home(key, resolution).x
-                scale = SIZES.get(size, base.scale)
                 facing = FACINGS.get(face, 0)
-                target[key] = Placement(x=x, scale=scale, facing=facing)
+                target[key] = Placement(x=x, facing=facing)
                 if move:
                     moves[key] = move
                 if move == "enter" and start.get(key) is not None and start[key].on_screen:
@@ -481,12 +500,15 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
                     start[key] = replace(start[key], x=_offscreen(x))
 
         if staging:
-            # 非表示になったキャラクターは画面の外へ出ていく（前のセリフで画面にいた場合）
+            # 非表示になったキャラクターは画面の外へ出ていく（前のセリフで画面にいた場合）。
+            # 黒板が出て消えるときは、歩いて横切らずにすぐ消える（黒板の後ろで人が動き回らないように）
             for k, p in start.items():
                 if k not in visible and k not in target:
                     target[k] = replace(p, x=_offscreen(p.x)) if p.on_screen and prev_scene is not None else p
-            # 新しく表示されたキャラクター（前は非表示）は、画面の外から入ってくる
-            if prev_scene is not None:
+                    if board_visible(scene) or after_card:
+                        start[k] = target[k]
+            # 新しく表示されたキャラクター（前は非表示）は、画面の外から入ってくる（場面転換の直後は最初からいる）
+            if prev_scene is not None and not after_card:
                 prev_visible = set(_visible_keys(prev_scene))
                 for k in visible:
                     if k not in prev_visible and start[k].on_screen:
@@ -501,7 +523,8 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
                 if p.on_screen and k in visible:
                     target[k] = replace(p, x=min(max(p.x, EDGE_LIMIT), 1 - EDGE_LIMIT))
             _separate(target, explicit={str(i.get("who")) for i in stage.get("cast") or []
-                                        if isinstance(i, dict) and i.get("pos")}, resolution=resolution)
+                                        if isinstance(i, dict) and i.get("pos")}, resolution=resolution,
+                      order={k: p.x for k, p in start.items()})
         explicit_face = {str(i.get("who")) for i in stage.get("cast") or [] if isinstance(i, dict) and i.get("face")}
         # 向き: 指定が無ければ相手の方を向く（いつもの定位置の画面では素材の向きのまま）
         positions = {k: p.x for k, p in target.items()}
@@ -548,4 +571,5 @@ def plan_stages(project: Project) -> list[Optional[StagePlan]]:
         plans.append(None if at_home and not plan.camera and not plan.fx and plan.shot != "closeup" else plan)
         state = {k: t.end for k, t in tracks.items()}
         prev_scene = scene
+        after_card = False
     return plans

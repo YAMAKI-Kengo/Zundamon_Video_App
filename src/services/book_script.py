@@ -98,11 +98,24 @@ from src.utils.asset_loader import (
     list_characters,
 )
 
-# 書籍解説動画の既定の背景（画面の向きごと）。ファイルが無い場合は背景を変更しない。
+# 既定の背景（動画の種類・画面の向きごと。設定しなくてもこの背景になる）。ファイルが無い場合は背景を変更しない。
+# 解説動画（本・調べもの）は書斎、英会話は教室。
 DEFAULT_BOOK_BACKGROUNDS: dict[VideoFormat, Path] = {
-    VideoFormat.LANDSCAPE: ASSETS_DIR / "backgrounds" / "zunda_room.png",
-    VideoFormat.PORTRAIT: ASSETS_DIR / "backgrounds" / "metan_room.png",
+    VideoFormat.LANDSCAPE: ASSETS_DIR / "backgrounds" / "study_landscape.jpg",
+    VideoFormat.PORTRAIT: ASSETS_DIR / "backgrounds" / "study_portrait.jpg",
 }
+DEFAULT_ENGLISH_BACKGROUNDS: dict[VideoFormat, Path] = {
+    VideoFormat.LANDSCAPE: ASSETS_DIR / "backgrounds" / "classroom_landscape.jpg",
+    VideoFormat.PORTRAIT: ASSETS_DIR / "backgrounds" / "classroom_portrait.jpg",
+}
+# 以前の既定の背景（この背景のままのプロジェクトは、今の既定の背景に切り替える）
+_OLD_DEFAULT_BACKGROUNDS = (ASSETS_DIR / "backgrounds" / "zunda_room.png", ASSETS_DIR / "backgrounds" / "metan_room.png")
+
+
+def default_background(project: Project) -> Optional[Path]:
+    """そのプロジェクトの既定の背景（動画の種類・画面の向きに合うもの）。"""
+    table = DEFAULT_ENGLISH_BACKGROUNDS if project.source_kind == "english" else DEFAULT_BOOK_BACKGROUNDS
+    return table.get(project.format)
 
 ENDING_CONFIG_PATH = ASSETS_DIR.parent / "config" / "ending.json"
 DEFAULT_ENDING_SECONDS = 12.0
@@ -1419,19 +1432,21 @@ def apply_to_project(project: Project, result: BookScriptResult, replace: bool =
     project.reading_dict = merge_readings(project.reading_dict, result.readings + default_readings_for(project.scenes))
     apply_book_cover(project)
     link_requested_illustrations(project.scenes)
-    background = DEFAULT_BOOK_BACKGROUNDS.get(project.format)
+    background = default_background(project)
     if background is not None and background.exists():
         project.common_background_path = str(background)
 
 
 def sync_background_to_format(project: Project) -> bool:
-    """書籍解説用の既定背景を使っている場合に限り、画面の向き（横/縦）に合った方の部屋へ切り替える。
+    """既定の背景を使っている場合に限り、動画の種類と画面の向き（横/縦）に合った方の既定の背景へ切り替える。
 
     台本を取り込んだ後に出力フォーマットを切り替えても、背景が自動で追従するようにするため。
+    以前の既定の背景（ずんだもん・めたんの部屋）のままのプロジェクトも、今の既定の背景にする。
     利用者が自分で別の背景を選んでいる場合は何もしない。切り替えた場合は True を返す。
     """
-    defaults = {str(p) for p in DEFAULT_BOOK_BACKGROUNDS.values()}
-    wanted = DEFAULT_BOOK_BACKGROUNDS.get(project.format)
+    defaults = {str(p) for p in (*DEFAULT_BOOK_BACKGROUNDS.values(), *DEFAULT_ENGLISH_BACKGROUNDS.values(),
+                                 *_OLD_DEFAULT_BACKGROUNDS)}
+    wanted = default_background(project)
     if project.common_background_path in defaults and wanted is not None and wanted.exists():
         if project.common_background_path != str(wanted):
             project.common_background_path = str(wanted)
@@ -1498,7 +1513,7 @@ SAMPLE_BOOK_SCRIPT = {
             "section": "intro", "phase": "hype", "hide": ["shikoku_metan"],
             "lines": [
                 {"speaker": "zundamon", "expression": "happy", "text": "最近ずっと眠いから、今日から毎日8時間寝るって決めたのだ！", "se": "シャキーン1",
-                 "bgm": "opening", "stage": {"fx": "sparkle", "cast": [{"who": "zundamon", "pos": "center", "size": "large", "move": "run"}]}},
+                 "bgm": "opening", "stage": {"fx": "sparkle", "cast": [{"who": "zundamon", "pos": "center", "move": "run"}]}},
             ],
         },
         {
@@ -1507,14 +1522,14 @@ SAMPLE_BOOK_SCRIPT = {
                 {"speaker": "zundamon", "card": "3日後…", "text": ""},
                 {"speaker": "zundamon", "expression": "troubled", "text": "夜9時に布団に入ったのに、2時間ゴロゴロしただけだったのだ…", "se": "ショック1"},
                 {"speaker": "zundamon", "expression": "sad", "text": "しかも朝もぜんぜん起きられなかったのだ…",
-                 "bgm": "fail", "stage": {"fx": "gloom", "cast": [{"who": "zundamon", "pos": "far_right", "size": "small"}]}},
+                 "bgm": "fail", "stage": {"fx": "gloom", "cast": [{"who": "zundamon", "pos": "far_right", "move": "walk"}]}},
             ],
         },
         {
             "section": "intro", "phase": "rescue",
             "lines": [
                 {"speaker": "shikoku_metan", "expression": "angry", "text": "そんなんじゃだめよ。", "se": "ビシッとツッコミ2",
-                 "bgm": "gag", "stage": {"cast": [{"who": "shikoku_metan", "pos": "home", "move": "enter"}, {"who": "zundamon", "pos": "home", "size": "normal"}]}},
+                 "bgm": "gag", "stage": {"cast": [{"who": "shikoku_metan", "pos": "home", "move": "enter"}, {"who": "zundamon", "pos": "home"}]}},
                 {"speaker": "zundamon", "expression": "surprised", "text": "どうしてなのだ？長く寝ればいいはずなのだ！"},
                 {"speaker": "shikoku_metan", "expression": "normal", "text": "このままだと、あんた毎晩ゴロゴロ地獄よ。でも、ある方法で一発で変わるわ。"},
                 {"speaker": "shikoku_metan", "expression": "happy", "text": "今日は『ぐっすり眠るための科学』を参考にするわ。", "se": "ジャジャーン", "show_book": True},

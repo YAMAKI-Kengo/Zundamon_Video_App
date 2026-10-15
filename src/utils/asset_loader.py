@@ -188,7 +188,8 @@ def load_illustration_guide() -> dict[str, str]:
 
 
 # いつもの部屋（台本で場所を指定しないときの既定の背景）。場所の背景の候補の一覧からは外す
-DEFAULT_ROOM_BACKGROUNDS = ("zunda_room", "metan_room", "sample_room")
+DEFAULT_ROOM_BACKGROUNDS = ("study_landscape", "study_portrait", "classroom_landscape", "classroom_portrait",
+                            "zunda_room", "metan_room", "sample_room")
 
 
 def find_background(name: str) -> Optional[Path]:

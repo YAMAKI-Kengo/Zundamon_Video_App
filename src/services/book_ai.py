@@ -195,12 +195,10 @@ def _script_schema(with_promo: bool = False) -> dict:
         "bgm": {"type": "string", "enum": [""] + bgm_library.MOOD_CHOICES},
         "stage": _obj({
             "shot": {"type": "string", "enum": staging.SHOTS},
-            "camera": {"type": "string", "enum": staging.CAMERAS},
             "fx": {"type": "string", "enum": staging.FX},
             "cast": {"type": "array", "items": _obj({
                 "who": {"type": "string", "enum": characters},
                 "pos": {"type": "string", "enum": list(staging.POSITION_LABELS)},
-                "size": {"type": "string", "enum": [""] + list(staging.SIZES)},
                 "face": {"type": "string", "enum": [""] + list(staging.FACINGS)},
                 "move": {"type": "string", "enum": staging.MOVES},
             })},
@@ -582,24 +580,25 @@ SCENE_MOVE_RULES = """- 場所の移り変わりは、アニメのように自�
   戻るときも、戻ったことが分かる一言（めたん「…で、部屋に帰ってきて落ち込んでるわけね」）や card を入れる。アプリは、場所が変わるとき背景を横に流し、2人が歩いて入ってくる。
 - 画面から一時的に外れるキャラクター（hide）は、外れる理由が分かるようにする（「ちょっと様子を見てるわね」と言って外れる、「待ちなさい！」と言って戻ってくる）。アプリは、外れるときは横へ歩いて出ていき、戻るときは横から歩いて入ってくる。"""
 
-STAGE_RULES = """## 立ち位置・動き・カメラ・効果（stage。キャラクターが場所にとらわれず動き回る寸劇にする）
+STAGE_RULES = """## 立ち位置・動き・効果（stage。キャラクターが場所にとらわれず動き回る寸劇にする）
 2人を左右に立たせて話させるだけの画面にしない。セリフの意味と前後の展開に合わせて、キャラクターを動かして演じさせる。
-stage に書いたことは次のセリフにも引き継がれる（書かなければ、前のセリフの立ち位置のまま）。変えたいセリフにだけ書き、それ以外は shot・camera・fx を空文字、cast を空の配列にする。
+stage に書いたことは次のセリフにも引き継がれる（書かなければ、前のセリフの立ち位置のまま）。変えたいセリフにだけ書き、それ以外は shot・fx を空文字、cast を空の配列にする。
+キャラクターの大きさは変えない・カメラ（アップ・ズーム）も使わない（大きさが変わると見にくい）。立ち位置・動き・向きで演じさせる。
+場面転換テロップ（card）のあとは、全員いつもの立ち位置から始まる。3人いるときは、人をすり抜けて反対側へ移動させない（並び順を保ったまま動かす）。
 - cast（キャラクターごとの指定。動かす人だけ書く）:
   - who: キャラクター。pos: 立ち位置（far_left・left・center_left・center・center_right・right・far_right。画面の外は out_left・out_right。home はいつもの立ち位置。空なら今の位置）。
-  - size: small（遠く・小さく）/ normal / large（手前・大きく）。空なら今のまま。face: left / right（向き。空なら一番近い相手の方を自動で向く）。
+  - face: left / right（向き。空なら、聞いている人は話している人の方を自動で向く）。
   - move: 動き方。walk（歩く）・run（走る）・jump（跳んで移動）・step_back（向きはそのまま後ずさる）・approach（相手に近づく。pos は空）・retreat（相手から離れる）・chase（追いかける。走る）・turn（振り向く）・enter（画面の外から入ってくる）・exit（画面の外へ出ていく）。空なら位置が変わるときは歩く。
-- shot（画面の構図）: talk（いつもの2人の会話の定位置に戻る）・solo（話者1人だけを中央に大きく。他は画面の外へ）・closeup（話者の顔のアップ）・group（全員が中央に集まる）・wide（全員を小さく引きで見せる。場所の背景が見える）。
-- camera: pan_left / pan_right（横にパン）・zoom_in（ゆっくり寄る）・zoom_out（寄った状態から引く）・follow（動く話者を追う）。
+- shot（画面の構図）: talk（いつもの2人の会話の定位置に戻る）・solo（話者1人だけを中央に。他は画面の外へ）・group（全員が中央に集まる）・wide（全員が横に広がる。場所の背景が見える）。
 - fx（効果）: focus_lines（集中線。衝撃の瞬間）・speed_lines（スピード線。走る・急展開）・flash（フラッシュ。ひらめき・大発表）・gloom（どんより縦線。落ち込み）・exclaim（「！」）・question（「？」）・anger（怒りマーク）・sparkle（キラキラ）。
 動きの例（セリフの意味に合わせる。ランダムに動かさない）:
-  - 調子に乗って画面の中央へ躍り出る: ずんだもん pos center, move run, size large ＋ fx sparkle
+  - 調子に乗って画面の中央へ躍り出る: ずんだもん pos center, move run ＋ fx sparkle
   - めたんがツッコミながら詰め寄る: めたん move approach ＋ motion tsukkomi
   - 衝撃の事実に後ずさる: ずんだもん move step_back ＋ fx focus_lines
   - 逃げるずんだもんをめたんが追いかける: ずんだもん pos out_right, move run ／ めたん pos right, move chase
-  - 落ち込んで画面の端で小さくなる: ずんだもん pos far_left, size small ＋ fx gloom
+  - 落ち込んで画面の端へ: ずんだもん pos far_left, move walk ＋ fx gloom
   - 何かを見つける: 振り向いて（move turn）「！」（fx exclaim）
-  - 1人で語る・ひらめく場面: shot solo / shot closeup
+  - 1人で語る・ひらめく場面: shot solo
   - 3人で相談する・作戦会議: shot group
   - 黒板で結果を見せるセリフ（board true）では、キャラクターは自動で左右に戻るので stage は空でよい。
 - 1ブロックの中で、立ち位置・ショットを2〜4回変える。同じ構図を長く続けない（目安: 3〜5セリフごとに画面の何かが変わる）。
