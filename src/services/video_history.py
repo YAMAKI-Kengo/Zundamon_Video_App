@@ -26,10 +26,11 @@ METRIC_KEYS = ("ctr", "avg_view", "views", "comments")
 CHANNEL_PATH = ROOT / "config" / "channel.json"
 GROUP_LABELS = {"explain": "解説（本・論文記事）", "english": "英会話"}
 DEFAULT_CHANNEL = {
-    "explain": {"arc": "ずんだもん、1年で100万円貯めるのだ計画", "rules": ""},
+    "explain": {"arc": "", "rules": ""},  # 解説動画は1本ずつ完結させる（「100万円貯める計画」のような裏の軸は入れない）
     "english": {"arc": "ずんだもん、3か月後に初めての海外旅行へ行く", "rules": ""},
 }
 METAN_MISTAKE_EVERY = 4  # 解説動画で、何本に1本「めたんも間違っていた回」にするか
+_OLD_EXPLAIN_ARCS = {"ずんだもん、1年で100万円貯めるのだ計画"}  # 以前の既定の軸（保存されていても使わない）
 
 
 def group_of(kind: str) -> str:
@@ -46,6 +47,8 @@ def load_channel() -> dict:
     for group, values in (saved.items() if isinstance(saved, dict) else []):
         if group in data and isinstance(values, dict):
             data[group].update({k: str(v) for k, v in values.items() if k in ("arc", "rules")})
+    if data["explain"].get("arc", "").strip() in _OLD_EXPLAIN_ARCS:
+        data["explain"]["arc"] = ""
     return data
 
 
@@ -118,11 +121,11 @@ def _series_text(kind: str, same: list[dict]) -> str:
     parts = []
     if arc:
         if kind == "english":
-            story = (f"週テーマは、この旅の進行に沿って増えていく（例: 出発前の準備 → 空港 → 機内 → 入国審査 → ホテル → "
-                     f"レストラン → 買い物 → 観光 → トラブル → 現地の人と仲良くなる）。推し活や日常の場面は、旅の中のエピソードとして入れてよい。"
-                     f"シリーズの最終回では、本当に旅行に行く回を作る。")
+            story = ("週テーマは、この旅の進行に沿って増えていく（例: 出発前の準備 → 空港 → 機内 → 入国審査 → ホテル → "
+                     "レストラン → 買い物 → 観光 → トラブル → 現地の人と仲良くなる）。推し活や日常の場面は、旅の中のエピソードとして入れてよい。"
+                     "シリーズの最終回では、本当に旅行に行く回を作る。")
         else:
-            story = (f"テーマがこの目標から遠い回も、ずんだもんの目標とつなげて扱う（例: 睡眠の本なら「寝不足で衝動買いが増えて計画がピンチ」）。")
+            story = ("テーマがこの目標から遠い回も、ずんだもんの目標とつなげて扱う（例: 睡眠の本なら「寝不足で衝動買いが増えて計画がピンチ」）。")
         parts.append(
             f"## 連続ドラマの軸（シリーズ）\n"
             f"- 視聴者は情報より、キャラクターの続きを見に戻ってくる。1本ずつの動画ではなく連続ドラマにする。裏の軸は「{arc}」。"
@@ -145,12 +148,12 @@ def _series_text(kind: str, same: list[dict]) -> str:
                     "「自分の悩みを早く解決してほしい」と思っているので、内輪の話から始まると30秒以内に離れてしまう。"
                     "シリーズの軸は裏の設定として使い、1本で完結する動画にする。"
                 )
-        if kind != "english" and episode % METAN_MISTAKE_EVERY == 0:
-            parts.append(
-                "- 今回は「めたんも間違っていた回」にする: 解説の途中で、いつも正しいめたんも同じ思い込みをしていて、"
-                "研究・本の結果に「えっ、わたくしも間違ってたわ…」となる場面を1回入れる"
-                "（頭のいい人でも間違えると知って視聴者が安心し、キャラクターにも深みが出る）。"
-            )
+    if kind != "english" and episode % METAN_MISTAKE_EVERY == 0:
+        parts.append(
+            "- 今回は「めたんも間違っていた回」にする: 振り返りの途中で、いつも正しいめたんも同じ思い込みをしていて、"
+            "研究・本の結果に「えっ、わたくしも間違ってたわ…」となる場面を1回入れる"
+            "（頭のいい人でも間違えると知って視聴者が安心し、キャラクターにも深みが出る）。"
+        )
     if rules:
         parts.append("## 視聴維持率の振り返りから決めた台本のルール（最優先で守る）\n" + rules)
     return "\n\n" + "\n".join(parts) if parts else ""

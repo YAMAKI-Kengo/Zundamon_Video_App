@@ -516,7 +516,7 @@ def _lesson_system(plan: dict, day: int, level: str, speech_speed: float = DEFAU
 - se（効果音）は、つかみ・正解・ツッコミ・オチなど3〜8回だけ。使えるのは次の名前のみ（使わないときは空文字）: {book_ai._se_guide()}
 - hide は空の配列。イラスト（image・caption・image_request・image_name）は、dialog の最初のセリフなど場面が伝わるところだけに出し、1本で2〜4枚までにする（出すセリフは board を false）。手元にあるイラスト: {', '.join(p.stem for p in list_illustrations()) or '（なし。image_request で依頼する）'}。合うものが無ければ、image_request に欲しいイラスト（検索語付き）、image_name に保存名（日本語4〜12字）を書く。caption は空文字（説明文は画面に出ない）。使わないときはすべて空文字。
 
-{book_ai.NETA_RULES}
+{book_ai.neta_rules()}
 
 {book_ai.MOTION_RULES}
 - 英会話では特に: ずんだもんが、アニメ・漫画の決めゼリフをもじって英語の失敗を言い訳する・調子に乗る（例:「だが断るのだ！」と言ってから正しい断り方を教わる、「長男だったら英語も耐えられたのだ…」）。英語のセリフ（ネイティブ音声）にはネタを入れず、自然な英語のままにする。
